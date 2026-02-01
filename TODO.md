@@ -1,13 +1,56 @@
 # Church Admin - TODO Liste
 
+## Nächste Schritte (Empfohlene Priorität)
+
+### Sofort (Hohe Priorität)
+1. **Family Tree Visualisierung** - Interaktiver Baum für Familien-Hierarchie
+2. **Gruppen-Detail-Ansicht** - Vollständige CRUD-Operationen für Gruppen
+3. **Mail-Verwaltung (Phase 6)** - Mail-Domains, Routing, Alias-Verwaltung
+4. **Bulk-Operationen** - Mehrere Benutzer gleichzeitig bearbeiten
+
+### Kurzfristig (Diese Woche)
+1. **Testing** - Unit Tests für LDAPManager und Views
+2. **Documentation** - README.md erweitern mit Setup-Anleitung
+3. **Performance** - LDAP-Query-Caching implementieren
+4. **Security** - Rate Limiting für Login-Versuche
+
+### Mittelfristig (Diesen Monat)
+1. **Self-Registration (Phase 9)** - Öffentliches Formular mit Pastor-Genehmigung
+2. **DSGVO-Compliance (Phase 12)** - Datenschutzerklärung, Einwilligungen
+3. **Backup & Recovery** - LDAP-Backup und Restore-Funktionen
+4. **Production Deployment** - Docker-Container, HTTPS, Monitoring
+
+## Kürzlich erledigte Aufgaben (2026-02-01)
+
+### Login & Authentifizierung ✅
+- [x] **Email-Login-Unterstützung**: Benutzer können sich nun mit E-Mail-Adresse statt Username anmelden
+- [x] **Email-zu-Username-Normalisierung**: Automatische LDAP-Lookup für cn basierend auf E-Mail
+- [x] **IntegrityError-Handling**: Robuste Fehlerbehandlung bei Login mit bestehenden Usern
+- [x] **Unique Email Constraint**: E-Mail-Adressen sind jetzt einzigartig in der Datenbank
+
+### Email-System ✅
+- [x] **EmailTemplate Model**: Editierbare E-Mail-Vorlagen im Admin-Bereich
+- [x] **Willkommens-Email**: Automatische E-Mail bei Aufnahme in "Mitglieder"-Gruppe
+- [x] **Template-Platzhalter**: Unterstützung für {{name}}, {{email}}, {{username}}, etc.
+
+### UI/UX Verbesserungen ✅
+- [x] **Toast-Notifications**: Verbesserte Sichtbarkeit des Close-Buttons mit Church CI
+- [x] **Status-basierte Filterung**: Filter für Mitglieder, Besucher, Gäste, Ehepartner, Angehörige
+- [x] **Live-Suche**: Debounced Live-Suche in Benutzer- und Mitgliederverwaltung
+
+### Git & Deployment ✅
+- [x] **Initial Git Commit**: Gesamtes Projekt ist jetzt versioniert
+- [x] **.gitignore**: Korrekte Ignorierung von __pycache__, db.sqlite3, .venv, etc.
+
 ## Bugs
 
 ### Hohe Priorität
+- [x] **Email-Login IntegrityError**: ✅ BEHOBEN - Login mit E-Mail funktioniert nun korrekt
 - [ ] **First login after setup**: LDAP-Verbindung automatisch beim ersten Login nach Setup erstellen
 
 ### Mittlere Priorität
+- [x] **LDAP Connection Error bei Login**: ✅ BEHOBEN - Besseres Exception-Handling implementiert
 - [ ] Passwort-Zurücksetzen für LDAP-Benutzer testen und verfeinern
-- [ ] Fehlerbehandlung bei fehlgeschlagener LDAP-Verbindung verbessern
 - [ ] Foto-Upload Validierung: Dateigröße und Format besser prüfen
 
 ### Niedrige Priorität
@@ -76,12 +119,22 @@
 - [x] Navigation in base.html mit Dropdown
 - [x] Breadcrumbs auf allen Seiten
 
-### Phase 8: Error Handling & Logging (Teilweise)
+### Phase 8: Error Handling & Logging ✅ (Erweitert)
 - [x] Custom Exceptions definiert
 - [x] Logging in LDAPManager
 - [x] Django Messages für User Feedback
+- [x] **LDAP Connection Error Handling** (verbessert mit LDAPConnectionError Exception)
+- [x] **IntegrityError Handling** (bei Email-Login mit Fallback-Authentifizierung)
 - [ ] Admin-Benachrichtigungen bei kritischen Fehlern
 - [ ] Detaillierte Error-Pages
+
+### Phase 8a: Email-Template-System ✅ (NEU)
+- [x] EmailTemplate Model erstellt
+- [x] Admin-Interface für Email-Templates
+- [x] Template-Rendering mit Platzhaltern ({{name}}, {{email}}, etc.)
+- [x] Automatische Willkommens-Email bei Mitglieder-Aufnahme
+- [x] E-Mail-Konfiguration in settings.py
+- [ ] Weitere Template-Typen (Passwort-Reset, Konto-Erstellt, etc.)
 
 ### Phase 9: Self-Registration (TODO)
 - [ ] Öffentliches Registrierungsformular
@@ -191,11 +244,13 @@
 
 ## Bekannte Probleme
 
-1. **LDAP-Verbindung**: Bei langen Idle-Zeiten können Verbindungen timeout - Auto-Reconnect verbessern
-2. **Foto-Upload**: Große Bilder (>1MB) werden abgelehnt - besseres Feedback geben
-3. **Search Performance**: Bei >1000 Benutzern wird Suche langsam - Pagination und Indexing
-4. **Parent-Selection**: Dropdown wird unübersichtlich bei vielen Benutzern - Autocomplete hinzufügen
-5. **Mail-Domains im Dashboard**: ✅ BEHOBEN - Waren klickbar und verlinkten auf Benutzersuche statt Mail-Verwaltung
+1. ~~**Login mit E-Mail**: IntegrityError bei Login mit E-Mail-Adresse~~ - ✅ BEHOBEN (2026-02-01)
+2. ~~**Toast Close Button**: Close-Button war schwer sichtbar~~ - ✅ BEHOBEN (2026-02-01)
+3. **LDAP-Verbindung**: Bei langen Idle-Zeiten können Verbindungen timeout - Auto-Reconnect verbessern
+4. **Foto-Upload**: Große Bilder (>1MB) werden abgelehnt - besseres Feedback geben
+5. **Search Performance**: Bei >1000 Benutzern wird Suche langsam - Pagination und Indexing
+6. **Parent-Selection**: Dropdown wird unübersichtlich bei vielen Benutzern - Autocomplete hinzufügen
+7. ~~**Mail-Domains im Dashboard**: Waren klickbar und verlinkten auf Benutzersuche statt Mail-Verwaltung~~ - ✅ BEHOBEN
 
 ## Backup & Recovery
 
@@ -247,6 +302,15 @@
 
 ---
 
-**Stand:** 2026-02-01
-**Version:** 1.0
+**Stand:** 2026-02-01 (05:30 Uhr)
+**Version:** 1.0.1
 **Maintainer:** Church Admin Team
+
+**Letzte Änderungen:**
+- Email-Login-Unterstützung mit LDAP-Normalisierung
+- Email Unique Constraint in Datenbank
+- EmailTemplate-System für editierbare E-Mail-Vorlagen
+- Toast-Notifications mit verbesserter Sichtbarkeit (Church CI)
+- Status-basierte Benutzerfilterung (Mitglieder, Besucher, Gäste, etc.)
+- Initial Git Commit mit vollständigem .gitignore
+- Robustes Error-Handling für LDAP-Connection und IntegrityErrors
