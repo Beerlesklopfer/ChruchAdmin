@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gruppenverwaltung - Church Administration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-church-navy">
+                <i class="bi bi-diagram-3-fill me-2"></i>Gruppenverwaltung
+            </h1>
+            <p class="text-church-gray">Verwalten Sie alle LDAP-Gruppen und Gruppenmitgliedschaften</p>
+        </div>
+    </div>
+
+    <!-- Search and Actions -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="get" class="d-flex">
+                <input type="search"
+                       name="q"
+                       class="form-control form-control-church me-2"
+                       placeholder="Gruppe suchen..."
+                       value="{{ search_query }}"
+                       id="groupSearch">
+                <button type="submit" class="btn btn-church-outline">
+                    <i class="bi bi-search"></i> Suchen
+                </button>
+                <a href="{% url 'group_list' %}" class="btn btn-church-secondary ms-2" title="Liste aktualisieren">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </a>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="#" class="btn btn-church-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                <i class="bi bi-plus-circle me-2"></i>Neue Gruppe
+            </a>
+        </div>
+    </div>
+
+    <!-- Groups Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-diagram-3 me-2"></i>Gruppen ({{ groups|length }})
+                </div>
+                <div class="card-body p-0">
+                    {% if groups %}
+                        <div class="table-responsive">
+                            <table class="table table-church table-church-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><i class="bi bi-tag me-2"></i>Gruppenname</th>
+                                        <th><i class="bi bi-info-circle me-2"></i>Beschreibung</th>
+                                        <th><i class="bi bi-people me-2"></i>Mitglieder</th>
+                                        <th class="text-end"><i class="bi bi-gear me-2"></i>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for group in groups %}
+                                    <tr>
+                                        <td>
+                                            <!-- Hierarchische Einrückung -->
+                                            {% if group.is_nested %}
+                                                <span style="margin-left: {{ group.level }}rem; color: var(--church-gray);">
+                                                    <i class="bi bi-arrow-return-right me-1"></i>
+                                                </span>
+                                            {% endif %}
+                                            <strong class="text-church-navy">{{ group.cn }}</strong>
+                                            {% if group.is_nested %}
+                                                <br>
+                                                <small class="text-muted" style="margin-left: {{ group.level }}rem;">
+                                                    <i class="bi bi-diagram-2 me-1"></i>Untergruppe von: {{ group.parent_cn }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="text-church-gray">{{ group.description|default:"Keine Beschreibung" }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-church-navy">
+                                                <i class="bi bi-people-fill me-1"></i>{{ group.member_count }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'group_detail' group_cn=group.cn %}"
+                                                   class="btn btn-church-outline btn-sm"
+                                                   title="Details anzeigen">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="#"
+                                                   class="btn btn-church-outline btn-sm"
+                                                   title="Bearbeiten">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a href="#"
+                                                   class="btn btn-outline-danger btn-sm"
+                                                   title="Löschen">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="card-footer bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+                                        ({{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Gruppen)
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <nav aria-label="Gruppen-Navigation">
+                                        <ul class="pagination pagination-sm justify-content-end mb-0">
+                                            {% if page_obj.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?q={{ search_query }}&page=1" aria-label="Erste">
+                                                        <i class="bi bi-chevron-bar-left"></i>
+                                                    </a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}" aria-label="Vorherige">
+                                                        <i class="bi bi-chevron-left"></i>
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link"><i class="bi bi-chevron-bar-left"></i></span>
+                                                </li>
+                                                <li class="page-item disabled">
+                                                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                                                </li>
+                                            {% endif %}
+
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_obj.number }}</span>
+                                            </li>
+
+                                            {% if page_obj.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.next_page_number }}" aria-label="Nächste">
+                                                        <i class="bi bi-chevron-right"></i>
+                                                    </a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}" aria-label="Letzte">
+                                                        <i class="bi bi-chevron-bar-right"></i>
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                                                </li>
+                                                <li class="page-item disabled">
+                                                    <span class="page-link"><i class="bi bi-chevron-bar-right"></i></span>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-diagram-3 text-church-gray" style="font-size: 4rem;"></i>
+                            <p class="text-church-gray mt-3">
+                                {% if search_query %}
+                                    Keine Gruppen gefunden für "{{ search_query }}"
+                                {% else %}
+                                    Keine Gruppen vorhanden
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-church-gold">
+                <div class="card-body bg-church-beige">
+                    <h5 class="text-church-navy mb-3">
+                        <i class="bi bi-info-circle-fill me-2 text-church-gold"></i>
+                        Hinweise zur Gruppenverwaltung
+                    </h5>
+                    <ul class="mb-0">
+                        <li>Gruppen können hierarchisch organisiert werden (Haupt- und Untergruppen)</li>
+                        <li>Eingerückte Gruppen sind Untergruppen einer übergeordneten Gruppe</li>
+                        <li>Verwenden Sie Gruppen für Berechtigungen und Mail-Verteilerlisten</li>
+                        <li>Die Anzahl der Mitglieder wird automatisch berechnet</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Group Modal (Placeholder) -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-church-navy text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>Neue Gruppe erstellen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Wird in einer späteren Phase implementiert.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Live-Suche mit 500ms Debounce
+    let searchTimeout;
+    document.getElementById('groupSearch').addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            e.target.form.submit();
+        }, 500);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}LDAP Administration{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3>LDAP Administration</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card text-white bg-primary">
+                                <div class="card-body">
+                                    <h4>{{ stats.total_users }}</h4>
+                                    <p>LDAP Benutzer</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <h4>{{ stats.total_groups }}</h4>
+                                    <p>LDAP Gruppen</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5>Administration Tools</h5>
+                        <div class="list-group">
+                            <a href="{% url 'ldap_user_search' %}" class="list-group-item list-group-item-action">
+                                <i class="fas fa-search"></i> Benutzer suchen
+                            </a>
+                            <a href="/admin/" class="list-group-item list-group-item-action">
+                                <i class="fas fa-cog"></i> Django Administration
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

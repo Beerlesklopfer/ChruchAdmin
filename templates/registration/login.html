@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Anmelden - Beispielgemeinde{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-card {
+        max-width: 450px;
+        width: 100%;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--church-navy) 0%, #2a3a5f 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        text-align: center;
+    }
+
+    .login-header i {
+        font-size: 3.5rem;
+        color: var(--church-gold);
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .login-header h2 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.75rem;
+    }
+
+    .login-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
+    .login-body {
+        padding: 2.5rem 2rem;
+        background-color: var(--church-beige);
+    }
+
+    .form-label {
+        color: var(--church-navy);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--church-gold);
+        box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+    }
+
+    .input-group-text {
+        background-color: white;
+        border: 2px solid #ddd;
+        border-right: none;
+        color: var(--church-gray);
+    }
+
+    .input-group .form-control {
+        border-left: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+        border-color: var(--church-gold);
+    }
+
+    .btn-login {
+        background: linear-gradient(135deg, var(--church-gold) 0%, #d4a850 100%);
+        color: var(--church-navy);
+        border: none;
+        padding: 0.875rem 1.5rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        margin-top: 1.5rem;
+    }
+
+    .btn-login:hover {
+        background: linear-gradient(135deg, #d4a850 0%, var(--church-gold) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(230, 192, 104, 0.4);
+        color: var(--church-navy);
+    }
+
+    .login-footer {
+        padding: 1.5rem 2rem;
+        background-color: white;
+        border-top: 1px solid #e0e0e0;
+        text-align: center;
+    }
+
+    .login-footer a {
+        color: var(--church-navy);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .login-footer a:hover {
+        color: var(--church-gold);
+    }
+
+    .alert-church {
+        border-radius: 8px;
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+    }
+
+    .errorlist li {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-text {
+        color: var(--church-gray);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <!-- Header -->
+        <div class="login-header">
+            <i class="bi bi-church-fill"></i>
+            <h2>Church Admin</h2>
+            <p>Beispielgemeinde</p>
+        </div>
+
+        <!-- Body -->
+        <div class="login-body">
+            <form method="post" autocomplete="on">
+                {% csrf_token %}
+
+                <!-- Username Field -->
+                <div class="mb-3">
+                    <label for="id_username" class="form-label">
+                        <i class="bi bi-person-fill me-1"></i>Benutzername
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <input
+                            type="text"
+                            name="username"
+                            class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                            id="id_username"
+                            placeholder="Ihr LDAP-Benutzername"
+                            autocomplete="username"
+                            required
+                            autofocus
+                            value="{{ form.username.value|default:'' }}"
+                        >
+                    </div>
+                    {% if form.username.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.username.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <!-- Password Field -->
+                <div class="mb-3">
+                    <label for="id_password" class="form-label">
+                        <i class="bi bi-lock-fill me-1"></i>Passwort
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <input
+                            type="password"
+                            name="password"
+                            class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                            id="id_password"
+                            placeholder="Ihr Passwort"
+                            autocomplete="current-password"
+                            required
+                        >
+                    </div>
+                    {% if form.password.errors %}
+                        <ul class="errorlist">
+                            {% for error in form.password.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+
+                <!-- Non-field errors -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-church">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Remember Me (optional) -->
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                    <label class="form-check-label" for="rememberMe">
+                        Angemeldet bleiben
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-login w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Anmelden
+                </button>
+
+                <!-- Help Text -->
+                <div class="form-text text-center mt-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Verwenden Sie Ihre bekannten Zugangsdaten
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            <p class="mb-2">
+                Noch kein Zugang?
+                <a href="{% url 'register' %}">
+                    <i class="bi bi-person-plus me-1"></i>Registrierungsanfrage stellen
+                </a>
+            </p>
+            <p class="mb-0">
+                <a href="{% url 'password_reset_request' %}">
+                    <i class="bi bi-key me-1"></i>Passwort vergessen?
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

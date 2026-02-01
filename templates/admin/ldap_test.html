@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="module">
+    <h2>LDAP Verbindungstest</h2>
+    
+    <div class="form-row">
+        <div class="col-12">
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">LDAP Verbindung testen</button>
+            </form>
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <h3>Konfiguration</h3>
+        <table class="table">
+            <tr><th>Server URI:</th><td>{{ AUTH_LDAP_SERVER_URI }}</td></tr>
+            <tr><th>Bind DN:</th><td>{{ AUTH_LDAP_BIND_DN }}</td></tr>
+            <tr><th>User Search Base:</th><td>{{ AUTH_LDAP_USER_SEARCH.search_base }}</td></tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

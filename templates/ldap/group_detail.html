@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.cn }} - Gruppendetails{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'ldap_admin' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'group_list' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-diagram-3 me-1"></i>Gruppenverwaltung
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+                        <i class="bi bi-info-circle me-1"></i>{{ group.cn }}
+                    </li>
+                </ol>
+            </nav>
+
+            <h1 class="text-church-navy">
+                <i class="bi bi-diagram-3-fill me-2"></i>{{ group.cn }}
+            </h1>
+            <p class="text-church-gray">{{ group.description|default:"Keine Beschreibung" }}</p>
+        </div>
+    </div>
+
+    <!-- Group Info Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>Gruppeninformationen
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Gruppenname:</dt>
+                        <dd class="col-sm-8"><strong class="text-church-navy">{{ group.cn }}</strong></dd>
+
+                        <dt class="col-sm-4">Beschreibung:</dt>
+                        <dd class="col-sm-8">{{ group.description|default:"Keine Beschreibung" }}</dd>
+
+                        <dt class="col-sm-4">DN:</dt>
+                        <dd class="col-sm-8"><code style="font-size: 0.85rem;">{{ group.dn }}</code></dd>
+
+                        <dt class="col-sm-4">Mitglieder:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge badge-church-navy">
+                                <i class="bi bi-people-fill me-1"></i>{{ members|length }}
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-gear me-2"></i>Aktionen
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-church-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            <i class="bi bi-person-plus me-2"></i>Mitglied hinzufügen
+                        </button>
+                        <a href="{% url 'group_list' %}" class="btn btn-church-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Zurück zur Gruppenliste
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-people me-2"></i>Mitglieder ({{ members|length }})
+                </div>
+                <div class="card-body p-0">
+                    {% if members %}
+                        <div class="table-responsive">
+                            <table class="table table-church table-church-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><i class="bi bi-person me-2"></i>Benutzername</th>
+                                        <th><i class="bi bi-card-text me-2"></i>Name</th>
+                                        <th class="text-end"><i class="bi bi-gear me-2"></i>Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in members %}
+                                    <tr>
+                                        <td>
+                                            <strong class="text-church-navy">{{ member.cn }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="text-church-gray">{{ member.displayName }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <form method="post" action="{% url 'group_remove_member' group_cn=group.cn %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="user_dn" value="{{ member.dn }}">
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        onclick="return confirm('Möchten Sie {{ member.displayName }} wirklich aus der Gruppe entfernen?')">
+                                                    <i class="bi bi-person-dash"></i> Entfernen
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people text-church-gray" style="font-size: 4rem;"></i>
+                            <p class="text-church-gray mt-3">
+                                Keine Mitglieder in dieser Gruppe
+                            </p>
+                            <button type="button" class="btn btn-church-primary mt-2" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                                <i class="bi bi-person-plus me-2"></i>Erstes Mitglied hinzufügen
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-church-navy text-white">
+                <h5 class="modal-title" id="addMemberModalLabel">
+                    <i class="bi bi-person-plus me-2"></i>Mitglied hinzufügen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'group_add_member' group_cn=group.cn %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="user_select" class="form-label">
+                            <i class="bi bi-person me-1"></i>Benutzer auswählen
+                        </label>
+                        <select class="form-select" id="user_select" name="user_dn" required>
+                            <option value="">-- Benutzer auswählen --</option>
+                            {% for user in all_users %}
+                                {% if user not in members %}
+                                    <option value="{{ user.dn }}">{{ user.displayName }} ({{ user.cn }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Nur Benutzer, die noch nicht in der Gruppe sind, werden angezeigt
+                        </div>
+                    </div>
+
+                    <!-- Search field for filtering -->
+                    <div class="mb-3">
+                        <label for="user_search" class="form-label">
+                            <i class="bi bi-search me-1"></i>Benutzer suchen
+                        </label>
+                        <input type="text" class="form-control" id="user_search" placeholder="Name oder Benutzername eingeben...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-church-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Hinzufügen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Live-Suche im Benutzer-Dropdown
+    document.getElementById('user_search').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const select = document.getElementById('user_select');
+        const options = select.options;
+
+        for (let i = 1; i < options.length; i++) {  // Skip first option (placeholder)
+            const optionText = options[i].text.toLowerCase();
+            if (optionText.includes(searchTerm)) {
+                options[i].style.display = '';
+            } else {
+                options[i].style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

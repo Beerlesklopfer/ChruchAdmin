@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Neues Mitglied aufnehmen - Church Administration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-church-navy">
+                <i class="bi bi-person-plus-fill me-2"></i>Neues Mitglied aufnehmen
+            </h1>
+            <p class="text-church-gray">Person zur Gruppe "Mitglieder" hinzufügen</p>
+        </div>
+    </div>
+
+    <!-- Search and Actions -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form method="get" class="d-flex" id="searchForm">
+                <input type="search"
+                       name="q"
+                       class="form-control form-control-church me-2"
+                       placeholder="Person suchen (Name, Benutzername, E-Mail, Status)..."
+                       value="{{ search_query }}"
+                       id="memberSearch">
+                <input type="hidden" name="status" value="{{ status_filter }}" id="statusFilterInput">
+                <button type="submit" class="btn btn-church-outline">
+                    <i class="bi bi-search"></i> Suchen
+                </button>
+                <a href="{% url 'member_add' %}" class="btn btn-church-secondary ms-2" title="Liste aktualisieren">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </a>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'user_create' %}" class="btn btn-church-primary">
+                <i class="bi bi-person-plus me-2"></i>Neue Person erstellen
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Status Filter">
+                <a href="?q={{ search_query }}"
+                   class="btn btn-sm {% if not status_filter %}btn-church-primary{% else %}btn-church-outline{% endif %}">
+                    <i class="bi bi-people-fill me-1"></i>Alle
+                </a>
+                <a href="?q={{ search_query }}&status=Besucher"
+                   class="btn btn-sm {% if status_filter == 'Besucher' %}btn-info{% else %}btn-outline-info{% endif %}">
+                    <i class="bi bi-person-walking me-1"></i>Besucher
+                </a>
+                <a href="?q={{ search_query }}&status=Gäste"
+                   class="btn btn-sm {% if status_filter == 'Gäste' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-person-dash me-1"></i>Gäste
+                </a>
+                <a href="?q={{ search_query }}&status=Ehepartner"
+                   class="btn btn-sm {% if status_filter == 'Ehepartner' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    <i class="bi bi-people me-1"></i>Ehepartner
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-church-gold">
+                <div class="card-body bg-church-beige">
+                    <h5 class="text-church-navy mb-3">
+                        <i class="bi bi-info-circle-fill me-2 text-church-gold"></i>
+                        Hinweis
+                    </h5>
+                    <p class="mb-0">
+                        <strong>Person bereits registriert?</strong> Wählen Sie die Person aus der Liste unten aus und klicken Sie auf "Als Mitglied aufnehmen".
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nicht-Mitglieder Liste -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-people me-2"></i>Personen die noch nicht Mitglied sind
+                    {% if search_query %}
+                        <span class="badge badge-church-gold ms-2">{{ non_members|length }} Ergebnisse für "{{ search_query }}"</span>
+                    {% else %}
+                        ({{ non_members|length }})
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if non_members %}
+                        <div class="table-responsive">
+                            <table class="table table-church table-church-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th><i class="bi bi-person me-2"></i>Name</th>
+                                        <th><i class="bi bi-tag me-2"></i>Benutzername</th>
+                                        <th><i class="bi bi-envelope me-2"></i>E-Mail</th>
+                                        <th><i class="bi bi-shield me-2"></i>Aktueller Status</th>
+                                        <th class="text-end"><i class="bi bi-gear me-2"></i>Aktion</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for person in non_members %}
+                                    <tr>
+                                        <td>
+                                            <strong class="
+                                                {% if person.status == 'Besucher' %}text-info
+                                                {% elif person.status == 'Gast' %}text-secondary
+                                                {% elif person.status == 'Ehepartner' %}text-warning
+                                                {% elif person.status == 'Angehöriger' %}text-success
+                                                {% else %}text-church-navy
+                                                {% endif %}
+                                            ">{{ person.displayName }}</strong>
+                                        </td>
+                                        <td>
+                                            <code>{{ person.cn }}</code>
+                                        </td>
+                                        <td>
+                                            <span class="text-church-gray">{{ person.mail|default:"Keine E-Mail" }}</span>
+                                        </td>
+                                        <td>
+                                            {% if person.status == 'Besucher' %}
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-person-walking me-1"></i>Besucher
+                                                </span>
+                                            {% elif person.status == 'Gast' %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-person-dash me-1"></i>Gast
+                                                </span>
+                                            {% elif person.status == 'Ehepartner' %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-people me-1"></i>Ehepartner
+                                                </span>
+                                            {% elif person.status == 'Angehöriger' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-people me-1"></i>Angehöriger
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="bi bi-question-circle me-1"></i>{{ person.status }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <form method="post" action="{% url 'member_add_existing' %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="user_dn" value="{{ person.dn }}">
+                                                <button type="submit"
+                                                        class="btn btn-church-primary btn-sm"
+                                                        onclick="return confirm('{{ person.displayName }} als Mitglied aufnehmen?')">
+                                                    <i class="bi bi-person-check-fill me-1"></i>Als Mitglied aufnehmen
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            {% if search_query %}
+                                <i class="bi bi-search text-church-gray" style="font-size: 4rem;"></i>
+                                <p class="text-church-gray mt-3">
+                                    <strong>Keine Ergebnisse für "{{ search_query }}"</strong><br>
+                                    Keine Personen gefunden, die noch nicht Mitglied sind
+                                </p>
+                                <a href="{% url 'member_add' %}" class="btn btn-church-secondary mt-2">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Filter zurücksetzen
+                                </a>
+                            {% else %}
+                                <i class="bi bi-check-circle text-church-gold" style="font-size: 4rem;"></i>
+                                <p class="text-church-gray mt-3">
+                                    <strong>Alle Personen sind bereits Mitglieder</strong><br>
+                                    oder es gibt keine registrierten Besucher/Gäste
+                                </p>
+                                <a href="{% url 'user_create' %}" class="btn btn-church-primary mt-2">
+                                    <i class="bi bi-person-plus me-2"></i>Neue Person erstellen
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-church-beige">
+                <div class="card-body">
+                    <h6 class="text-church-navy mb-3">
+                        <i class="bi bi-info-circle me-2"></i>Status-Erklärung
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-info me-2">Besucher</span>
+                            Person besucht regelmäßig Gottesdienste
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-secondary me-2">Gast</span>
+                            Einmalige oder seltene Besucher
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-warning text-dark me-2">Ehepartner</span>
+                            Ehepartner eines Mitglieds
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <span class="badge bg-success me-2">Angehöriger</span>
+                            Familienmitglied eines Mitglieds
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'ldap_admin' %}" class="btn btn-church-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Zurück zum Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Live-Suche mit 500ms Debounce
+    let searchTimeout;
+    document.getElementById('memberSearch').addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            e.target.form.submit();
+        }, 500);
+    });
+
+    // Status-Filter Click Handler (optional für bessere UX)
+    document.querySelectorAll('.btn-group a').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            // Optional: Zeige Loading-Indikator
+            console.log('Filter angewendet:', this.textContent.trim());
+        });
+    });
+</script>
+{% endblock %}

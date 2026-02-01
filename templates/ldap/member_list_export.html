@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gemeindelisten-Export - Church Admin{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="margin-bottom: 1.5rem;">
+    <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-house-door me-1"></i>Home
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'ldap_dashboard' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+            <i class="bi bi-download me-1"></i>Export
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px;">
+    <div class="text-center mb-4">
+        <h1 style="color: var(--church-navy); font-weight: 700;">
+            <i class="bi bi-download me-2" style="color: var(--church-gold);"></i>
+            Gemeindelisten-Export
+        </h1>
+        <p class="text-muted">Exportieren Sie die Gemeindeliste in verschiedenen Formaten</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Standard PDF Export -->
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 4px solid var(--church-gold);">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-file-pdf text-danger me-2"></i>PDF-Export
+                    </h5>
+                    <p class="card-text">Exportieren Sie die Gemeindeliste als PDF-Dokument.</p>
+                    <a href="{% url 'member_list_export_pdf' %}" class="btn btn-church-primary">
+                        <i class="bi bi-download me-2"></i>Als PDF herunterladen
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standard vCard Export -->
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 4px solid var(--church-gold);">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-person-vcard text-primary me-2"></i>vCard-Export
+                    </h5>
+                    <p class="card-text">Exportieren Sie die Gemeindeliste als vCard/CardDAV-Datei.</p>
+                    <a href="{% url 'member_list_export_vcard' %}" class="btn btn-church-primary">
+                        <i class="bi bi-download me-2"></i>Als vCard herunterladen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export-Konfigurationen -->
+    {% if export_settings %}
+    <div class="mt-5">
+        <h3 class="mb-4" style="color: var(--church-navy);">
+            <i class="bi bi-gear me-2"></i>Konfigurierte Exporte
+        </h3>
+        <div class="row g-3">
+            {% for settings in export_settings %}
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">{{ settings.name }}</h6>
+                        <p class="card-text small text-muted">{{ settings.description|truncatewords:15 }}</p>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'member_list_export_pdf_settings' settings.id %}" class="btn btn-outline-danger">
+                                <i class="bi bi-file-pdf"></i> PDF
+                            </a>
+                            <a href="{% url 'member_list_export_vcard_settings' settings.id %}" class="btn btn-outline-primary">
+                                <i class="bi bi-person-vcard"></i> vCard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Admin-Link -->
+    {% if user.is_superuser or perms.authapp.add_memberlistexportsettings %}
+    <div class="mt-5 text-center">
+        <a href="{% url 'member_list_export_settings' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-gear me-2"></i>Export-Einstellungen verwalten
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

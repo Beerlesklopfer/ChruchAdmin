@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Neue Familie erstellen - Church Admin{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="margin-bottom: 1.5rem;">
+    <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-house-door me-1"></i>Home
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'ldap_dashboard' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'family_tree' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-diagram-3-fill me-1"></i>Familien-Baum
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+            <i class="bi bi-plus-circle me-1"></i>Neue Familie
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--church-beige);
+    }
+
+    .form-header i {
+        font-size: 3rem;
+        color: var(--church-gold);
+        margin-bottom: 1rem;
+    }
+
+    .form-header h2 {
+        color: var(--church-navy);
+        font-weight: 700;
+    }
+
+    .form-label {
+        color: var(--church-navy);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--church-gold);
+        box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--church-gold) 0%, #d4a850 100%);
+        color: var(--church-navy);
+        border: none;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #d4a850 0%, var(--church-gold) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(230, 192, 104, 0.4);
+        color: var(--church-navy);
+    }
+
+    .btn-cancel {
+        background: var(--church-beige);
+        color: var(--church-navy);
+        border: 2px solid var(--church-navy);
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-cancel:hover {
+        background: var(--church-navy);
+        color: white;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--church-gray);
+        margin-top: 0.25rem;
+    }
+
+    .required-indicator {
+        color: #dc3545;
+        margin-left: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <i class="bi bi-house-heart-fill"></i>
+        <h2>Neue Familie erstellen</h2>
+        <p class="text-muted">Erstellen Sie ein neues Familienoberhaupt</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- CN (Username) -->
+        <div class="mb-3">
+            <label for="id_cn" class="form-label">
+                <i class="bi bi-person-badge me-1"></i>Benutzername (CN)
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="text"
+                name="cn"
+                class="form-control"
+                id="id_cn"
+                placeholder="z.B. Max.Mustermann"
+                required
+            >
+            <div class="help-text">
+                Format: Vorname.Nachname (keine Leerzeichen)
+            </div>
+        </div>
+
+        <!-- Vorname -->
+        <div class="mb-3">
+            <label for="id_givenName" class="form-label">
+                <i class="bi bi-person me-1"></i>Vorname
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="text"
+                name="givenName"
+                class="form-control"
+                id="id_givenName"
+                placeholder="Max"
+                required
+            >
+        </div>
+
+        <!-- Nachname -->
+        <div class="mb-3">
+            <label for="id_sn" class="form-label">
+                <i class="bi bi-person me-1"></i>Nachname
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="text"
+                name="sn"
+                class="form-control"
+                id="id_sn"
+                placeholder="Mustermann"
+                required
+            >
+            <div class="help-text">
+                Dieser Name wird als Familienname verwendet
+            </div>
+        </div>
+
+        <!-- E-Mail -->
+        <div class="mb-3">
+            <label for="id_mail" class="form-label">
+                <i class="bi bi-envelope me-1"></i>E-Mail-Adresse
+            </label>
+            <input
+                type="email"
+                name="mail"
+                class="form-control"
+                id="id_mail"
+                placeholder="max.mustermann@example-church.de"
+            >
+            <div class="help-text">
+                Optional: E-Mail-Adresse des Familienmitglieds
+            </div>
+        </div>
+
+        <!-- Passwort -->
+        <div class="mb-3">
+            <label for="id_password" class="form-label">
+                <i class="bi bi-lock me-1"></i>Passwort
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="password"
+                name="password"
+                class="form-control"
+                id="id_password"
+                placeholder="Sicheres Passwort"
+                required
+            >
+            <div class="help-text">
+                Mindestens 8 Zeichen empfohlen
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <button type="submit" class="btn btn-submit">
+            <i class="bi bi-check-circle me-2"></i>Familie erstellen
+        </button>
+        <a href="{% url 'family_tree' %}" class="btn btn-cancel">
+            <i class="bi bi-x-circle me-2"></i>Abbrechen
+        </a>
+    </form>
+</div>
+{% endblock %}

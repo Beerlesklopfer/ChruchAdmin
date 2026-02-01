@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Willkommen - Beispielgemeinde{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, var(--church-navy) 0%, #2a3a5f 100%);
+        color: white;
+        padding: 4rem 2rem;
+        margin: -1.5rem -1.5rem 3rem -1.5rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: rgba(230, 192, 104, 0.1);
+        border-radius: 50%;
+    }
+
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -5%;
+        width: 400px;
+        height: 400px;
+        background: rgba(230, 192, 104, 0.08);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-icon {
+        font-size: 5rem;
+        color: var(--church-gold);
+        margin-bottom: 1.5rem;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    /* Feature Cards */
+    .features-section {
+        margin-bottom: 3rem;
+    }
+
+    .feature-card {
+        background: white;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .feature-card-header {
+        background: linear-gradient(135deg, var(--church-beige) 0%, #ebe7d8 100%);
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        color: var(--church-navy);
+        margin-bottom: 1rem;
+    }
+
+    .feature-card-title {
+        color: var(--church-navy);
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+
+    .feature-card-body {
+        padding: 1.5rem;
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .feature-list li {
+        padding: 0.5rem 0;
+        color: var(--church-gray);
+    }
+
+    .feature-list li i {
+        color: var(--church-gold);
+        margin-right: 0.5rem;
+    }
+
+    /* Action Buttons */
+    .btn-church-hero {
+        background: var(--church-gold);
+        color: var(--church-navy);
+        border: none;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        margin: 0.5rem;
+    }
+
+    .btn-church-hero:hover {
+        background: #d4a850;
+        color: var(--church-navy);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(230, 192, 104, 0.4);
+    }
+
+    .btn-church-secondary {
+        background: transparent;
+        color: white;
+        border: 2px solid white;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        margin: 0.5rem;
+    }
+
+    .btn-church-secondary:hover {
+        background: white;
+        color: var(--church-navy);
+    }
+
+    /* Stats Section */
+    .stats-section {
+        background: var(--church-beige);
+        padding: 3rem 2rem;
+        margin: 3rem -1.5rem;
+        border-radius: 12px;
+    }
+
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--church-navy);
+        display: block;
+    }
+
+    .stat-label {
+        color: var(--church-gray);
+        font-size: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Welcome User Section */
+    .welcome-user {
+        background: linear-gradient(135deg, var(--church-gold) 0%, #d4a850 100%);
+        color: var(--church-navy);
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .welcome-user h2 {
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .welcome-user p {
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+        margin-top: 2rem;
+    }
+
+    .action-btn {
+        background: white;
+        border: none;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        display: block;
+        color: var(--church-navy);
+        text-decoration: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        color: var(--church-navy);
+    }
+
+    .action-btn i {
+        font-size: 2.5rem;
+        color: var(--church-gold);
+        margin-bottom: 0.75rem;
+        display: block;
+    }
+
+    .action-btn-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="hero-content">
+        <i class="bi bi-church-fill hero-icon"></i>
+        <h1 class="hero-title">Church Administration System</h1>
+        <p class="hero-subtitle">
+            Verwaltung für die Beispielgemeinde<br>
+            LDAP • Genealogie • Prozess-Management
+        </p>
+
+        {% if not user.is_authenticated %}
+        <div class="hero-actions">
+            <a href="{% url 'login' %}" class="btn btn-church-hero">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Jetzt anmelden
+            </a>
+            <a href="{% url 'register' %}" class="btn btn-church-secondary">
+                <i class="bi bi-person-plus me-2"></i>Registrieren
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+<!-- Welcome User Section -->
+<div class="welcome-user">
+    <h2>
+        <i class="bi bi-emoji-smile me-2"></i>
+        Willkommen zurück, {{ user.get_full_name|default:user.username }}!
+    </h2>
+    <p>Sie sind als <strong>{{ user.username }}</strong> angemeldet.</p>
+
+    {% if user.is_superuser or user.is_staff %}
+    <a href="{% url 'ldap_dashboard' %}" class="btn btn-church-navy">
+        <i class="bi bi-speedometer2 me-2"></i>Zum Dashboard
+    </a>
+    {% endif %}
+</div>
+
+<!-- Quick Actions for Authenticated Users -->
+{% if user.is_superuser or user.is_staff %}
+<div class="quick-actions">
+    <h3 class="text-center mb-4" style="color: var(--church-navy); font-weight: 600;">
+        Schnellzugriff
+    </h3>
+    <div class="row g-3">
+        <div class="col-md-3 col-sm-6">
+            <a href="{% url 'ldap_dashboard' %}" class="action-btn">
+                <i class="bi bi-speedometer2"></i>
+                <p class="action-btn-title">Dashboard</p>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{% url 'ldap_user_search' %}" class="action-btn">
+                <i class="bi bi-people"></i>
+                <p class="action-btn-title">Benutzer</p>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="#" class="action-btn" onclick="alert('Wird in Phase 5 implementiert'); return false;">
+                <i class="bi bi-diagram-2"></i>
+                <p class="action-btn-title">Gruppen</p>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="#" class="action-btn" onclick="alert('Wird in Phase 6 implementiert'); return false;">
+                <i class="bi bi-envelope"></i>
+                <p class="action-btn-title">Mail</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- Features Section for Non-Authenticated Users -->
+<div class="features-section">
+    <div class="container">
+        <h2 class="text-center mb-5" style="color: var(--church-navy); font-weight: 700;">
+            Funktionen & Möglichkeiten
+        </h2>
+
+        <div class="row g-4">
+            <!-- Feature 1: LDAP Verwaltung -->
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <i class="bi bi-diagram-3-fill feature-icon"></i>
+                        <h3 class="feature-card-title">LDAP Verwaltung</h3>
+                    </div>
+                    <div class="feature-card-body">
+                        <ul class="feature-list">
+                            <li><i class="bi bi-check-circle-fill"></i> Benutzer & Gruppen verwalten</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Hierarchische Struktur</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Mail-Konfiguration</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Drag & Drop Interface</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 2: Familien-Baum -->
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <i class="bi bi-people-fill feature-icon"></i>
+                        <h3 class="feature-card-title">Genealogie System</h3>
+                    </div>
+                    <div class="feature-card-body">
+                        <ul class="feature-list">
+                            <li><i class="bi bi-check-circle-fill"></i> Familien-Hierarchie</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Verwandtschaftsbeziehungen</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Visualisierung als Baum</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Abstammung dokumentieren</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 3: Prozess-Management -->
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <i class="bi bi-list-check feature-icon"></i>
+                        <h3 class="feature-card-title">Workflow Engine</h3>
+                    </div>
+                    <div class="feature-card-body">
+                        <ul class="feature-list">
+                            <li><i class="bi bi-check-circle-fill"></i> Onboarding-Prozesse</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Checklisten & Schritte</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Automatische Benachrichtigungen</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Fortschritts-Tracking</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <span class="stat-number">
+                        <i class="bi bi-shield-check"></i>
+                    </span>
+                    <p class="stat-label">Sichere LDAP-Verbindung</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <span class="stat-number">
+                        <i class="bi bi-diagram-3"></i>
+                    </span>
+                    <p class="stat-label">Hierarchische Struktur</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <span class="stat-number">
+                        <i class="bi bi-lightning-charge"></i>
+                    </span>
+                    <p class="stat-label">Drag & Drop</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card">
+                    <span class="stat-number">
+                        <i class="bi bi-gear-fill"></i>
+                    </span>
+                    <p class="stat-label">Workflow Automation</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mt-5">
+    <h3 style="color: var(--church-navy); font-weight: 600; margin-bottom: 1.5rem;">
+        Bereit loszulegen?
+    </h3>
+    <p style="color: var(--church-gray); font-size: 1.1rem; margin-bottom: 2rem;">
+        Melden Sie sich an, um Zugriff auf alle Funktionen zu erhalten.
+    </p>
+    <a href="{% url 'login' %}" class="btn btn-church-primary btn-lg">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Jetzt anmelden
+    </a>
+</div>
+{% endif %}
+{% endblock %}

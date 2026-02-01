@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mein Profil - Church Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 2rem auto;
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, var(--church-navy) 0%, #2a3a5f 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px 12px 0 0;
+        text-align: center;
+    }
+
+    .profile-header h2 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .profile-body {
+        background: white;
+        padding: 2rem;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .photo-section {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: var(--church-beige);
+        border-radius: 12px;
+    }
+
+    .photo-preview {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        border: 4px solid var(--church-gold);
+        object-fit: cover;
+        margin: 0 auto 1rem;
+        display: block;
+    }
+
+    .photo-placeholder {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        border: 4px dashed var(--church-gold);
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 4rem;
+        color: var(--church-gray);
+    }
+
+    .form-label {
+        color: var(--church-navy);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--church-gold);
+        box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--church-gold) 0%, #d4a850 100%);
+        color: var(--church-navy);
+        border: none;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #d4a850 0%, var(--church-gold) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(230, 192, 104, 0.4);
+        color: var(--church-navy);
+    }
+
+    .info-card {
+        background: var(--church-beige);
+        border-left: 4px solid var(--church-navy);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .info-card h5 {
+        color: var(--church-navy);
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .info-card p {
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <i class="bi bi-person-circle" style="font-size: 3rem; color: var(--church-gold);"></i>
+        <h2>Mein Profil</h2>
+        <p class="mb-0">Verwalten Sie Ihre persönlichen Informationen</p>
+    </div>
+
+    <div class="profile-body">
+        <!-- Foto-Bereich -->
+        <div class="photo-section">
+            <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
+                <i class="bi bi-camera-fill me-2"></i>Profilfoto
+            </h5>
+
+            {% if user_photo_base64 %}
+                <img src="data:image/jpeg;base64,{{ user_photo_base64 }}"
+                     alt="Profilfoto"
+                     class="photo-preview">
+            {% else %}
+                <div class="photo-placeholder">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" class="mt-3">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <input
+                        type="file"
+                        name="jpegPhoto"
+                        class="form-control"
+                        id="id_jpegPhoto"
+                        accept="image/jpeg,image/jpg"
+                    >
+                    <div class="help-text text-muted mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Nur JPEG-Bilder, max. 1MB
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-upload me-2"></i>Foto hochladen
+                </button>
+            </form>
+        </div>
+
+        <!-- Profil-Daten (LDAP) -->
+        {% if is_ldap_user %}
+        <div style="background: var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
+            <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
+                <i class="bi bi-person-lines-fill me-2"></i>Persönliche Daten (LDAP)
+            </h5>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Benutzername:</strong></label>
+                    <p class="text-muted"><code>{{ ldap_user_data.cn }}</code></p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>E-Mail:</strong></label>
+                    <p class="text-muted">
+                        {% if ldap_user_data.mail %}
+                            <i class="bi bi-envelope me-1"></i>{{ ldap_user_data.mail }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Vorname:</strong></label>
+                    <p class="text-muted">{{ ldap_user_data.givenName }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Nachname:</strong></label>
+                    <p class="text-muted">{{ ldap_user_data.sn }}</p>
+                </div>
+                {% if ldap_user_data.title %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Rolle/Position:</strong></label>
+                    <p class="text-muted">{{ ldap_user_data.title }}</p>
+                </div>
+                {% endif %}
+                {% if ldap_user_data.birthDate %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Geburtstag:</strong></label>
+                    <p class="text-muted"><i class="bi bi-calendar me-1"></i>{{ ldap_user_data.birthDate }}</p>
+                </div>
+                {% endif %}
+                {% if ldap_user_data.telephoneNumber %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Telefon:</strong></label>
+                    <p class="text-muted"><i class="bi bi-telephone me-1"></i>{{ ldap_user_data.telephoneNumber }}</p>
+                </div>
+                {% endif %}
+                {% if ldap_user_data.mobile %}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><strong>Mobil:</strong></label>
+                    <p class="text-muted"><i class="bi bi-phone me-1"></i>{{ ldap_user_data.mobile }}</p>
+                </div>
+                {% endif %}
+                {% if ldap_user_data.postalAddress %}
+                <div class="col-12 mb-3">
+                    <label class="form-label"><strong>Anschrift:</strong></label>
+                    <p class="text-muted"><i class="bi bi-house me-1"></i>{{ ldap_user_data.postalAddress }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Gruppenmitgliedschaften -->
+            {% if user_groups %}
+            <div class="mt-4">
+                <h6 style="color: var(--church-navy);">
+                    <i class="bi bi-diagram-3 me-2"></i>Gruppenmitgliedschaften
+                </h6>
+                <div class="mt-2">
+                    {% for group in user_groups %}
+                        {% if group == 'Mitglieder' %}
+                            <span class="badge badge-church-navy me-1 mb-1">
+                                <i class="bi bi-person-check-fill me-1"></i>{{ group }}
+                            </span>
+                        {% elif group == 'Besucher' %}
+                            <span class="badge bg-info me-1 mb-1">
+                                <i class="bi bi-person-walking me-1"></i>{{ group }}
+                            </span>
+                        {% elif group == 'Gäste' %}
+                            <span class="badge bg-secondary me-1 mb-1">
+                                <i class="bi bi-person-dash me-1"></i>{{ group }}
+                            </span>
+                        {% elif group == 'Ehepartner' %}
+                            <span class="badge bg-warning text-dark me-1 mb-1">
+                                <i class="bi bi-people me-1"></i>{{ group }}
+                            </span>
+                        {% elif group == 'Angehörige' %}
+                            <span class="badge bg-success me-1 mb-1">
+                                <i class="bi bi-people-fill me-1"></i>{{ group }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-light text-dark me-1 mb-1">
+                                <i class="bi bi-diagram-2 me-1"></i>{{ group }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="alert" style="background: white; border-left: 4px solid var(--church-navy); margin-top: 1.5rem;">
+                <i class="bi bi-info-circle me-2"></i>
+                <small><strong>Hinweis:</strong> Ihre persönlichen Daten werden aus LDAP geladen.
+                Kontaktieren Sie einen Administrator, um diese zu ändern.</small>
+            </div>
+        </div>
+
+        <!-- Passwort ändern -->
+        <div style="background: white; border: 2px solid var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
+            <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
+                <i class="bi bi-lock-fill me-2"></i>Passwort ändern
+            </h5>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="current_password" class="form-label">
+                        <i class="bi bi-shield-lock me-1"></i>Aktuelles Passwort
+                    </label>
+                    <input type="password" name="current_password" class="form-control" id="current_password" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="new_password" class="form-label">
+                        <i class="bi bi-key me-1"></i>Neues Passwort
+                    </label>
+                    <input type="password" name="new_password" class="form-control" id="new_password" required minlength="8">
+                    <div class="help-text text-muted mt-1">
+                        <small><i class="bi bi-info-circle me-1"></i>Mindestens 8 Zeichen</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">
+                        <i class="bi bi-key-fill me-1"></i>Passwort bestätigen
+                    </label>
+                    <input type="password" name="confirm_password" class="form-control" id="confirm_password" required minlength="8">
+                </div>
+
+                <button type="submit" class="btn btn-submit">
+                    <i class="bi bi-check-circle me-2"></i>Passwort ändern
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Konto-Informationen -->
+        <div class="info-card">
+            <h5><i class="bi bi-info-circle me-2"></i>Konto-Informationen</h5>
+            <p><strong>Benutzername:</strong> {{ user.username }}</p>
+            <p><strong>Mitglied seit:</strong> {{ user.date_joined|date:"d.m.Y" }}</p>
+            <p class="mb-0"><strong>Letzte Anmeldung:</strong> {{ user.last_login|date:"d.m.Y H:i" }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

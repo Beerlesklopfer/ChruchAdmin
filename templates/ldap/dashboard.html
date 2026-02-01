@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}LDAP Dashboard - Church Administration{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-church-navy">
+                <i class="bi bi-speedometer2 me-2"></i>LDAP Dashboard
+            </h1>
+            <p class="text-church-gray">Übersicht über die Verwaltung der Beispielgemeinde</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- Total Users -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'ldap_user_search' %}" class="text-decoration-none" style="color: inherit;">
+                <div class="stat-card stat-card-users" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';"
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="stat-number">{{ stats.total_users }}</div>
+                    <div class="stat-label">
+                        <i class="bi bi-people-fill me-2"></i>Benutzer Gesamt
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Groups -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'group_list' %}" class="text-decoration-none" style="color: inherit;">
+                <div class="stat-card stat-card-groups" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.15)';"
+                     onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                    <div class="stat-number">{{ stats.total_groups }}</div>
+                    <div class="stat-label">
+                        <i class="bi bi-diagram-3-fill me-2"></i>Gruppen Gesamt
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Mail Routing -->
+        <div class="col-md-3 mb-3">
+            <div class="stat-card stat-card-mail" style="opacity: 0.7;">
+                <div class="stat-number">{{ stats.mail_enabled }}</div>
+                <div class="stat-label">
+                    <i class="bi bi-envelope-fill me-2"></i>Aktive Mail-Weiterleitungen
+                    <br><small class="text-muted" style="font-size: 0.7rem;">Phase 6</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Registrations -->
+        <div class="col-md-3 mb-3">
+            <div class="stat-card stat-card-registrations" style="opacity: 0.7;">
+                <div class="stat-number">{{ stats.pending_registrations }}</div>
+                <div class="stat-label">
+                    <i class="bi bi-person-plus-fill me-2"></i>Offene Registrierungen
+                    <br><small class="text-muted" style="font-size: 0.7rem;">Phase 9</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Category Breakdown -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-people me-2"></i>Benutzer nach Kategorie
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="bi bi-star-fill text-warning me-2"></i>Mitglieder</span>
+                            <span class="badge badge-church-navy">{{ stats.members_count }}</span>
+                        </div>
+                        <div class="progress progress-church">
+                            <div class="progress-bar progress-bar-church" style="width: {{ stats.members_percentage }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="bi bi-person-fill text-info me-2"></i>Besucher</span>
+                            <span class="badge badge-church-navy">{{ stats.visitors_count }}</span>
+                        </div>
+                        <div class="progress progress-church">
+                            <div class="progress-bar progress-bar-church" style="width: {{ stats.visitors_percentage }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="bi bi-heart-fill text-danger me-2"></i>Angehörige</span>
+                            <span class="badge badge-church-navy">{{ stats.relatives_count }}</span>
+                        </div>
+                        <div class="progress progress-church">
+                            <div class="progress-bar progress-bar-church" style="width: {{ stats.relatives_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Largest Families -->
+        <div class="col-md-4 mb-3">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-diagram-3 me-2"></i>Größte Familien (Abstammung)
+                </div>
+                <div class="card-body">
+                    {% if stats.largest_families %}
+                        <ul class="list-group list-group-flush">
+                            {% for family in stats.largest_families %}
+                            <li class="list-group-item px-0" style="cursor: pointer; transition: background-color 0.2s;">
+                                <a href="{% url 'ldap_user_search' %}?q={{ family.name }}"
+                                   class="d-flex justify-content-between align-items-center text-decoration-none"
+                                   style="color: inherit;">
+                                    <span>
+                                        <i class="bi bi-person-badge me-2 text-church-gold"></i>
+                                        {{ family.name }}
+                                    </span>
+                                    <span class="badge badge-church-gold">{{ family.member_count }} Mitglieder</span>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-info-circle me-2"></i>Keine Familiendaten verfügbar
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Mail Domains -->
+        <div class="col-md-4 mb-3">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-envelope-at me-2"></i>Mail-Domains
+                </div>
+                <div class="card-body">
+                    {% if stats.mail_domains %}
+                        <ul class="list-group list-group-flush">
+                            {% for domain in stats.mail_domains %}
+                            <li class="list-group-item px-0">
+                                <i class="bi bi-globe me-2 text-church-navy"></i>
+                                {{ domain }}
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle me-1"></i>Verwaltung in Phase 6
+                                </small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-info-circle me-2"></i>Keine Domains konfiguriert
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-church-beige">
+                <div class="card-header">
+                    <i class="bi bi-lightning-fill me-2"></i>Schnellzugriff
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'ldap_user_search' %}?create=1" class="btn btn-church-primary w-100">
+                                <i class="bi bi-person-plus me-2"></i>Neuer Benutzer
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'group_list' %}" class="btn btn-church-secondary w-100">
+                                <i class="bi bi-diagram-2 me-2"></i>Gruppenverwaltung
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="#" onclick="alert('Wird in Phase 6 implementiert')" class="btn btn-church-outline w-100">
+                                <i class="bi bi-envelope-plus me-2"></i>Mail-Domain
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'ldap_user_search' %}" class="btn btn-church-outline w-100">
+                                <i class="bi bi-search me-2"></i>Benutzer suchen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity (wenn LDAP Logs vorhanden) -->
+    {% if recent_logs %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-clock-history me-2"></i>Letzte Aktivitäten
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-church table-church-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th><i class="bi bi-person me-2"></i>Benutzer</th>
+                                    <th><i class="bi bi-tag me-2"></i>Aktion</th>
+                                    <th><i class="bi bi-info-circle me-2"></i>Details</th>
+                                    <th><i class="bi bi-clock me-2"></i>Zeitpunkt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_logs %}
+                                <tr>
+                                    <td>{{ log.user.username }}</td>
+                                    <td>
+                                        <span class="badge {% if log.action == 'login' %}bg-success{% elif log.action == 'error' %}bg-danger{% else %}bg-info{% endif %}">
+                                            {{ log.action }}
+                                        </span>
+                                    </td>
+                                    <td>{{ log.details|truncatewords:10 }}</td>
+                                    <td>{{ log.timestamp|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Info Box for Genealogy System -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-church-gold">
+                <div class="card-body bg-church-beige">
+                    <h5 class="text-church-navy mb-3">
+                        <i class="bi bi-info-circle-fill me-2 text-church-gold"></i>
+                        System für Abstammungsdokumentation
+                    </h5>
+                    <p class="mb-2">
+                        Dieses System ist speziell für größere Organisationen ausgelegt, um Abstammungen und Familienverhältnisse zu dokumentieren.
+                    </p>
+                    <ul class="mb-0">
+                        <li>Hierarchische Benutzerstruktur (Eltern-Kind-Beziehungen)</li>
+                        <li>Familienbäume mit unbegrenzter Tiefe</li>
+                        <li>Gruppenverwaltung für Organisationsstrukturen</li>
+                        <li>Mail-Routing für familiäre Kommunikation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh dashboard every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 300000);
+</script>
+{% endblock %}

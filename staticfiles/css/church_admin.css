@@ -1,0 +1,477 @@
+/**
+ * Church Administration System - Custom Styles
+ * Corporate Identity: Bibelgemeinde Lage
+ *
+ * Farbschema:
+ * - Primary Gold: #e6c068
+ * - Dark Navy: #1c2647
+ * - Dark Gray: #6a7a83
+ * - Light Beige: #f7f3e6
+ */
+
+/* ==================== ROOT VARIABLES ==================== */
+:root {
+    --church-gold: #e6c068;
+    --church-navy: #1c2647;
+    --church-gray: #6a7a83;
+    --church-beige: #f7f3e6;
+    --church-white: #ffffff;
+}
+
+/* ==================== GLOBAL STYLES ==================== */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--church-beige);
+    color: var(--church-gray);
+}
+
+/* ==================== NAVBAR ==================== */
+.navbar-church {
+    background-color: var(--church-navy) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-church .navbar-brand {
+    color: var(--church-gold) !important;
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+.navbar-church .nav-link {
+    color: var(--church-white) !important;
+    transition: color 0.3s ease;
+}
+
+.navbar-church .nav-link:hover {
+    color: var(--church-gold) !important;
+}
+
+.navbar-church .dropdown-menu {
+    background-color: var(--church-navy);
+    border: 1px solid var(--church-gold);
+}
+
+.navbar-church .dropdown-item {
+    color: var(--church-white);
+}
+
+.navbar-church .dropdown-item:hover {
+    background-color: var(--church-gold);
+    color: var(--church-navy);
+}
+
+.navbar-church .dropdown-divider {
+    border-color: var(--church-gold);
+    opacity: 0.3;
+}
+
+/* ==================== BUTTONS ==================== */
+.btn-church-primary {
+    background-color: var(--church-gold);
+    border-color: var(--church-gold);
+    color: var(--church-navy);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-church-primary:hover {
+    background-color: #d4ae56;
+    border-color: #d4ae56;
+    color: var(--church-navy);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(230, 192, 104, 0.3);
+}
+
+.btn-church-secondary {
+    background-color: var(--church-navy);
+    border-color: var(--church-navy);
+    color: var(--church-white);
+    font-weight: 500;
+}
+
+.btn-church-secondary:hover {
+    background-color: #253551;
+    border-color: #253551;
+    color: var(--church-gold);
+}
+
+.btn-church-outline {
+    background-color: transparent;
+    border: 2px solid var(--church-gold);
+    color: var(--church-navy);
+    font-weight: 500;
+}
+
+.btn-church-outline:hover {
+    background-color: var(--church-gold);
+    border-color: var(--church-gold);
+    color: var(--church-navy);
+}
+
+/* ==================== CARDS ==================== */
+.card-church {
+    background-color: var(--church-white);
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: box-shadow 0.3s ease;
+}
+
+.card-church:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.card-church .card-header {
+    background-color: var(--church-navy);
+    color: var(--church-gold);
+    font-weight: 600;
+    border-bottom: 3px solid var(--church-gold);
+}
+
+.card-church .card-body {
+    background-color: var(--church-white);
+}
+
+.card-church-beige {
+    background-color: var(--church-beige);
+    border: none;
+}
+
+.card-church-beige .card-header {
+    background-color: var(--church-gold);
+    color: var(--church-navy);
+}
+
+/* ==================== ALERTS & MESSAGES ==================== */
+.alert-church-success {
+    background-color: #d4edda;
+    border-color: var(--church-gold);
+    color: #155724;
+}
+
+.alert-church-info {
+    background-color: #d1ecf1;
+    border-color: var(--church-navy);
+    color: #0c5460;
+}
+
+.alert-church-warning {
+    background-color: #fff3cd;
+    border-color: var(--church-gold);
+    color: #856404;
+}
+
+.alert-church-danger {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* ==================== FORMS ==================== */
+.form-control:focus {
+    border-color: var(--church-gold);
+    box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+}
+
+.form-label {
+    color: var(--church-navy);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.form-select:focus {
+    border-color: var(--church-gold);
+    box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+}
+
+/* ==================== TABLES ==================== */
+.table-church {
+    background-color: var(--church-white);
+}
+
+.table-church thead {
+    background-color: var(--church-navy);
+    color: var(--church-white);
+}
+
+.table-church thead th {
+    border-bottom: 2px solid var(--church-gold);
+    font-weight: 600;
+}
+
+.table-church tbody tr:hover {
+    background-color: var(--church-beige);
+}
+
+.table-church-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(247, 243, 230, 0.5);
+}
+
+/* ==================== BADGES ==================== */
+.badge-church-gold {
+    background-color: var(--church-gold);
+    color: var(--church-navy);
+    font-weight: 600;
+}
+
+.badge-church-navy {
+    background-color: var(--church-navy);
+    color: var(--church-gold);
+}
+
+/* ==================== DASHBOARD STATS ==================== */
+.stat-card {
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.stat-card-users {
+    background: linear-gradient(135deg, #1c2647 0%, #253551 100%);
+    color: white;
+}
+
+.stat-card-groups {
+    background: linear-gradient(135deg, #e6c068 0%, #d4ae56 100%);
+    color: var(--church-navy);
+}
+
+.stat-card-mail {
+    background: linear-gradient(135deg, #6a7a83 0%, #848e94 100%);
+    color: white;
+}
+
+.stat-card-registrations {
+    background: linear-gradient(135deg, #f7f3e6 0%, #e8e4d6 100%);
+    color: var(--church-navy);
+    border: 2px solid var(--church-gold);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* ==================== TREE VIEW ==================== */
+.tree-view {
+    padding-left: 0;
+    list-style: none;
+}
+
+.tree-view ul {
+    padding-left: 1.5rem;
+    list-style: none;
+    border-left: 2px solid var(--church-gold);
+}
+
+.tree-view li {
+    margin: 0.5rem 0;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.tree-view li:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7rem;
+    width: 1rem;
+    height: 2px;
+    background-color: var(--church-gold);
+}
+
+.tree-node {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--church-white);
+    border: 1px solid var(--church-gold);
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.tree-node:hover {
+    background-color: var(--church-beige);
+}
+
+.tree-node-user {
+    border-left: 4px solid var(--church-navy);
+}
+
+.tree-node-group {
+    border-left: 4px solid var(--church-gold);
+}
+
+/* ==================== BREADCRUMBS ==================== */
+.breadcrumb-church {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+
+.breadcrumb-church .breadcrumb-item.active {
+    color: var(--church-gold);
+    font-weight: 600;
+}
+
+.breadcrumb-church .breadcrumb-item a {
+    color: var(--church-navy);
+    text-decoration: none;
+}
+
+.breadcrumb-church .breadcrumb-item a:hover {
+    color: var(--church-gold);
+}
+
+/* ==================== PAGINATION ==================== */
+.pagination-church .page-link {
+    color: var(--church-navy);
+    border-color: var(--church-gold);
+}
+
+.pagination-church .page-link:hover {
+    background-color: var(--church-beige);
+    border-color: var(--church-gold);
+}
+
+.pagination-church .page-item.active .page-link {
+    background-color: var(--church-gold);
+    border-color: var(--church-gold);
+    color: var(--church-navy);
+}
+
+/* ==================== MODALS ==================== */
+.modal-church .modal-header {
+    background-color: var(--church-navy);
+    color: var(--church-gold);
+    border-bottom: 3px solid var(--church-gold);
+}
+
+.modal-church .modal-header .btn-close {
+    filter: invert(1) brightness(2);
+}
+
+.modal-church .modal-footer {
+    border-top: 1px solid var(--church-gold);
+}
+
+/* ==================== PROGRESS BARS ==================== */
+.progress-church {
+    height: 1.5rem;
+    background-color: var(--church-beige);
+}
+
+.progress-bar-church {
+    background-color: var(--church-gold);
+    color: var(--church-navy);
+    font-weight: 600;
+}
+
+/* ==================== TOOLTIPS ==================== */
+.tooltip-church .tooltip-inner {
+    background-color: var(--church-navy);
+    color: var(--church-gold);
+    border: 1px solid var(--church-gold);
+}
+
+/* ==================== LOADING SPINNER ==================== */
+.spinner-church {
+    border: 4px solid var(--church-beige);
+    border-top: 4px solid var(--church-gold);
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.text-church-gold {
+    color: var(--church-gold) !important;
+}
+
+.text-church-navy {
+    color: var(--church-navy) !important;
+}
+
+.text-church-gray {
+    color: var(--church-gray) !important;
+}
+
+.bg-church-gold {
+    background-color: var(--church-gold) !important;
+}
+
+.bg-church-navy {
+    background-color: var(--church-navy) !important;
+}
+
+.bg-church-beige {
+    background-color: var(--church-beige) !important;
+}
+
+.border-church-gold {
+    border-color: var(--church-gold) !important;
+}
+
+.border-church-navy {
+    border-color: var(--church-navy) !important;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+@media (max-width: 768px) {
+    .stat-number {
+        font-size: 2rem;
+    }
+
+    .card-church {
+        margin-bottom: 1rem;
+    }
+
+    .tree-view ul {
+        padding-left: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .navbar-church .navbar-brand {
+        font-size: 1.1rem;
+    }
+}
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+    .navbar-church,
+    .btn,
+    .breadcrumb-church {
+        display: none;
+    }
+
+    .card-church {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+
+    body {
+        background-color: white;
+    }
+}

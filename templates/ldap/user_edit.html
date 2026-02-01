@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Benutzer bearbeiten - Church Admin{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="margin-bottom: 1.5rem;">
+    <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-house-door me-1"></i>Home
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'ldap_dashboard' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'family_tree' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-diagram-3-fill me-1"></i>Familien-Baum
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+            <i class="bi bi-pencil me-1"></i>Benutzer bearbeiten
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--church-beige);
+    }
+
+    .form-header i {
+        font-size: 3rem;
+        color: var(--church-gold);
+        margin-bottom: 1rem;
+    }
+
+    .form-header h2 {
+        color: var(--church-navy);
+        font-weight: 700;
+    }
+
+    .user-info {
+        background: var(--church-beige);
+        border-left: 4px solid var(--church-navy);
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .user-info strong {
+        color: var(--church-navy);
+    }
+
+    .form-label {
+        color: var(--church-navy);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--church-gold);
+        box-shadow: 0 0 0 0.2rem rgba(230, 192, 104, 0.25);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--church-gold) 0%, #d4a850 100%);
+        color: var(--church-navy);
+        border: none;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 1.5rem;
+    }
+
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #d4a850 0%, var(--church-gold) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(230, 192, 104, 0.4);
+        color: var(--church-navy);
+    }
+
+    .btn-cancel {
+        background: var(--church-beige);
+        color: var(--church-navy);
+        border: 2px solid var(--church-navy);
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .btn-cancel:hover {
+        background: var(--church-navy);
+        color: white;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--church-gray);
+        margin-top: 0.25rem;
+    }
+
+    .required-indicator {
+        color: #dc3545;
+        margin-left: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <i class="bi bi-pencil-square"></i>
+        <h2>Benutzer bearbeiten</h2>
+        <p class="text-muted">Bearbeiten Sie die Benutzerdaten</p>
+    </div>
+
+    {% if ldap_user %}
+    <div class="user-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Benutzername:</strong> {{ ldap_user.cn }}
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Vorname -->
+        <div class="mb-3">
+            <label for="id_givenName" class="form-label">
+                <i class="bi bi-person me-1"></i>Vorname
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="text"
+                name="givenName"
+                class="form-control"
+                id="id_givenName"
+                value="{{ ldap_user.givenName }}"
+                required
+            >
+        </div>
+
+        <!-- Nachname -->
+        <div class="mb-3">
+            <label for="id_sn" class="form-label">
+                <i class="bi bi-person me-1"></i>Nachname
+                <span class="required-indicator">*</span>
+            </label>
+            <input
+                type="text"
+                name="sn"
+                class="form-control"
+                id="id_sn"
+                value="{{ ldap_user.sn }}"
+                required
+            >
+        </div>
+
+        <!-- E-Mail -->
+        <div class="mb-3">
+            <label for="id_mail" class="form-label">
+                <i class="bi bi-envelope me-1"></i>E-Mail-Adresse
+            </label>
+            <input
+                type="email"
+                name="mail"
+                class="form-control"
+                id="id_mail"
+                value="{{ ldap_user.mail }}"
+            >
+        </div>
+
+        <!-- Foto Upload -->
+        <div class="mb-3">
+            <label for="id_jpegPhoto" class="form-label">
+                <i class="bi bi-camera me-1"></i>Profilfoto
+            </label>
+            {% if ldap_user.photo_base64 %}
+            <div class="mb-3 text-center">
+                <img src="data:image/jpeg;base64,{{ ldap_user.photo_base64 }}"
+                     alt="Aktuelles Foto"
+                     style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid var(--church-gold);">
+                <p class="text-muted mt-2">Aktuelles Foto</p>
+            </div>
+            {% endif %}
+            <input
+                type="file"
+                name="jpegPhoto"
+                class="form-control"
+                id="id_jpegPhoto"
+                accept="image/jpeg,image/jpg"
+            >
+            <div class="help-text">
+                <i class="bi bi-info-circle me-1"></i>
+                Nur JPEG-Bilder, max. 1MB
+            </div>
+        </div>
+
+        <!-- Passwort (optional) -->
+        <div class="mb-3">
+            <label for="id_password" class="form-label">
+                <i class="bi bi-lock me-1"></i>Neues Passwort
+            </label>
+            <input
+                type="password"
+                name="password"
+                class="form-control"
+                id="id_password"
+                placeholder="Leer lassen, um Passwort nicht zu ändern"
+            >
+            <div class="help-text">
+                Nur ausfüllen, wenn Sie das Passwort ändern möchten
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <button type="submit" class="btn btn-submit">
+            <i class="bi bi-check-circle me-2"></i>Änderungen speichern
+        </button>
+        <a href="{% url 'family_tree' %}" class="btn btn-cancel">
+            <i class="bi bi-x-circle me-2"></i>Abbrechen
+        </a>
+    </form>
+    {% else %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Benutzer nicht gefunden.
+    </div>
+    <a href="{% url 'family_tree' %}" class="btn btn-cancel">
+        <i class="bi bi-arrow-left me-2"></i>Zurück zum Familien-Baum
+    </a>
+    {% endif %}
+</div>
+{% endblock %}

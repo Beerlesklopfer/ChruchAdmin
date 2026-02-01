@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="module">
+    <h2>LDAP Statistik</h2>
+    
+    {% if stats.error %}
+    <div class="alert alert-danger">
+        Fehler: {{ stats.error }}
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h4 class="card-title">{{ stats.total_users|default:0 }}</h4>
+                    <p class="card-text">LDAP Benutzer</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h4 class="card-title">{{ stats.total_groups|default:0 }}</h4>
+                    <p class="card-text">LDAP Gruppen</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

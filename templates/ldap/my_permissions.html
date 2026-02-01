@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meine Berechtigungen - Church Admin{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="margin-bottom: 1.5rem;">
+    <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-house-door me-1"></i>Home
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'ldap_dashboard' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+            <i class="bi bi-person-badge me-1"></i>Meine Berechtigungen
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <div class="text-center mb-4">
+        <h1 style="color: var(--church-navy); font-weight: 700;">
+            <i class="bi bi-person-badge me-2" style="color: var(--church-gold);"></i>
+            Meine Berechtigungen
+        </h1>
+        <p class="text-muted">Übersicht über Ihre Zugriffsrechte im System</p>
+    </div>
+
+    <!-- Benutzer-Info -->
+    <div class="card mb-4" style="border-left: 4px solid var(--church-gold);">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="bi bi-person-circle me-2"></i>{{ request.user.get_full_name|default:request.user.username }}
+            </h5>
+            <p class="mb-2">
+                <strong>Benutzername:</strong> {{ request.user.username }}
+                {% if is_admin %}
+                <span class="badge bg-danger ms-2">Administrator</span>
+                {% endif %}
+            </p>
+
+            {% if user_groups %}
+            <div class="mt-3">
+                <strong class="d-block mb-2">Ihre LDAP-Gruppen:</strong>
+                {% for group in user_groups %}
+                <span class="badge bg-secondary me-1 mb-1">{{ group }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Berechtigungen -->
+    <div class="card">
+        <div class="card-header" style="background: var(--church-navy); color: white;">
+            <h5 class="mb-0">
+                <i class="bi bi-key me-2"></i>Ihre Berechtigungen
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                {% for perm in user_permissions %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-{{ perm.icon }} me-2"></i>
+                        {{ perm.name }}
+                    </div>
+                    {% if perm.granted %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Erteilt
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Nicht erteilt
+                    </span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Hinweis:</strong> Ihre Berechtigungen werden über Ihre LDAP-Gruppenmitgliedschaften gesteuert.
+        Wenden Sie sich an einen Administrator, wenn Sie zusätzliche Berechtigungen benötigen.
+    </div>
+
+    {% if is_admin %}
+    <div class="text-center mt-4">
+        <a href="{% url 'permissions_overview' %}" class="btn btn-church-primary">
+            <i class="bi bi-shield-lock me-2"></i>Rechtemanagement öffnen
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

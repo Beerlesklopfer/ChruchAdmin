@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Benutzerverwaltung - Church Admin{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="margin-bottom: 1.5rem;">
+    <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-house-door me-1"></i>Home
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'ldap_dashboard' %}" style="color: var(--church-navy); text-decoration: none;">
+                <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+            <i class="bi bi-people me-1"></i>Benutzerverwaltung
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-row {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .user-row:hover {
+        background-color: var(--church-beige) !important;
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .results-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .table thead {
+        background: var(--church-navy) !important;
+        color: white !important;
+    }
+
+    .table thead th {
+        background: var(--church-navy) !important;
+        color: white !important;
+        border: none;
+        padding: 1rem;
+        font-weight: 600;
+    }
+
+    .user-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--church-gold);
+        color: var(--church-navy);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 0.5rem;
+    }
+
+    .user-photo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid var(--church-gold);
+        object-fit: cover;
+        margin-right: 0.5rem;
+    }
+
+    .badge-role {
+        background: var(--church-navy);
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .badge-relationship {
+        background: var(--church-gold);
+        color: var(--church-navy);
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 style="color: var(--church-navy); font-weight: 700;">
+                <i class="bi bi-people me-2" style="color: var(--church-gold);"></i>
+                Benutzerverwaltung
+            </h1>
+            <p class="text-muted">Suchen und verwalten Sie LDAP-Benutzer</p>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-container">
+        <form method="get" id="searchForm">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text" style="background: var(--church-beige); border: 2px solid var(--church-gold); border-right: none;">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" name="q" id="searchInput" class="form-control"
+                       style="border: 2px solid var(--church-gold); border-left: none;"
+                       placeholder="Benutzername, Name oder E-Mail suchen..."
+                       value="{{ search_query }}"
+                       autofocus
+                       autocomplete="off">
+                <input type="hidden" name="status" value="{{ status_filter }}" id="statusFilterInput">
+                <button type="submit" class="btn btn-church-primary">
+                    <i class="bi bi-search me-2"></i>Suchen
+                </button>
+                <a href="{% url 'ldap_user_search' %}" class="btn btn-church-secondary" title="Liste aktualisieren">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group" aria-label="Status Filter">
+                <a href="?q={{ search_query }}"
+                   class="btn btn-sm {% if not status_filter %}btn-church-primary{% else %}btn-church-outline{% endif %}">
+                    <i class="bi bi-people-fill me-1"></i>Alle
+                </a>
+                <a href="?q={{ search_query }}&status=Mitglieder"
+                   class="btn btn-sm {% if status_filter == 'Mitglieder' %}btn-church-primary{% else %}btn-church-outline{% endif %}">
+                    <i class="bi bi-person-check-fill me-1"></i>Mitglieder
+                </a>
+                <a href="?q={{ search_query }}&status=Besucher"
+                   class="btn btn-sm {% if status_filter == 'Besucher' %}btn-info{% else %}btn-outline-info{% endif %}">
+                    <i class="bi bi-person-walking me-1"></i>Besucher
+                </a>
+                <a href="?q={{ search_query }}&status=Gäste"
+                   class="btn btn-sm {% if status_filter == 'Gäste' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-person-dash me-1"></i>Gäste
+                </a>
+                <a href="?q={{ search_query }}&status=Ehepartner"
+                   class="btn btn-sm {% if status_filter == 'Ehepartner' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    <i class="bi bi-people me-1"></i>Ehepartner
+                </a>
+                <a href="?q={{ search_query }}&status=Angehörige"
+                   class="btn btn-sm {% if status_filter == 'Angehörige' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    <i class="bi bi-people-fill me-1"></i>Angehörige
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    {% if users %}
+    <div class="results-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: #1c2647 !important;">
+                    <tr>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Benutzer</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Vorname</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Nachname</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Status</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Rolle</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Verwandtschaft</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">E-Mail</th>
+                        <th class="text-end" style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">
+                            <i class="bi bi-pencil"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="user-row"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editUserModal"
+                        data-cn="{{ user.cn }}"
+                        data-givenname="{{ user.givenName }}"
+                        data-sn="{{ user.sn }}"
+                        data-mail="{{ user.mail|default:'' }}"
+                        data-uid="{{ user.uid }}"
+                        data-title="{{ user.title|default:'' }}"
+                        data-telephone="{{ user.telephoneNumber|default:'' }}"
+                        data-mobile="{{ user.mobile|default:'' }}"
+                        data-postaladdress="{{ user.postalAddress|default:'' }}"
+                        data-birthdate="{{ user.birthDate|default:'' }}"
+                        data-parent="{{ user.parent_cn|default:'' }}"
+                        data-photo="{{ user.photo_base64|default:'' }}"
+                        data-status="{{ user.status|default:'' }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if user.photo_base64 %}
+                                    <img src="data:image/jpeg;base64,{{ user.photo_base64 }}"
+                                         alt="{{ user.givenName }} {{ user.sn }}"
+                                         class="user-photo">
+                                {% else %}
+                                    <div class="user-icon">
+                                        {{ user.givenName|slice:":1" }}{{ user.sn|slice:":1" }}
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <strong class="
+                                        {% if user.status == 'Mitglied' %}text-church-navy
+                                        {% elif user.status == 'Besucher' %}text-info
+                                        {% elif user.status == 'Gast' %}text-secondary
+                                        {% elif user.status == 'Ehepartner' %}text-warning
+                                        {% elif user.status == 'Angehöriger' %}text-success
+                                        {% else %}text-muted
+                                        {% endif %}
+                                    ">{{ user.cn }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ user.uid }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <span class="
+                                {% if user.status == 'Mitglied' %}text-church-navy
+                                {% elif user.status == 'Besucher' %}text-info
+                                {% elif user.status == 'Gast' %}text-secondary
+                                {% elif user.status == 'Ehepartner' %}text-warning
+                                {% elif user.status == 'Angehöriger' %}text-success
+                                {% else %}text-muted
+                                {% endif %}
+                            ">{{ user.givenName }}</span>
+                        </td>
+                        <td class="align-middle">
+                            <span class="
+                                {% if user.status == 'Mitglied' %}text-church-navy
+                                {% elif user.status == 'Besucher' %}text-info
+                                {% elif user.status == 'Gast' %}text-secondary
+                                {% elif user.status == 'Ehepartner' %}text-warning
+                                {% elif user.status == 'Angehöriger' %}text-success
+                                {% else %}text-muted
+                                {% endif %}
+                            ">{{ user.sn }}</span>
+                        </td>
+                        <td class="align-middle">
+                            {% if user.status == 'Mitglied' %}
+                                <span class="badge badge-church-navy">
+                                    <i class="bi bi-person-check-fill me-1"></i>Mitglied
+                                </span>
+                            {% elif user.status == 'Besucher' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-person-walking me-1"></i>Besucher
+                                </span>
+                            {% elif user.status == 'Gast' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-person-dash me-1"></i>Gast
+                                </span>
+                            {% elif user.status == 'Ehepartner' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-people me-1"></i>Ehepartner
+                                </span>
+                            {% elif user.status == 'Angehöriger' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-people-fill me-1"></i>Angehöriger
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-question-circle me-1"></i>{{ user.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            {% if user.title %}
+                                <span class="badge-role">{{ user.title }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            {% if user.relationship == 'Kind' %}
+                                <span class="badge-relationship">
+                                    <i class="bi bi-arrow-return-right me-1"></i>Kind
+                                </span>
+                                {% if user.parent_name %}
+                                    <br><small class="text-muted">von {{ user.parent_name }}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge-role">{{ user.relationship }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            {% if user.mail %}
+                            <i class="bi bi-envelope me-1"></i>{{ user.mail }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle text-end">
+                            <i class="bi bi-pencil text-muted"></i>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 bg-light border-top">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+                        ({{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Benutzer)
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <nav aria-label="Benutzer-Navigation">
+                        <ul class="pagination pagination-sm justify-content-end mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page=1" aria-label="Erste">
+                                        <i class="bi bi-chevron-bar-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.previous_page_number }}" aria-label="Vorherige">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link"><i class="bi bi-chevron-bar-left"></i></span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_obj.number }}</span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.next_page_number }}" aria-label="Nächste">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}" aria-label="Letzte">
+                                        <i class="bi bi-chevron-bar-right"></i>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link"><i class="bi bi-chevron-bar-right"></i></span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif search_query %}
+    <div class="alert alert-info">
+        <i class="bi bi-search me-2"></i>
+        Keine Benutzer gefunden für "{{ search_query }}"
+    </div>
+    {% else %}
+    <div class="alert" style="background: var(--church-beige); border-left: 4px solid var(--church-gold);">
+        <i class="bi bi-lightbulb me-2"></i>
+        <strong>Tipp:</strong> Verwenden Sie die Suche, um Benutzer zu finden und zu bearbeiten.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Benutzer bearbeiten Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--church-navy); color: white;">
+                <h5 class="modal-title" id="editUserModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Benutzer bearbeiten
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editUserForm" method="post" action="" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="user-info mb-3" style="background: var(--church-beige); border-left: 4px solid var(--church-navy); padding: 1rem; border-radius: 8px;">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Benutzername:</strong> <span id="modal-cn"></span>
+                        <br>
+                        <small class="text-muted">UID: <span id="modal-uid"></span></small>
+                    </div>
+
+                    <!-- Aktuelles Foto -->
+                    <div id="current-photo-section" class="mb-3 text-center" style="display: none;">
+                        <img id="current-photo" src="" alt="Aktuelles Foto"
+                             style="max-width: 150px; max-height: 150px; border-radius: 8px; border: 2px solid var(--church-gold);">
+                        <p class="text-muted mt-2"><small>Aktuelles Foto</small></p>
+                    </div>
+
+                    <!-- Vorname -->
+                    <div class="mb-3">
+                        <label for="modal-givenName" class="form-label">
+                            <i class="bi bi-person me-1"></i>Vorname <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="givenName" class="form-control" id="modal-givenName" required>
+                    </div>
+
+                    <!-- Nachname -->
+                    <div class="mb-3">
+                        <label for="modal-sn" class="form-label">
+                            <i class="bi bi-person me-1"></i>Nachname <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="sn" class="form-control" id="modal-sn" required>
+                    </div>
+
+                    <!-- E-Mail -->
+                    <div class="mb-3">
+                        <label for="modal-mail" class="form-label">
+                            <i class="bi bi-envelope me-1"></i>E-Mail-Adresse
+                        </label>
+                        <input type="email" name="mail" class="form-control" id="modal-mail">
+                    </div>
+
+                    <!-- Rolle/Position -->
+                    <div class="mb-3">
+                        <label for="modal-title" class="form-label">
+                            <i class="bi bi-briefcase me-1"></i>Rolle/Position
+                        </label>
+                        <input type="text" name="title" class="form-control" id="modal-title" placeholder="z.B. Pastor, Ältester, Diakon">
+                        <small class="text-muted">Optional: Funktion in der Gemeinde</small>
+                    </div>
+
+                    <!-- Telefonnummer -->
+                    <div class="mb-3">
+                        <label for="modal-telephoneNumber" class="form-label">
+                            <i class="bi bi-telephone me-1"></i>Telefon
+                        </label>
+                        <input type="tel" name="telephoneNumber" class="form-control" id="modal-telephoneNumber" placeholder="+49 123 456789">
+                    </div>
+
+                    <!-- Mobilnummer -->
+                    <div class="mb-3">
+                        <label for="modal-mobile" class="form-label">
+                            <i class="bi bi-phone me-1"></i>Mobil
+                        </label>
+                        <input type="tel" name="mobile" class="form-control" id="modal-mobile" placeholder="+49 170 1234567">
+                    </div>
+
+                    <!-- Anschrift -->
+                    <div class="mb-3">
+                        <label for="modal-postalAddress" class="form-label">
+                            <i class="bi bi-house me-1"></i>Anschrift
+                        </label>
+                        <textarea name="postalAddress" class="form-control" id="modal-postalAddress" rows="2" placeholder="Straße&#10;PLZ Ort"></textarea>
+                    </div>
+
+                    <!-- Geburtstag -->
+                    <div class="mb-3">
+                        <label for="modal-birthDate" class="form-label">
+                            <i class="bi bi-calendar me-1"></i>Geburtstag
+                        </label>
+                        <input type="date" name="birthDate" class="form-control" id="modal-birthDate">
+                    </div>
+
+                    <!-- Elternteil/Verwandtschaft -->
+                    <div class="mb-3">
+                        <label for="modal-parent" class="form-label">
+                            <i class="bi bi-diagram-3 me-1"></i>Verwandtschaftsbeziehung
+                        </label>
+                        <select name="parent_cn" class="form-select" id="modal-parent">
+                            <option value="">Keine (Eigenständiges Mitglied)</option>
+                            {% for user in all_users_for_parent %}
+                                <option value="{{ user.cn }}">{{ user.givenName }} {{ user.sn }} ({{ user.cn }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Wählen Sie ein Elternteil, wenn dieser Benutzer ein Kind/Angehöriger ist
+                        </small>
+                    </div>
+
+                    <!-- Foto Upload -->
+                    <div class="mb-3">
+                        <label for="modal-jpegPhoto" class="form-label">
+                            <i class="bi bi-camera me-1"></i>Profilfoto
+                        </label>
+                        <input type="file" name="jpegPhoto" class="form-control" id="modal-jpegPhoto" accept="image/jpeg,image/jpg">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Optional: Nur JPEG-Bilder, max. 1MB
+                        </small>
+                    </div>
+
+                    <!-- Passwort (optional) -->
+                    <div class="mb-3">
+                        <label for="modal-password" class="form-label">
+                            <i class="bi bi-lock me-1"></i>Neues Passwort
+                        </label>
+                        <input type="password" name="password" class="form-control" id="modal-password"
+                               placeholder="Leer lassen, um Passwort nicht zu ändern">
+                        <small class="text-muted">Nur ausfüllen, wenn Sie das Passwort ändern möchten</small>
+                    </div>
+
+                    <!-- Passwort bestätigen (optional) -->
+                    <div class="mb-3">
+                        <label for="modal-password2" class="form-label">
+                            <i class="bi bi-lock-fill me-1"></i>Passwort bestätigen
+                        </label>
+                        <input type="password" name="password2" class="form-control" id="modal-password2"
+                               placeholder="Passwort wiederholen">
+                        <small class="text-muted text-danger" id="password-match-error" style="display: none;">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Passwörter stimmen nicht überein
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-church-primary">
+                        <i class="bi bi-check-circle me-1"></i>Änderungen speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Fülle Modal mit Benutzerdaten beim Öffnen
+document.getElementById('editUserModal').addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+
+    // Wenn kein Button (programmatisch geöffnet), nicht automatisch füllen
+    if (!button) {
+        return;
+    }
+
+    const cn = button.getAttribute('data-cn');
+    const givenName = button.getAttribute('data-givenname');
+    const sn = button.getAttribute('data-sn');
+    const mail = button.getAttribute('data-mail');
+    const uid = button.getAttribute('data-uid');
+    const title = button.getAttribute('data-title');
+    const telephone = button.getAttribute('data-telephone');
+    const mobile = button.getAttribute('data-mobile');
+    const postalAddress = button.getAttribute('data-postaladdress');
+    const birthDate = button.getAttribute('data-birthdate');
+    const photo = button.getAttribute('data-photo');
+    const parentCn = button.getAttribute('data-parent');
+
+    // Setze Modal-Titel zurück auf Edit-Modus
+    document.getElementById('editUserModalLabel').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Benutzer bearbeiten';
+
+    // Zeige Benutzerinfo wieder
+    const userInfo = document.querySelector('.user-info');
+    if (userInfo) {
+        userInfo.style.display = 'block';
+    }
+
+    // Passwort ist optional beim Bearbeiten
+    document.getElementById('modal-password').required = false;
+    document.getElementById('modal-password2').required = false;
+
+    // Fülle Modal-Felder
+    document.getElementById('modal-cn').textContent = cn;
+    document.getElementById('modal-uid').textContent = uid;
+    document.getElementById('modal-givenName').value = givenName;
+    document.getElementById('modal-sn').value = sn;
+    document.getElementById('modal-mail').value = mail;
+    document.getElementById('modal-title').value = title || '';
+    document.getElementById('modal-telephoneNumber').value = telephone || '';
+    document.getElementById('modal-mobile').value = mobile || '';
+    document.getElementById('modal-postalAddress').value = postalAddress || '';
+    document.getElementById('modal-birthDate').value = birthDate || '';
+    document.getElementById('modal-parent').value = parentCn || '';
+    document.getElementById('modal-password').value = '';
+    document.getElementById('modal-password2').value = '';
+
+    // Verstecke Passwort-Match-Error
+    document.getElementById('password-match-error').style.display = 'none';
+
+    // Zeige aktuelles Foto wenn vorhanden
+    const photoSection = document.getElementById('current-photo-section');
+    const photoImg = document.getElementById('current-photo');
+    if (photo && photo.length > 0) {
+        photoImg.src = 'data:image/jpeg;base64,' + photo;
+        photoSection.style.display = 'block';
+    } else {
+        photoSection.style.display = 'none';
+    }
+
+    // Setze Form Action URL
+    const form = document.getElementById('editUserForm');
+    form.action = `/ldap/user/${cn}/edit/`;
+});
+
+// Passwort-Match-Validierung
+document.getElementById('modal-password').addEventListener('input', checkPasswordMatch);
+document.getElementById('modal-password2').addEventListener('input', checkPasswordMatch);
+
+function checkPasswordMatch() {
+    const password1 = document.getElementById('modal-password').value;
+    const password2 = document.getElementById('modal-password2').value;
+    const errorElement = document.getElementById('password-match-error');
+
+    if (password1.length > 0 || password2.length > 0) {
+        if (password1 !== password2) {
+            errorElement.style.display = 'block';
+        } else {
+            errorElement.style.display = 'none';
+        }
+    } else {
+        errorElement.style.display = 'none';
+    }
+}
+
+// Form-Submit mit AJAX
+document.getElementById('editUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            // Schließe Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+            modal.hide();
+
+            // Zeige Erfolgsmeldung
+            alert('Benutzer erfolgreich aktualisiert!');
+
+            // Lade Seite neu
+            window.location.reload();
+        } else {
+            return response.text().then(text => {
+                throw new Error(text);
+            });
+        }
+    })
+    .catch(error => {
+        alert('Fehler beim Speichern: ' + error.message);
+    });
+});
+
+// Live-Filter beim Typing
+let searchTimeout;
+const searchInput = document.getElementById('searchInput');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        const query = e.target.value;
+
+        // Clear vorheriger Timeout
+        clearTimeout(searchTimeout);
+
+        // Warte 500ms nach letztem Tastendruck
+        searchTimeout = setTimeout(function() {
+            // Nur suchen wenn mindestens 2 Zeichen eingegeben
+            if (query.length >= 2 || query.length === 0) {
+                // Konstruiere URL mit Query-Parameter
+                const url = new URL(window.location.href);
+                if (query.length > 0) {
+                    url.searchParams.set('q', query);
+                } else {
+                    url.searchParams.delete('q');
+                }
+
+                // Navigiere zur neuen URL (lädt Seite neu mit Suchergebnis)
+                window.location.href = url.toString();
+            }
+        }, 500);  // 500ms Verzögerung
+    });
+}
+
+// Auto-open modal for creating new user
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('create') === '1') {
+    // Öffne Modal im Create-Modus
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+
+    // Setze Modal-Titel und Form-Action für Create-Modus
+    document.getElementById('editUserModalLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Neuen Benutzer erstellen';
+    document.getElementById('editUserForm').action = '/ldap/user/create/';
+
+    // Leere alle Felder
+    document.getElementById('modal-cn').textContent = '';
+    document.getElementById('modal-uid').textContent = '';
+    document.getElementById('modal-givenName').value = '';
+    document.getElementById('modal-sn').value = '';
+    document.getElementById('modal-mail').value = '';
+    document.getElementById('modal-title').value = '';
+    document.getElementById('modal-telephoneNumber').value = '';
+    document.getElementById('modal-mobile').value = '';
+    document.getElementById('modal-postalAddress').value = '';
+    document.getElementById('modal-birthDate').value = '';
+    document.getElementById('modal-parent').value = '';
+    document.getElementById('modal-password').value = '';
+    document.getElementById('modal-password2').value = '';
+    document.getElementById('current-photo-section').style.display = 'none';
+
+    // Verstecke Benutzerinfo (da neuer Benutzer)
+    const userInfo = document.querySelector('.user-info');
+    if (userInfo) {
+        userInfo.style.display = 'none';
+    }
+
+    // Passwort ist required für neue Benutzer
+    document.getElementById('modal-password').required = true;
+    document.getElementById('modal-password2').required = true;
+
+    modal.show();
+}
+</script>
+{% endblock %}
