@@ -551,7 +551,7 @@ def ldap_user_search(request):
                             'accountDisabled': account_disabled,
                             'photo_base64': photo_base64,
                             'status': status,
-                            'consents': _get_user_consents(cn_value),
+                            'consents': _get_user_consents(cn),
                         })
 
     except LDAPConnectionError as e:
