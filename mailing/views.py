@@ -345,6 +345,21 @@ def campaign_test(request, pk):
         html = _personalize_html(campaign.body_html, user_name)
         if campaign.footer_html:
             html += campaign.footer_html
+
+        # Opt-out-Link auch in Test-Mail
+        from privacy.views import generate_optout_token
+        from authapp.models import AppSettings as AS
+        _church = AS.get('church_name', 'Beispielgemeinde')
+        token = generate_optout_token(request.user.pk)
+        optout_url = request.build_absolute_uri(f'/datenschutz/optout/{token}/')
+        dsgvo_url = request.build_absolute_uri('/datenschutz/my-data/')
+        html += (
+            f'<div style="text-align:center; font-size:10px; color:#aaa; margin-top:10px; padding:10px; border-top:1px solid #eee;">'
+            f'Sie erhalten diese E-Mail als Mitglied der {_church}. '
+            f'<a href="{dsgvo_url}" style="color:#aaa;">Einstellungen verwalten</a> | '
+            f'<a href="{optout_url}" style="color:#aaa;">Abmelden</a></div>'
+        )
+
         plain = strip_tags(html)
 
         from_email = f'{campaign.from_name} <{settings.DEFAULT_FROM_EMAIL}>'
@@ -415,11 +430,16 @@ def campaign_send(request, pk):
             # Opt-out-Link einfuegen
             django_user = DjangoUser.objects.filter(username__iexact=recipient.get('cn', '')).first()
             if django_user:
+                from authapp.models import AppSettings as AS
+                _church = AS.get('church_name', 'Beispielgemeinde')
                 token = generate_optout_token(django_user.pk)
                 optout_url = request.build_absolute_uri(f'/datenschutz/optout/{token}/')
+                dsgvo_url = request.build_absolute_uri('/datenschutz/my-data/')
                 html += (
-                    f'<div style="text-align:center; font-size:10px; color:#aaa; margin-top:10px; padding:10px;">'
-                    f'<a href="{optout_url}" style="color:#aaa;">Keine E-Mails mehr erhalten</a></div>'
+                    f'<div style="text-align:center; font-size:10px; color:#aaa; margin-top:10px; padding:10px; border-top:1px solid #eee;">'
+                    f'Sie erhalten diese E-Mail als Mitglied der {_church}. '
+                    f'<a href="{dsgvo_url}" style="color:#aaa;">Einstellungen verwalten</a> | '
+                    f'<a href="{optout_url}" style="color:#aaa;">Abmelden</a></div>'
                 )
 
             plain = strip_tags(html)

@@ -94,6 +94,24 @@ for perm, group in defaults:
 log "Aktualisiere Mail-Vorlagen ..."
 sudo -u www-data ${MANAGE} seed_templates
 
+log "Setze Standard-Einstellungen ..."
+sudo -u www-data ${MANAGE} shell -c "
+from authapp.models import AppSettings
+defaults = {
+    'church_name': ('Beispielgemeinde', 'general', 'Name der Gemeinde'),
+    'church_domain': ('example-church.de', 'general', 'Domain der Gemeinde'),
+    'church_address': ('Gasstr. 4, 32791 Lage', 'general', 'Anschrift der Gemeinde'),
+    'church_phone': ('+49 5261 808 6 494', 'general', 'Telefonnummer'),
+    'church_email': ('info@example-church.de', 'general', 'Kontakt-E-Mail'),
+    'church_contact_person': ('Die Gemeindeleitung', 'general', 'Ansprechperson'),
+    'privacy_contact_person': ('Die Gemeindeleitung', 'general', 'Datenschutz-Ansprechperson'),
+}
+for key, (val, cat, desc) in defaults.items():
+    obj, created = AppSettings.objects.get_or_create(key=key, defaults={'value': val, 'category': cat, 'description': desc})
+    if created:
+        print(f'  {key} angelegt')
+"
+
 log "Sammle statische Dateien ..."
 sudo -u www-data ${MANAGE} collectstatic --noinput
 
