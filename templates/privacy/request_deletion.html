@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Loeschantrag - DSGVO{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Loeschung beantragen</h5>
+                </div>
+                <div class="card-body">
+                    {% if existing %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clock me-2"></i>
+                        Sie haben bereits einen offenen Loeschantrag vom {{ existing.created_at|date:"d.m.Y" }}.
+                        Status: <strong>{{ existing.get_status_display }}</strong>
+                    </div>
+                    <a href="{% url 'privacy:my_data' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Zurueck
+                    </a>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <strong>Achtung:</strong> Mit diesem Antrag beantragen Sie die vollstaendige Loeschung aller Ihrer Daten:
+                        <ul class="mt-2 mb-0">
+                            <li>LDAP-Benutzerkonto</li>
+                            <li>E-Mail-Postfach</li>
+                            <li>Gruppenmitgliedschaften</li>
+                            <li>Alle gespeicherten Kontaktdaten</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Begruendung (optional)</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="3"
+                                      placeholder="Warum moechten Sie Ihre Daten loeschen lassen?"></textarea>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirm" required>
+                            <label class="form-check-label" for="confirm">
+                                Ich verstehe, dass diese Aktion nicht rueckgaengig gemacht werden kann
+                                und alle meine Daten unwiderruflich geloescht werden.
+                            </label>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'privacy:my_data' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i>Loeschung beantragen
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

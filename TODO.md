@@ -175,11 +175,14 @@
 - [ ] Zugriffskontrolle nur fuer Pastor/Aelteste
 - [ ] Audit-Log
 
-### Phase 12: DSGVO-Compliance
-- [ ] Datenschutzerklaerung
-- [ ] Einwilligungsverwaltung
-- [ ] Recht auf Vergessenwerden
-- [ ] Datenexport (JSON/PDF)
+### Phase 12: DSGVO-Compliance ✅
+- [x] Datenschutzerklaerung (oeffentliche Seite, versioniert, editierbar im Admin)
+- [x] Einwilligungsverwaltung (ConsentLog, erteilen/widerrufen pro Benutzer)
+- [x] Recht auf Vergessenwerden (Loeschantrag mit Admin-Benachrichtigung)
+- [x] Datenexport (JSON-Download aller eigenen Daten)
+- [x] DSGVO-Auskunftsseite (Meine Daten: LDAP + Django + Gruppen + Einwilligungen)
+- [x] DSGVO-Checkbox bei Registrierung (Pflichtfeld)
+- [x] Datenschutz-Link im Footer und User-Menue
 
 ### Phase 13: Massen-E-Mail (Massemailing)
 - [ ] **Mail-Composer**: WYSIWYG-Editor fuer HTML-Mails (z.B. Gemeindebriefe, Ankuendigungen)

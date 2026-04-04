@@ -132,6 +132,9 @@
                                 <li><a class="dropdown-item" href="{% url 'my_permissions' %}">
                                     <i class="bi bi-key me-2"></i>Meine Berechtigungen
                                 </a></li>
+                                <li><a class="dropdown-item" href="{% url 'privacy:my_data' %}">
+                                    <i class="bi bi-shield-check me-2"></i>Meine Daten (DSGVO)
+                                </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">
                                     <i class="bi bi-box-arrow-right me-2"></i>Abmelden
@@ -215,6 +218,12 @@
                 <div class="col-md-6">
                     <p class="mb-0">
                         <i class="bi bi-church me-2"></i>&copy; 2026 Beispielgemeinde
+                        <a href="{% url 'privacy:impressum' %}" class="text-white text-decoration-none ms-3">
+                            <i class="bi bi-building me-1"></i>Impressum
+                        </a>
+                        <a href="{% url 'privacy:privacy_policy' %}" class="text-white text-decoration-none ms-3">
+                            <i class="bi bi-shield-check me-1"></i>Datenschutz
+                        </a>
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">

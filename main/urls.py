@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('captcha/', include('captcha.urls')),
     path('ldap/mailing/', include('mailing.urls')),
+    path('datenschutz/', include('privacy.urls')),
     path('', auth_views.home, name='home'),
     path('login/', auth_views.ldap_login, name='login'),
     path('logout/', auth_views.custom_logout, name='logout'),

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Meine Daten - DSGVO{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-shield-check me-2"></i>Meine Daten (DSGVO-Auskunft)
+        </h2>
+        <div>
+            <a href="{% url 'privacy:export_my_data' %}" class="btn btn-outline-primary">
+                <i class="bi bi-download me-1"></i>Daten exportieren (JSON)
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- LDAP-Daten -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-person-vcard me-2"></i>Gespeicherte Personendaten (LDAP)
+                </div>
+                <div class="card-body">
+                    {% if ldap_data %}
+                    <table class="table table-sm table-borderless">
+                        {% for label, value in ldap_data.items %}
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">{{ label }}</td>
+                            <td><strong>{{ value }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    {% else %}
+                    <p class="text-muted">Keine LDAP-Daten gefunden.</p>
+                    {% endif %}
+
+                    {% if ldap_groups %}
+                    <hr>
+                    <h6 style="color: var(--church-navy);"><i class="bi bi-people me-1"></i>Gruppenmitgliedschaften</h6>
+                    {% for group in ldap_groups %}
+                    <span class="badge bg-light text-dark me-1 mb-1">{{ group }}</span>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Django-Daten -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-database me-2"></i>System-Daten
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        {% for label, value in django_data.items %}
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">{{ label }}</td>
+                            <td><strong>{{ value }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Einwilligungen -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-check2-square me-2"></i>Einwilligungen
+                </div>
+                <div class="card-body">
+                    {% if consents %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>Art</th><th>Status</th><th>Datum</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for c in consents %}
+                            <tr>
+                                <td>{{ c.get_consent_type_display }}</td>
+                                <td>
+                                    {% if c.granted %}
+                                    <span class="badge bg-success">Erteilt</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Widerrufen</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ c.timestamp|date:"d.m.Y H:i" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">Keine Einwilligungen protokolliert.</p>
+                    {% endif %}
+
+                    <hr>
+                    <h6>Einwilligung verwalten</h6>
+                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="consent_type" value="email_communication">
+                        <input type="hidden" name="granted" value="true">
+                        <button type="submit" class="btn btn-sm btn-outline-success me-1">
+                            <i class="bi bi-check me-1"></i>E-Mail-Kommunikation erlauben
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="consent_type" value="email_communication">
+                        <input type="hidden" name="granted" value="false">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-x me-1"></i>E-Mail-Kommunikation widerrufen
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loeschantrag -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-trash me-2"></i>Recht auf Vergessenwerden
+                </div>
+                <div class="card-body">
+                    {% if deletion_requests %}
+                    {% for dr in deletion_requests %}
+                    <div class="alert {% if dr.status == 'pending' %}alert-warning{% elif dr.status == 'completed' %}alert-success{% elif dr.status == 'rejected' %}alert-danger{% else %}alert-info{% endif %}">
+                        <strong>Antrag vom {{ dr.created_at|date:"d.m.Y" }}:</strong>
+                        {{ dr.get_status_display }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <p class="text-muted">Sie koennen die Loeschung aller Ihrer Daten beantragen.
+                    Dieser Antrag wird von der Gemeindeleitung geprueft.</p>
+
+                    <a href="{% url 'privacy:request_deletion' %}" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i>Loeschung beantragen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-2">
+        <a href="{% url 'privacy:privacy_policy' %}" class="btn btn-link">
+            <i class="bi bi-shield-check me-1"></i>Datenschutzerklaerung lesen
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title|default:"Impressum" }} - Beispielgemeinde{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <h2 class="mb-0"><i class="bi bi-building me-2"></i>{{ page.title|default:"Impressum" }}</h2>
+                </div>
+                <div class="card-body">
+                    {% if page %}
+                        {{ page.content_html|safe }}
+                        <hr>
+                        <small class="text-muted">Zuletzt aktualisiert: {{ page.updated_at|date:"d.m.Y" }}</small>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Das Impressum wird derzeit erstellt. Bitte bearbeiten Sie es im
+                            {% if user.is_superuser %}<a href="/admin/privacy/legalpage/add/">Django Admin</a>{% else %}Admin-Bereich{% endif %}.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

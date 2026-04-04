@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Datenschutzerklaerung - Beispielgemeinde{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <h2 class="mb-0"><i class="bi bi-shield-check me-2"></i>Datenschutzerklaerung</h2>
+                </div>
+                <div class="card-body">
+                    {% if policy %}
+                        <div class="mb-3">
+                            <small class="text-muted">Version {{ policy.version }} | Aktualisiert: {{ policy.updated_at|date:"d.m.Y" }}</small>
+                        </div>
+                        {{ policy.content_html|safe }}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>Die Datenschutzerklaerung wird derzeit erstellt.
+                        </div>
+
+                        <h3 style="color: var(--church-navy);">1. Verantwortlicher</h3>
+                        <p>Beispielgemeinde<br>
+                        Verantwortlich fuer die Datenverarbeitung im Sinne der DSGVO.</p>
+
+                        <h3 style="color: var(--church-navy);">2. Welche Daten werden erhoben?</h3>
+                        <ul>
+                            <li><strong>Stammdaten:</strong> Name, Vorname, E-Mail-Adresse</li>
+                            <li><strong>Kontaktdaten:</strong> Telefon, Mobilnummer, Anschrift</li>
+                            <li><strong>Gemeindedaten:</strong> Gruppenmitgliedschaften, Familienrolle, Geburtstag</li>
+                            <li><strong>Technische Daten:</strong> IP-Adresse, Login-Zeitpunkte</li>
+                        </ul>
+
+                        <h3 style="color: var(--church-navy);">3. Zweck der Verarbeitung</h3>
+                        <p>Ihre Daten werden ausschliesslich fuer die Verwaltung der Gemeindemitgliedschaft,
+                        die interne Kommunikation und die Organisation des Gemeindelebens verwendet.</p>
+
+                        <h3 style="color: var(--church-navy);">4. Rechtsgrundlage</h3>
+                        <p>Die Verarbeitung erfolgt auf Grundlage Ihrer Einwilligung (Art. 6 Abs. 1 lit. a DSGVO)
+                        sowie zur Erfuellung unserer satzungsgemaessen Aufgaben (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+                        <h3 style="color: var(--church-navy);">5. Weitergabe an Dritte</h3>
+                        <p>Ihre Daten werden <strong>nicht</strong> an Dritte weitergegeben. Die Verarbeitung erfolgt
+                        ausschliesslich auf unseren eigenen Systemen.</p>
+
+                        <h3 style="color: var(--church-navy);">6. Ihre Rechte</h3>
+                        <ul>
+                            <li><strong>Auskunft:</strong> Sie koennen jederzeit Auskunft ueber Ihre gespeicherten Daten verlangen.</li>
+                            <li><strong>Berichtigung:</strong> Sie koennen Ihre Daten selbst im Profil korrigieren.</li>
+                            <li><strong>Loeschung:</strong> Sie koennen die Loeschung Ihrer Daten beantragen (Recht auf Vergessenwerden).</li>
+                            <li><strong>Datenportabilitaet:</strong> Sie koennen Ihre Daten als JSON-Datei exportieren.</li>
+                            <li><strong>Widerruf:</strong> Sie koennen Ihre Einwilligung jederzeit widerrufen.</li>
+                        </ul>
+                        {% if user.is_authenticated %}
+                        <div class="alert alert-success mt-4">
+                            <i class="bi bi-person-check me-2"></i>
+                            <a href="{% url 'privacy:my_data' %}">Meine Daten einsehen und verwalten</a>
+                        </div>
+                        {% endif %}
+
+                        <h3 style="color: var(--church-navy);">7. Speicherdauer</h3>
+                        <p>Ihre Daten werden so lange gespeichert, wie Ihre Mitgliedschaft besteht.
+                        Nach Beendigung der Mitgliedschaft werden die Daten innerhalb von 30 Tagen geloescht,
+                        sofern keine gesetzlichen Aufbewahrungspflichten bestehen.</p>
+
+                        <h3 style="color: var(--church-navy);">8. Kontakt</h3>
+                        <p>Bei Fragen zum Datenschutz wenden Sie sich an die Gemeindeleitung.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

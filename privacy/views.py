@@ -1,0 +1,256 @@
+import json
+import logging
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
+from django.utils import timezone
+from django.conf import settings
+
+from .models import PrivacyPolicy, LegalPage, ConsentLog, DeletionRequest
+
+logger = logging.getLogger(__name__)
+
+
+def privacy_policy(request):
+    """Datenschutzerklaerung anzeigen (oeffentlich)"""
+    policy = PrivacyPolicy.get_active()
+    return render(request, 'privacy/privacy_policy.html', {
+        'policy': policy,
+    })
+
+
+def impressum(request):
+    """Impressum anzeigen (oeffentlich)"""
+    page = LegalPage.get_page('impressum')
+    return render(request, 'privacy/impressum.html', {'page': page})
+
+
+def legal_page(request, page_type):
+    """Beliebige rechtliche Seite anzeigen"""
+    page = LegalPage.get_page(page_type)
+    return render(request, 'privacy/impressum.html', {'page': page})
+
+
+@login_required
+def my_data(request):
+    """DSGVO Auskunft: Zeigt dem User alle ueber ihn gespeicherten Daten"""
+    from main.ldap_manager import LDAPManager
+
+    user = request.user
+    ldap_data = {}
+    ldap_groups = []
+
+    try:
+        with LDAPManager() as ldap_mgr:
+            user_data = ldap_mgr.get_user(user.username)
+            if user_data:
+                attrs = user_data['attributes']
+                # Nur relevante Attribute anzeigen
+                display_attrs = [
+                    ('cn', 'Benutzername'),
+                    ('givenName', 'Vorname'),
+                    ('sn', 'Nachname'),
+                    ('mail', 'Organisations-E-Mail'),
+                    ('mailRoutingAddress', 'Private E-Mail'),
+                    ('telephoneNumber', 'Telefon'),
+                    ('mobile', 'Mobil'),
+                    ('postalAddress', 'Anschrift'),
+                    ('birthDate', 'Geburtstag'),
+                    ('title', 'Rolle/Position'),
+                    ('familyRole', 'Familienrolle'),
+                ]
+                for attr_key, attr_label in display_attrs:
+                    val = attrs.get(attr_key, [])
+                    if isinstance(val, list):
+                        val = ', '.join(str(v) for v in val if v)
+                    if val:
+                        # Geburtstag aus LDAP-Format konvertieren
+                        if attr_key == 'birthDate' and val:
+                            try:
+                                from datetime import datetime
+                                dt = datetime.strptime(str(val)[:8], '%Y%m%d')
+                                val = dt.strftime('%d.%m.%Y')
+                            except (ValueError, TypeError):
+                                pass
+                        ldap_data[attr_label] = val
+
+                # Gruppen
+                member_of = attrs.get('memberOf', [])
+                import re
+                for group_dn in member_of:
+                    if isinstance(group_dn, bytes):
+                        group_dn = group_dn.decode('utf-8')
+                    match = re.search(r'cn=([^,]+)', group_dn)
+                    if match:
+                        ldap_groups.append(match.group(1))
+    except Exception as e:
+        logger.error(f"Fehler beim Laden der LDAP-Daten fuer {user.username}: {e}")
+
+    # Django-Daten
+    django_data = {
+        'Benutzername': user.username,
+        'E-Mail': user.email,
+        'Vorname': user.first_name,
+        'Nachname': user.last_name,
+        'Letzter Login': user.last_login.strftime('%d.%m.%Y %H:%M') if user.last_login else '-',
+        'Registriert seit': user.date_joined.strftime('%d.%m.%Y %H:%M'),
+    }
+
+    # Einwilligungen
+    consents = ConsentLog.objects.filter(user=user)
+
+    # Loeschantraege
+    deletion_requests = DeletionRequest.objects.filter(user=user)
+
+    return render(request, 'privacy/my_data.html', {
+        'ldap_data': ldap_data,
+        'ldap_groups': ldap_groups,
+        'django_data': django_data,
+        'consents': consents,
+        'deletion_requests': deletion_requests,
+    })
+
+
+@login_required
+def export_my_data(request):
+    """DSGVO Datenexport: Alle Daten als JSON herunterladen"""
+    from main.ldap_manager import LDAPManager
+    from django.http import HttpResponse
+
+    user = request.user
+    export = {
+        'export_datum': timezone.now().isoformat(),
+        'benutzer': {
+            'benutzername': user.username,
+            'email': user.email,
+            'vorname': user.first_name,
+            'nachname': user.last_name,
+            'letzter_login': user.last_login.isoformat() if user.last_login else None,
+            'registriert_seit': user.date_joined.isoformat(),
+        },
+        'ldap_daten': {},
+        'gruppen': [],
+        'einwilligungen': [],
+    }
+
+    try:
+        with LDAPManager() as ldap_mgr:
+            user_data = ldap_mgr.get_user(user.username)
+            if user_data:
+                attrs = user_data['attributes']
+                for key, val in attrs.items():
+                    if key in ('userPassword', 'jpegPhoto', 'objectClass'):
+                        continue
+                    if isinstance(val, list):
+                        val = [str(v) for v in val if v]
+                    export['ldap_daten'][key] = val
+
+                member_of = attrs.get('memberOf', [])
+                import re
+                for group_dn in member_of:
+                    if isinstance(group_dn, bytes):
+                        group_dn = group_dn.decode('utf-8')
+                    match = re.search(r'cn=([^,]+)', group_dn)
+                    if match:
+                        export['gruppen'].append(match.group(1))
+    except Exception:
+        pass
+
+    for consent in ConsentLog.objects.filter(user=user):
+        export['einwilligungen'].append({
+            'typ': consent.get_consent_type_display(),
+            'erteilt': consent.granted,
+            'version': consent.policy_version,
+            'zeitpunkt': consent.timestamp.isoformat(),
+        })
+
+    response = HttpResponse(
+        json.dumps(export, indent=2, ensure_ascii=False),
+        content_type='application/json; charset=utf-8'
+    )
+    response['Content-Disposition'] = f'attachment; filename="meine_daten_{user.username}.json"'
+    return response
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def request_deletion(request):
+    """Recht auf Vergessenwerden: Loeschantrag stellen"""
+    # Pruefen ob bereits ein offener Antrag existiert
+    existing = DeletionRequest.objects.filter(
+        user=request.user, status__in=['pending', 'approved']
+    ).first()
+
+    if request.method == 'POST' and not existing:
+        reason = request.POST.get('reason', '').strip()
+        DeletionRequest.objects.create(
+            user=request.user,
+            username=request.user.username,
+            email=request.user.email,
+            reason=reason,
+        )
+
+        # Benachrichtigung an Admins
+        try:
+            from authapp.models import PermissionMapping
+            from django.contrib.auth.models import User, Group
+            from django.core.mail import send_mail
+
+            admin_emails = set()
+            allowed_groups = PermissionMapping.get_groups_for_permission('manage_registrations')
+            for group_name in allowed_groups:
+                try:
+                    group = Group.objects.get(name=group_name)
+                    for u in group.user_set.all():
+                        if u.email:
+                            admin_emails.add(u.email)
+                except Group.DoesNotExist:
+                    pass
+            for u in User.objects.filter(is_superuser=True):
+                if u.email:
+                    admin_emails.add(u.email)
+
+            if admin_emails:
+                send_mail(
+                    f'DSGVO Loeschantrag: {request.user.username}',
+                    f'Benutzer: {request.user.get_full_name()} ({request.user.username})\n'
+                    f'E-Mail: {request.user.email}\n'
+                    f'Begruendung: {reason or "Keine Angabe"}\n\n'
+                    f'Bitte bearbeiten Sie den Antrag im Admin-Bereich.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    list(admin_emails),
+                    fail_silently=True,
+                )
+        except Exception:
+            pass
+
+        messages.success(request, 'Ihr Loeschantrag wurde eingereicht. Sie werden benachrichtigt, sobald er bearbeitet wurde.')
+        return redirect('privacy:my_data')
+
+    return render(request, 'privacy/request_deletion.html', {
+        'existing': existing,
+    })
+
+
+@login_required
+def consent_update(request):
+    """Einwilligung erteilen oder widerrufen"""
+    if request.method == 'POST':
+        consent_type = request.POST.get('consent_type')
+        granted = request.POST.get('granted') == 'true'
+
+        policy = PrivacyPolicy.get_active()
+        ConsentLog.objects.create(
+            user=request.user,
+            consent_type=consent_type,
+            granted=granted,
+            policy_version=policy.version if policy else '',
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+
+        action = 'erteilt' if granted else 'widerrufen'
+        messages.success(request, f'Einwilligung {action}.')
+
+    return redirect('privacy:my_data')
