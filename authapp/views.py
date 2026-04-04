@@ -300,6 +300,39 @@ def ldap_admin(request):
     return render(request, 'ldap/admin.html', {'stats': stats})
 
 
+def get_or_create_django_user(cn):
+    """Hole oder erstelle Django-User fuer einen LDAP-Benutzer"""
+    from django.contrib.auth.models import User as DjangoUser
+    if isinstance(cn, bytes):
+        cn = cn.decode('utf-8')
+    if not cn:
+        return None
+    user = DjangoUser.objects.filter(username__iexact=cn).first()
+    if user:
+        return user
+    try:
+        from main.ldap_manager import LDAPManager
+        with LDAPManager() as ldap_mgr:
+            ldap_data = ldap_mgr.get_user(cn)
+            if ldap_data:
+                attrs = ldap_data['attributes']
+                gn = attrs.get('givenName', [''])[0] if isinstance(attrs.get('givenName', ['']), list) else attrs.get('givenName', '')
+                sn = attrs.get('sn', [''])[0] if isinstance(attrs.get('sn', ['']), list) else attrs.get('sn', '')
+                mail = attrs.get('mail', [''])[0] if isinstance(attrs.get('mail', ['']), list) else attrs.get('mail', '')
+                user = DjangoUser.objects.create(
+                    username=cn,
+                    first_name=gn,
+                    last_name=sn,
+                    email=mail,
+                )
+                user.set_unusable_password()
+                user.save()
+                return user
+    except Exception:
+        pass
+    return None
+
+
 def _get_user_consents(cn):
     """Hole aktuellen Consent-Status eines Benutzers als komma-getrennte Strings"""
     try:
@@ -998,8 +1031,7 @@ def family_member_edit(request, cn):
 
     # DSGVO Consent-Status des Familienmitglieds laden
     from privacy.models import ConsentLog
-    from django.contrib.auth.models import User as DjangoUser
-    member_user = DjangoUser.objects.filter(username__iexact=cn).first()
+    member_user = get_or_create_django_user(cn)
     member_consents = {}
     for ctype, clabel in ConsentLog.CONSENT_TYPES:
         if member_user:
