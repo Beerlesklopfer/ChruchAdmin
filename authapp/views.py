@@ -304,11 +304,15 @@ def ldap_admin(request):
 def _get_user_consents(cn):
     """Hole aktuellen Consent-Status eines Benutzers als komma-getrennte Strings"""
     try:
+        if isinstance(cn, bytes):
+            cn = cn.decode('utf-8')
+        if not cn:
+            return ''
         from privacy.models import ConsentLog
         from django.contrib.auth.models import User as DjangoUser
         dj_user = DjangoUser.objects.filter(username__iexact=cn).first()
         if not dj_user:
-            return 'email_communication:true,member_list:true,data_processing:true,privacy_policy:true'
+            return 'privacy_policy:true,data_processing:true,email_communication:true,member_list:true'
         result = []
         for ctype, _ in ConsentLog.CONSENT_TYPES:
             latest = ConsentLog.objects.filter(user=dj_user, consent_type=ctype).order_by('-timestamp').first()
