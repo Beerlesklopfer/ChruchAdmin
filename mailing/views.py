@@ -208,15 +208,15 @@ def campaign_compose(request, pk=None):
             messages.error(request, 'Nur Entwuerfe koennen bearbeitet werden.')
             return redirect('mailing:campaign_detail', pk=pk)
 
+    from authapp.models import AppSettings
+    church = AppSettings.get('church_name', 'Beispielgemeinde')
     DEFAULT_FOOTER = (
         '<div style="text-align:center; font-size:11px; color:#999; padding:20px; '
         'border-top:1px solid #ddd; margin-top:20px;">'
-        '<p><strong>Beispielgemeinde</strong></p>'
-        '<p>Sie erhalten diese E-Mail als Mitglied oder Angehoeriger der Beispielgemeinde. '
+        f'<p><strong>{church}</strong></p>'
+        f'<p>Sie erhalten diese E-Mail als Mitglied oder Angehoeriger der {church}. '
         'Ihre Daten werden gemaess der DSGVO verarbeitet und nicht an Dritte weitergegeben.</p>'
-        '<p>Wenn Sie diese Nachrichten nicht mehr erhalten moechten, '
-        'wenden Sie sich bitte an die Gemeindeleitung.</p>'
-        '<p>&copy; 2026 Beispielgemeinde</p></div>'
+        f'<p>&copy; 2026 {church}</p></div>'
     )
     footer_default = campaign.footer_html if campaign and campaign.footer_html else DEFAULT_FOOTER
 
@@ -296,6 +296,7 @@ def campaign_compose(request, pk=None):
         'campaign': campaign,
         'groups': groups,
         'templates': templates,
+        'footer_default': footer_default,
     })
 
 

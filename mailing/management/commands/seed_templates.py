@@ -87,7 +87,7 @@ TEMPLATES = [
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
         <p style="font-size: 16px;">Liebe(r) [[vorname]],</p>
-        <p>wir freuen uns, Ihnen unsere neue Gemeinde-Plattform vorzustellen!</p>
+        <p>wir freuen uns, Ihnen die neue Plattform der Beispielgemeinde vorzustellen!</p>
 
         <h2 style="color: #1c2647; font-size: 18px; border-bottom: 2px solid #e6c068; padding-bottom: 8px;">Was koennen Sie tun?</h2>
 
@@ -97,7 +97,7 @@ TEMPLATES = [
         </div>
         <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
             <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Profil bearbeiten</h3>
-            <p style="margin: 0;">Aendern Sie Ihre Kontaktdaten selbst &mdash; jederzeit und ohne Umwege.</p>
+            <p style="margin: 0;">Aendern Sie Ihre Kontaktdaten (Telefon, Anschrift, Geburtstag), Ihr Profilfoto und Ihr Passwort selbst &mdash; jederzeit und ohne Umwege. Ueber die Login-Seite koennen Sie Ihr Passwort auch zuruecksetzen lassen.</p>
         </div>
         <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
             <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Familienverwaltung</h3>
@@ -109,11 +109,6 @@ TEMPLATES = [
             <p style="margin: 0;">Sehen Sie die Gemeindeliste ein und exportieren Sie diese als PDF.</p>
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;"><em>DSGVO: Welche Ihrer Daten sichtbar sind, koennen Sie in Ihren Datenschutz-Einstellungen festlegen (Opt-out moeglich).</em></p>
         </div>
-        <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
-            <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Passwort zuruecksetzen</h3>
-            <p style="margin: 0;">Ueber die Login-Seite koennen Sie jederzeit ein neues Passwort anfordern.</p>
-        </div>
-
         <div style="background: #1c2647; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
             <h3 style="color: #e6c068; margin: 0 0 10px;">Jetzt ausprobieren!</h3>
             <a href="https://wir.example-church.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
@@ -139,7 +134,7 @@ TEMPLATES = [
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
         <p style="font-size: 16px;">Hallo [[vorname]]!</p>
-        <p>Schoen, dass Du dabei bist! Mit unserer neuen Plattform kannst Du viele Dinge bequem online erledigen.</p>
+        <p>Schoen, dass Du bei der Beispielgemeinde dabei bist! Mit unserer neuen Plattform kannst Du viele Dinge bequem online erledigen.</p>
 
         <h2 style="color: #1c2647; font-size: 18px; border-bottom: 2px solid #e6c068; padding-bottom: 8px;">Was kannst Du tun?</h2>
 
@@ -149,7 +144,7 @@ TEMPLATES = [
         </div>
         <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
             <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Profil bearbeiten</h3>
-            <p style="margin: 0;">Aendere Deine Kontaktdaten selbst &mdash; jederzeit und ohne Umwege.</p>
+            <p style="margin: 0;">Aendere Deine Kontaktdaten (Telefon, Anschrift, Geburtstag), Dein Profilfoto und Dein Passwort selbst &mdash; jederzeit und ohne Umwege. Ueber die Login-Seite kannst Du Dein Passwort auch zuruecksetzen lassen.</p>
         </div>
         <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
             <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Familienverwaltung</h3>
@@ -161,11 +156,6 @@ TEMPLATES = [
             <p style="margin: 0;">Schau Dir die Gemeindeliste an und exportiere sie als PDF.</p>
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;"><em>DSGVO: Welche Deiner Daten sichtbar sind, kannst Du in Deinen Datenschutz-Einstellungen festlegen (Opt-out moeglich).</em></p>
         </div>
-        <div style="background: #f7f3e6; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e6c068;">
-            <h3 style="color: #1c2647; margin: 0 0 8px; font-size: 15px;">Passwort zuruecksetzen</h3>
-            <p style="margin: 0;">Ueber die Login-Seite kannst Du jederzeit ein neues Passwort anfordern.</p>
-        </div>
-
         <div style="background: #1c2647; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
             <h3 style="color: #e6c068; margin: 0 0 10px;">Jetzt ausprobieren!</h3>
             <a href="https://wir.example-church.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
