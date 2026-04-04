@@ -91,6 +91,9 @@ for perm, group in defaults:
         print(f'  Berechtigung {perm} fuer {group} angelegt')
 "
 
+log "Aktualisiere Mail-Vorlagen ..."
+sudo -u www-data ${MANAGE} seed_templates
+
 log "Sammle statische Dateien ..."
 sudo -u www-data ${MANAGE} collectstatic --noinput
 
