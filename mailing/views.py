@@ -143,10 +143,24 @@ def _get_recipients_from_ldap(campaign):
                 attrs.get('givenName', ['']), list) else attrs.get('givenName', '')
             sn = attrs.get('sn', [''])[0] if isinstance(
                 attrs.get('sn', ['']), list) else attrs.get('sn', '')
+            cn = attrs.get('cn', [''])[0] if isinstance(
+                attrs.get('cn', ['']), list) else attrs.get('cn', '')
+
+            # Opt-out pruefen: Benutzer mit widerrufener E-Mail-Einwilligung ueberspringen
+            from django.contrib.auth.models import User as DjangoUser
+            from privacy.models import ConsentLog as CL
+            dj_user = DjangoUser.objects.filter(username__iexact=cn).first()
+            if dj_user:
+                latest_consent = CL.objects.filter(
+                    user=dj_user, consent_type='email_communication'
+                ).order_by('-timestamp').first()
+                if latest_consent and not latest_consent.granted:
+                    continue
 
             recipients.append({
                 'email': email,
                 'name': f'{given_name} {sn}'.strip(),
+                'cn': cn,
             })
 
     # Duplikate entfernen (nach E-Mail)
@@ -388,11 +402,25 @@ def campaign_send(request, pk):
     success = 0
     failed = 0
 
+    from django.contrib.auth.models import User as DjangoUser
+    from privacy.views import generate_optout_token
+
     for recipient in recipients:
         try:
             html = _personalize_html(campaign.body_html, recipient['name'])
             if campaign.footer_html:
                 html += campaign.footer_html
+
+            # Opt-out-Link einfuegen
+            django_user = DjangoUser.objects.filter(username__iexact=recipient.get('cn', '')).first()
+            if django_user:
+                token = generate_optout_token(django_user.pk)
+                optout_url = request.build_absolute_uri(f'/datenschutz/optout/{token}/')
+                html += (
+                    f'<div style="text-align:center; font-size:10px; color:#aaa; margin-top:10px; padding:10px;">'
+                    f'<a href="{optout_url}" style="color:#aaa;">Keine E-Mails mehr erhalten</a></div>'
+                )
+
             plain = strip_tags(html)
 
             msg = EmailMultiAlternatives(

@@ -8,6 +8,8 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.conf import settings
 
+from django.core import signing
+
 from .models import PrivacyPolicy, LegalPage, ConsentLog, DeletionRequest
 
 logger = logging.getLogger(__name__)
@@ -321,3 +323,47 @@ def consent_update(request):
         messages.success(request, f'Einwilligung fuer {name} {action}.')
 
     return redirect('privacy:my_data')
+
+
+def generate_optout_token(user_id):
+    """Generiert einen signierten Opt-out-Token fuer E-Mail-Links"""
+    return signing.dumps({'uid': user_id, 'action': 'optout'}, salt='email-optout')
+
+
+def optout_email(request, token):
+    """Opt-out ueber E-Mail-Link (ohne Login)"""
+    try:
+        data = signing.loads(token, salt='email-optout', max_age=60*60*24*365)  # 1 Jahr gueltig
+        from django.contrib.auth.models import User as DjangoUser
+        user = DjangoUser.objects.get(pk=data['uid'])
+
+        # Pruefen ob bereits widerrufen
+        latest = ConsentLog.objects.filter(
+            user=user, consent_type='email_communication'
+        ).order_by('-timestamp').first()
+
+        if latest and not latest.granted:
+            return render(request, 'privacy/optout_result.html', {
+                'success': True, 'already': True, 'username': user.get_full_name() or user.username,
+            })
+
+        # Consent widerrufen
+        policy = PrivacyPolicy.get_active()
+        ConsentLog.objects.create(
+            user=user,
+            consent_type='email_communication',
+            granted=False,
+            policy_version=policy.version if policy else '',
+            ip_address=request.META.get('REMOTE_ADDR'),
+        )
+        logger.info(f"Opt-out per E-Mail-Link: {user.username}")
+
+        return render(request, 'privacy/optout_result.html', {
+            'success': True, 'already': False, 'username': user.get_full_name() or user.username,
+        })
+
+    except (signing.BadSignature, signing.SignatureExpired):
+        return render(request, 'privacy/optout_result.html', {'success': False})
+    except Exception as e:
+        logger.error(f"Opt-out Fehler: {e}")
+        return render(request, 'privacy/optout_result.html', {'success': False})

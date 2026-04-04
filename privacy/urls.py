@@ -11,4 +11,5 @@ urlpatterns = [
     path('my-data/export/', views.export_my_data, name='export_my_data'),
     path('my-data/delete/', views.request_deletion, name='request_deletion'),
     path('consent/', views.consent_update, name='consent_update'),
+    path('optout/<str:token>/', views.optout_email, name='optout_email'),
 ]
