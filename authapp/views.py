@@ -940,7 +940,7 @@ def family_member_edit(request, cn):
                         update_attrs['jpegPhoto'] = photo_bytes
                     except LDAPValidationError as e:
                         messages.error(request, f'Foto-Fehler: {str(e)}')
-                        return render(request, 'dashboard/family_member_edit.html', {'member': member_data})
+                        return redirect('family_member_edit', cn=cn)
 
                 ldap_conn.update_user(cn, update_attrs, parent_cn=request.user.username)
                 messages.success(request, f'{update_attrs["givenName"]} wurde aktualisiert!')
@@ -951,7 +951,23 @@ def family_member_edit(request, cn):
     except Exception as e:
         messages.error(request, f'Fehler: {str(e)}')
 
-    return render(request, 'dashboard/family_member_edit.html', {'member': member_data})
+    # DSGVO Consent-Status des Familienmitglieds laden
+    from privacy.models import ConsentLog
+    from django.contrib.auth.models import User as DjangoUser
+    member_user = DjangoUser.objects.filter(username__iexact=cn).first()
+    member_consents = {}
+    for ctype, clabel in ConsentLog.CONSENT_TYPES:
+        if member_user:
+            latest = ConsentLog.objects.filter(user=member_user, consent_type=ctype).order_by('-timestamp').first()
+            member_consents[ctype] = {'label': clabel, 'granted': latest.granted if latest else True}
+        else:
+            member_consents[ctype] = {'label': clabel, 'granted': True}
+
+    return render(request, 'dashboard/family_member_edit.html', {
+        'member': member_data,
+        'member_consents': member_consents,
+        'member_user_id': member_user.pk if member_user else None,
+    })
 
 
 def _send_disabled_login_email(ldap_user_data, username, request):

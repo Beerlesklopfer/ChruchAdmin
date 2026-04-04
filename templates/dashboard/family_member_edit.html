@@ -105,6 +105,49 @@
                     <small class="text-muted">Optional: Nur JPEG, max. 1MB</small>
                 </div>
 
+                <!-- DSGVO-Einstellungen -->
+                <div class="mt-4 mb-3">
+                    <h6 style="color: var(--church-navy);">
+                        <i class="bi bi-shield-check me-2"></i>Datenschutz (DSGVO)
+                    </h6>
+                    <small class="text-muted d-block mb-2">Opt-out: Einwilligungen gelten als erteilt, bis Sie widersprechen.
+                        <a href="{% url 'privacy:privacy_policy' %}" target="_blank">Datenschutzerklaerung</a>
+                    </small>
+
+                    {% for ctype, cinfo in member_consents.items %}
+                    <div class="d-flex align-items-center justify-content-between mb-1 p-2 rounded" style="background: var(--church-beige);">
+                        <span>
+                            {% if cinfo.granted %}<i class="bi bi-check-circle-fill text-success me-1"></i>
+                            {% else %}<i class="bi bi-x-circle-fill text-danger me-1"></i>{% endif %}
+                            <small>{{ cinfo.label }}</small>
+                        </span>
+                        <span>
+                            {% if cinfo.granted %}
+                            <a href="{% url 'privacy:consent_update' %}" class="btn btn-sm btn-outline-danger py-0 px-2"
+                               onclick="event.preventDefault(); document.getElementById('consent-form-{{ forloop.counter }}').submit();">
+                                <i class="bi bi-x me-1"></i>Widerrufen
+                            </a>
+                            {% else %}
+                            <a href="{% url 'privacy:consent_update' %}" class="btn btn-sm btn-outline-success py-0 px-2"
+                               onclick="event.preventDefault(); document.getElementById('consent-form-{{ forloop.counter }}').submit();">
+                                <i class="bi bi-check me-1"></i>Erlauben
+                            </a>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Versteckte Consent-Formulare -->
+                {% for ctype, cinfo in member_consents.items %}
+                <form id="consent-form-{{ forloop.counter }}" method="post" action="{% url 'privacy:consent_update' %}" class="d-none">
+                    {% csrf_token %}
+                    <input type="hidden" name="consent_type" value="{{ ctype }}">
+                    <input type="hidden" name="granted" value="{% if cinfo.granted %}false{% else %}true{% endif %}">
+                    {% if member_user_id %}<input type="hidden" name="target_user_id" value="{{ member_user_id }}">{% endif %}
+                </form>
+                {% endfor %}
+
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn flex-grow-1" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
                         <i class="bi bi-check-circle me-2"></i>Speichern
