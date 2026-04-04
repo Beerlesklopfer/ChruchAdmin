@@ -385,6 +385,10 @@ def ldap_user_search(request):
                     if isinstance(family_role, list):
                         family_role = family_role[0] if family_role else ''
 
+                    account_disabled = attrs.get('accountDisabled', '')
+                    if isinstance(account_disabled, list):
+                        account_disabled = account_disabled[0] if account_disabled else ''
+
                     # Bestimme Verwandtschaftsbeziehung aus familyRole und DN
                     dn = user['dn']
                     parent_name = None
@@ -524,6 +528,7 @@ def ldap_user_search(request):
                             'parent_name': parent_name,
                             'parent_cn': parent_cn or '',
                             'familyRole': family_role,
+                            'accountDisabled': account_disabled,
                             'photo_base64': photo_base64,
                             'status': status,
                         })
@@ -947,6 +952,60 @@ def family_member_edit(request, cn):
     return render(request, 'dashboard/family_member_edit.html', {'member': member_data})
 
 
+def _send_disabled_login_email(ldap_user_data, username, request):
+    """Sendet Warn-Email an Admins bei Login-Versuch mit deaktiviertem Account"""
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
+        from django.utils import timezone
+        from authapp.models import PermissionMapping
+        from django.contrib.auth.models import User, Group
+
+        attrs = ldap_user_data['attributes']
+        given_name = attrs.get('givenName', [''])[0] if isinstance(attrs.get('givenName', ['']), list) else attrs.get('givenName', '')
+        sn = attrs.get('sn', [''])[0] if isinstance(attrs.get('sn', ['']), list) else attrs.get('sn', '')
+
+        # Sammle Admin-E-Mail-Adressen (manage_registrations + Superuser)
+        admin_emails = set()
+        allowed_groups = PermissionMapping.get_groups_for_permission('manage_registrations')
+        for group_name in allowed_groups:
+            try:
+                group = Group.objects.get(name=group_name)
+                for u in group.user_set.all():
+                    if u.email:
+                        admin_emails.add(u.email)
+            except Group.DoesNotExist:
+                pass
+        for u in User.objects.filter(is_superuser=True):
+            if u.email:
+                admin_emails.add(u.email)
+
+        if not admin_emails:
+            return
+
+        html_message = render_to_string('emails/disabled_login_attempt.html', {
+            'first_name': given_name,
+            'last_name': sn,
+            'username': username,
+            'timestamp': timezone.now().strftime('%d.%m.%Y %H:%M:%S'),
+            'ip_address': request.META.get('REMOTE_ADDR', 'unbekannt'),
+        })
+        plain_message = strip_tags(html_message)
+
+        msg = EmailMultiAlternatives(
+            subject=f'Sicherheitshinweis: Blockierter Login-Versuch von {given_name} {sn}',
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=list(admin_emails),
+        )
+        msg.attach_alternative(html_message, 'text/html')
+        msg.send(fail_silently=True)
+        logger.info(f"Disabled-Login-Warnung an Admins gesendet: {admin_emails} (Account: {username})")
+    except Exception as e:
+        logger.error(f"Fehler beim Senden der Disabled-Login-Warnung: {e}")
+
+
 def ldap_login(request):
     """LDAP Login View die direkt im LDAP sucht und authentifiziert"""
 
@@ -1029,6 +1088,40 @@ def ldap_login(request):
                 user = authenticate(request, username=normalized_username, password=password)
 
                 if user is not None:
+                    # Prüfe ob Account deaktiviert BEVOR login() aufgerufen wird
+                    try:
+                        from main.ldap_manager import LDAPManager
+                        with LDAPManager() as ldap_check:
+                            ldap_user_check = ldap_check.get_user(normalized_username)
+                            if ldap_user_check:
+                                disabled = ldap_user_check['attributes'].get('accountDisabled', [''])[0]
+                                if isinstance(disabled, bytes):
+                                    disabled = disabled.decode('utf-8')
+                                if disabled.upper() == 'TRUE':
+                                    logger.warning(f"Login blockiert: Account {normalized_username} ist deaktiviert")
+                                    # Warn-Email an den Benutzer senden
+                                    _send_disabled_login_email(ldap_user_check, normalized_username, request)
+                                    messages.error(request, 'Ihr Zugang wurde deaktiviert. Bitte kontaktieren Sie die Gemeindeleitung.')
+                                    return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+                    except Exception as e:
+                        logger.error(f"Fehler bei accountDisabled-Pruefung fuer {normalized_username}: {e}")
+                        # Bei Fehler: Login trotzdem blockieren (sicherheitshalber)
+                        messages.error(request, 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.')
+                        return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+
+                    # Prüfe ob Registrierungsanfrage abgelehnt/ausstehend BEVOR login()
+                    from authapp.models import RegistrationRequest
+                    reg_check = RegistrationRequest.objects.filter(
+                        email__iexact=user.email
+                    ).order_by('-created_at').first()
+                    if reg_check and reg_check.status == 'rejected':
+                        messages.error(request, 'Ihr Zugang wurde abgelehnt. Bitte kontaktieren Sie die Gemeindeleitung.')
+                        return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+                    if reg_check and reg_check.status == 'pending':
+                        messages.warning(request, 'Ihre Registrierungsanfrage wird noch geprueft. Bitte haben Sie etwas Geduld.')
+                        return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+
+                    # Alle Prüfungen bestanden - jetzt einloggen
                     login(request, user)
 
                     # Log erfolgreichen Login
@@ -1041,8 +1134,6 @@ def ldap_login(request):
 
                     messages.success(request, f'Willkommen zurück, {user.get_full_name() or user.username}!')
                     next_url = request.GET.get('next') or request.POST.get('next')
-                    # Nur weiterleiten wenn next nicht auf eine Admin-Seite zeigt
-                    # die der User nicht sehen darf
                     if next_url and not (next_url.startswith('/ldap') and not is_ldap_admin(user)):
                         return redirect(next_url)
                     if is_ldap_admin(user):
@@ -1088,10 +1179,36 @@ def ldap_login(request):
                             test_conn.simple_bind_s(user_dn, password)
                             test_conn.unbind_s()
 
-                            print(f"DEBUG: LDAP Bind erfolgreich, logge User ein")
+                            print(f"DEBUG: LDAP Bind erfolgreich")
 
-                            # LDAP Authentifizierung erfolgreich, logge User ein
-                            # Setze backend attribute manuell
+                            # Prüfe ob Account deaktiviert BEVOR login()
+                            try:
+                                with LDAPManager() as ldap_chk:
+                                    ldap_u = ldap_chk.get_user(existing_user.username)
+                                    if ldap_u:
+                                        dis = ldap_u['attributes'].get('accountDisabled', [''])[0]
+                                        if isinstance(dis, bytes): dis = dis.decode('utf-8')
+                                        if dis.upper() == 'TRUE':
+                                            logger.warning(f"Login blockiert (Pfad 2): Account {existing_user.username} ist deaktiviert")
+                                            _send_disabled_login_email(ldap_u, existing_user.username, request)
+                                            messages.error(request, 'Ihr Zugang wurde deaktiviert. Bitte kontaktieren Sie die Gemeindeleitung.')
+                                            return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+                            except Exception as e:
+                                logger.error(f"Fehler bei accountDisabled-Pruefung (Pfad 2) fuer {existing_user.username}: {e}")
+                                messages.error(request, 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.')
+                                return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+
+                            # Prüfe Registrierungsanfrage BEVOR login()
+                            from authapp.models import RegistrationRequest
+                            reg_chk = RegistrationRequest.objects.filter(email__iexact=existing_user.email).order_by('-created_at').first()
+                            if reg_chk and reg_chk.status == 'rejected':
+                                messages.error(request, 'Ihr Zugang wurde abgelehnt. Bitte kontaktieren Sie die Gemeindeleitung.')
+                                return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+                            if reg_chk and reg_chk.status == 'pending':
+                                messages.warning(request, 'Ihre Registrierungsanfrage wird noch geprueft.')
+                                return render(request, 'registration/login.html', {'form': LdapAuthenticationForm()})
+
+                            # Alle Prüfungen bestanden - jetzt einloggen
                             existing_user.backend = 'django.contrib.auth.backends.ModelBackend'
                             login(request, existing_user)
 
@@ -1171,9 +1288,299 @@ def custom_logout(request):
 
 
 def register(request):
-    """Registrierung deaktivieren - nur LDAP Benutzer"""
-    messages.error(request, "Registrierung ist deaktiviert. Bitte verwenden Sie LDAP zur Anmeldung.")
+    """Registrierungsanfrage stellen"""
+    from main.forms import RegistrationRequestForm
+    from authapp.models import RegistrationRequest
+
+    if request.method == 'POST':
+        form = RegistrationRequestForm(request.POST)
+        if form.is_valid():
+            # Honeypot check (bereits in form.clean_website)
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0] or request.META.get('REMOTE_ADDR')
+
+            # Rate Limiting: Max 3 pro IP/Stunde
+            if RegistrationRequest.count_from_ip(ip) >= 3:
+                messages.error(request, 'Zu viele Anfragen. Bitte versuchen Sie es spaeter erneut.')
+                return render(request, 'registration/register.html', {'form': form})
+
+            # Token generieren
+            import secrets
+            token = secrets.token_urlsafe(32)
+
+            # Speichere Anfrage (Status: unverified)
+            reg = RegistrationRequest.objects.create(
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'],
+                email=form.cleaned_data['email'],
+                reason=form.cleaned_data['reason'],
+                ip_address=ip,
+                verification_token=token,
+                status='unverified',
+            )
+
+            # Bestaetigungs-Mail an Antragsteller (HTML)
+            try:
+                from django.core.mail import EmailMultiAlternatives
+                from django.template.loader import render_to_string
+                from django.utils.html import strip_tags
+
+                verify_url = request.build_absolute_uri(f'/register/verify/{token}/')
+                html_message = render_to_string('emails/registration_verify.html', {
+                    'first_name': reg.first_name,
+                    'verify_url': verify_url,
+                })
+                plain_message = strip_tags(html_message)
+
+                msg = EmailMultiAlternatives(
+                    subject='E-Mail-Adresse bestaetigen - Beispielgemeinde',
+                    body=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[reg.email],
+                )
+                msg.attach_alternative(html_message, 'text/html')
+                msg.send(fail_silently=False)
+            except Exception:
+                pass
+
+            messages.success(request, 'Bitte pruefen Sie Ihr E-Mail-Postfach und bestaetigen Sie Ihre E-Mail-Adresse.')
+            return redirect('login')
+    else:
+        form = RegistrationRequestForm()
+
+    return render(request, 'registration/register.html', {'form': form})
+
+
+def register_verify(request, token):
+    """E-Mail-Adresse bestaetigen"""
+    from authapp.models import RegistrationRequest
+    from django.utils import timezone
+    from datetime import timedelta
+
+    try:
+        reg = RegistrationRequest.objects.get(verification_token=token, status='unverified')
+    except RegistrationRequest.DoesNotExist:
+        messages.error(request, 'Ungueltiger oder bereits verwendeter Bestaetigungslink.')
+        return redirect('login')
+
+    # 24h Ablauf pruefen
+    if timezone.now() - reg.created_at > timedelta(hours=24):
+        messages.error(request, 'Dieser Bestaetigungslink ist abgelaufen. Bitte stellen Sie eine neue Anfrage.')
+        reg.delete()
+        return redirect('register')
+
+    reg.email_verified = True
+    reg.status = 'pending'
+    reg.save()
+
+    # Mail an alle User mit manage_users-Berechtigung
+    try:
+        from authapp.models import PermissionMapping
+        from django.contrib.auth.models import User, Group
+        from django.core.mail import send_mail
+
+        # Finde alle Gruppen mit manage_users-Berechtigung
+        allowed_groups = PermissionMapping.get_groups_for_permission('manage_registrations')
+        # Finde alle Django-User in diesen Gruppen + Superuser
+        recipient_emails = set()
+        for group_name in allowed_groups:
+            try:
+                group = Group.objects.get(name=group_name)
+                for u in group.user_set.all():
+                    if u.email:
+                        recipient_emails.add(u.email)
+            except Group.DoesNotExist:
+                pass
+        for u in User.objects.filter(is_superuser=True):
+            if u.email:
+                recipient_emails.add(u.email)
+
+        if recipient_emails:
+            send_mail(
+                f'Neue Registrierungsanfrage: {reg.first_name} {reg.last_name}',
+                f'Name: {reg.first_name} {reg.last_name}\n'
+                f'E-Mail: {reg.email} (bestaetigt)\n'
+                f'Begruendung: {reg.reason}\n\n'
+                f'Bitte pruefen unter: /ldap/registrations/',
+                settings.DEFAULT_FROM_EMAIL,
+                list(recipient_emails),
+                fail_silently=True,
+            )
+    except Exception:
+        pass
+
+    messages.success(request, 'E-Mail-Adresse bestaetigt! Ihre Anfrage wird jetzt von der Gemeindeleitung geprueft.')
     return redirect('login')
+
+
+@login_required
+@require_permission('manage_registrations')
+def registration_delete(request, pk):
+    """Registrierungsanfrage loeschen"""
+    from authapp.models import RegistrationRequest
+    reg = RegistrationRequest.objects.get(pk=pk)
+    if request.method == 'POST':
+        name = f"{reg.first_name} {reg.last_name}"
+        reg.delete()
+        messages.success(request, f'Anfrage von {name} wurde geloescht.')
+    return redirect('registration_requests')
+
+
+@login_required
+@require_permission('manage_registrations')
+def registration_requests(request):
+    """Liste aller Registrierungsanfragen"""
+    from authapp.models import RegistrationRequest
+    reqs = RegistrationRequest.objects.all()
+    pending = reqs.filter(status='pending')
+    return render(request, 'registration/registration_requests.html', {
+        'requests': reqs,
+        'pending_count': pending.count(),
+    })
+
+
+@login_required
+@require_permission('manage_registrations')
+def registration_approve(request, pk):
+    """Registrierungsanfrage genehmigen — erstellt LDAP-User"""
+    from authapp.models import RegistrationRequest, EmailTemplate
+    from django.utils import timezone
+    import secrets
+
+    reg = RegistrationRequest.objects.get(pk=pk)
+    if reg.status != 'pending':
+        messages.warning(request, 'Diese Anfrage wurde bereits bearbeitet.')
+        return redirect('registration_requests')
+
+    if request.method == 'POST':
+        try:
+            # CN bereinigen: Umlaute ersetzen, Leerzeichen entfernen
+            import unicodedata, re
+            def _sanitize(s):
+                s = s.strip()
+                # Umlaute ersetzen
+                replacements = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss',
+                                'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue'}
+                for k, v in replacements.items():
+                    s = s.replace(k, v)
+                # Akzente entfernen
+                s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+                # Nur Buchstaben, Zahlen, Punkt, Bindestrich
+                s = re.sub(r'[^a-zA-Z0-9.\-]', '', s)
+                return s
+
+            first_clean = _sanitize(reg.first_name)
+            last_clean = _sanitize(reg.last_name)
+            cn = f"{first_clean}.{last_clean}"
+            password = secrets.token_urlsafe(12)
+
+            with LDAPManager() as ldap_conn:
+                # Unique CN sicherstellen
+                base_cn = cn
+                suffix = 1
+                while ldap_conn.get_user(cn):
+                    suffix += 1
+                    cn = f"{base_cn}{suffix}"
+
+                attributes = {
+                    'givenName': reg.first_name,
+                    'sn': reg.last_name,
+                    'cn': cn,
+                    'displayName': f"{reg.first_name} {reg.last_name}",
+                    'mail': f"{cn}@example-church.de",
+                    'userPassword': password,
+                }
+                ldap_conn.create_user(attributes=attributes)
+
+            # Status aktualisieren
+            reg.status = 'approved'
+            reg.reviewed_by = request.user
+            reg.reviewed_at = timezone.now()
+            reg.save()
+
+            # E-Mail an neuen User (HTML)
+            try:
+                from django.core.mail import EmailMultiAlternatives
+                from django.template.loader import render_to_string
+                from django.utils.html import strip_tags
+
+                login_url = request.build_absolute_uri('/login/')
+                html_message = render_to_string('emails/registration_approved.html', {
+                    'first_name': reg.first_name,
+                    'username': cn,
+                    'password': password,
+                    'login_url': login_url,
+                })
+                plain_message = strip_tags(html_message)
+
+                msg = EmailMultiAlternatives(
+                    subject='Willkommen - Ihr Zugang wurde erstellt',
+                    body=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[reg.email],
+                )
+                msg.attach_alternative(html_message, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception:
+                pass
+
+            messages.success(request, f'Benutzer {cn} wurde erstellt. Zugangsdaten wurden an {reg.email} gesendet.')
+            return redirect('registration_requests')
+
+        except LDAPOperationError as e:
+            messages.error(request, f'LDAP-Fehler: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Fehler: {str(e)}')
+
+    return render(request, 'registration/registration_approve.html', {'reg': reg})
+
+
+@login_required
+@require_permission('manage_registrations')
+def registration_reject(request, pk):
+    """Registrierungsanfrage ablehnen"""
+    from authapp.models import RegistrationRequest
+    from django.utils import timezone
+
+    reg = RegistrationRequest.objects.get(pk=pk)
+    if reg.status != 'pending':
+        messages.warning(request, 'Diese Anfrage wurde bereits bearbeitet.')
+        return redirect('registration_requests')
+
+    if request.method == 'POST':
+        reg.status = 'rejected'
+        reg.reviewed_by = request.user
+        reg.reviewed_at = timezone.now()
+        reg.rejection_reason = request.POST.get('reason', '')
+        reg.save()
+
+        # Optional: Mail an Antragsteller (HTML)
+        if request.POST.get('send_email'):
+            try:
+                from django.core.mail import EmailMultiAlternatives
+                from django.template.loader import render_to_string
+                from django.utils.html import strip_tags
+
+                html_message = render_to_string('emails/registration_rejected.html', {
+                    'first_name': reg.first_name,
+                    'reason': reg.rejection_reason,
+                })
+                plain_message = strip_tags(html_message)
+
+                msg = EmailMultiAlternatives(
+                    subject='Registrierungsanfrage - Beispielgemeinde',
+                    body=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[reg.email],
+                )
+                msg.attach_alternative(html_message, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception:
+                pass
+
+        messages.success(request, f'Anfrage von {reg.first_name} {reg.last_name} wurde abgelehnt.')
+        return redirect('registration_requests')
+
+    return render(request, 'registration/registration_reject.html', {'reg': reg})
 
 @login_required
 def profile(request):
@@ -1820,6 +2227,13 @@ def user_edit(request, cn):
                 if family_role:
                     new_attributes['familyRole'] = family_role
 
+                # Account deaktivieren/aktivieren
+                # Nur setzen wenn das Schema-Attribut existiert (User hat postModernalPerson)
+                oc = attributes.get('objectClass', [])
+                oc_list = [o.decode('utf-8') if isinstance(o, bytes) else o for o in oc]
+                if 'postModernalPerson' in oc_list:
+                    new_attributes['accountDisabled'] = 'TRUE' if request.POST.get('accountDisabled') else 'FALSE'
+
                 # Optional: Passwort ändern mit Validierung
                 new_password = request.POST.get('password')
                 new_password2 = request.POST.get('password2')
@@ -2060,6 +2474,111 @@ def user_create(request):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 from django.http import JsonResponse
                 return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+    return redirect('ldap_user_search')
+
+
+@login_required
+@require_permission('edit_members')
+@require_http_methods(["POST"])
+def user_delete(request, cn):
+    """
+    Benutzer aus LDAP löschen
+    Benötigt: 'edit_members' Berechtigung
+    Sendet Warn-E-Mail an den Benutzer
+    """
+    try:
+        with LDAPManager() as ldap_mgr:
+            # Hole Benutzerdaten vor dem Löschen
+            user_data = ldap_mgr.get_user(cn)
+            if not user_data:
+                messages.error(request, f'Benutzer {cn} nicht gefunden.')
+                return redirect('ldap_user_search')
+
+            attrs = user_data['attributes']
+            given_name = attrs.get('givenName', [''])[0] if isinstance(attrs.get('givenName', ['']), list) else attrs.get('givenName', '')
+            sn = attrs.get('sn', [''])[0] if isinstance(attrs.get('sn', ['']), list) else attrs.get('sn', '')
+            user_dn = user_data['dn']
+
+            # Sammle alle E-Mail-Adressen für Benachrichtigung
+            mail_addresses = []
+            for attr_name in ['mailRoutingAddress', 'mail']:
+                val = attrs.get(attr_name, [])
+                if isinstance(val, list):
+                    mail_addresses.extend(val)
+                elif val:
+                    mail_addresses.append(val)
+
+            # Filtere externe Adressen (nicht @example-church.de)
+            external_emails = [m for m in mail_addresses if m and '@example-church.de' not in m]
+
+            # Prüfe ob Benutzer Kinder hat
+            children = ldap_mgr.list_users(parent_dn=user_dn)
+            force = len(children) > 0
+
+            if force:
+                # Bestätigung erforderlich für Familienlöschung
+                confirm = request.POST.get('confirm_family_delete')
+                if confirm != 'yes':
+                    messages.warning(request,
+                        f'Benutzer {cn} hat {len(children)} Kind(er). '
+                        f'Bitte bestätigen Sie die Löschung der gesamten Familie.')
+                    return redirect('ldap_user_search')
+
+            # Lösche aus LDAP
+            ldap_mgr.delete_user(cn, force=force)
+
+            # Lösche auch den Django-User falls vorhanden
+            from django.contrib.auth.models import User
+            django_user = User.objects.filter(username__iexact=cn).first()
+            if django_user:
+                django_user.delete()
+
+            # Log
+            LDAPUserLog.objects.create(
+                user=request.user,
+                action='delete_user',
+                details=f'Benutzer {cn} ({given_name} {sn}) gelöscht',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+            # Warn-E-Mail an den gelöschten Benutzer senden
+            if external_emails:
+                try:
+                    from django.core.mail import EmailMultiAlternatives
+                    from django.template.loader import render_to_string
+                    from django.utils.html import strip_tags
+
+                    html_message = render_to_string('emails/account_deleted.html', {
+                        'first_name': given_name,
+                        'last_name': sn,
+                        'username': cn,
+                        'deleted_by': request.user.get_full_name() or request.user.username,
+                    })
+                    plain_message = strip_tags(html_message)
+
+                    msg = EmailMultiAlternatives(
+                        subject='Ihr Zugang wurde entfernt - Beispielgemeinde',
+                        body=plain_message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=external_emails,
+                    )
+                    msg.attach_alternative(html_message, 'text/html')
+                    msg.send(fail_silently=True)
+                    logger.info(f"Lösch-Benachrichtigung gesendet an {external_emails} für {cn}")
+                except Exception as mail_err:
+                    logger.error(f"Fehler beim Senden der Lösch-Benachrichtigung: {mail_err}")
+
+            if force:
+                messages.success(request, f'Benutzer {cn} und {len(children)} Kind(er) erfolgreich gelöscht.')
+            else:
+                messages.success(request, f'Benutzer {cn} erfolgreich gelöscht.')
+
+    except LDAPOperationError as e:
+        messages.error(request, f'LDAP-Fehler beim Löschen: {str(e)}')
+    except Exception as e:
+        logger.error(f"Fehler beim Löschen von {cn}: {e}")
+        messages.error(request, f'Fehler beim Löschen: {str(e)}')
 
     return redirect('ldap_user_search')
 

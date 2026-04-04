@@ -157,6 +157,40 @@ class PasswordResetRequestForm(forms.Form):
         return identifier
 
 
+class RegistrationRequestForm(forms.Form):
+    """Formular fuer Registrierungsanfrage"""
+    first_name = forms.CharField(
+        label='Vorname', max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ihr Vorname', 'autofocus': True})
+    )
+    last_name = forms.CharField(
+        label='Nachname', max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ihr Nachname'})
+    )
+    email = forms.EmailField(
+        label='E-Mail-Adresse',
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ihre@email.de'})
+    )
+    reason = forms.CharField(
+        label='Begruendung',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 'rows': 3,
+            'placeholder': 'Warum moechten Sie sich registrieren? Wie haben Sie zur Gemeinde gefunden?'
+        })
+    )
+    captcha = CaptchaField(
+        label='Sicherheitscode',
+        error_messages={'invalid': 'Der eingegebene Sicherheitscode ist falsch.'}
+    )
+    # Honeypot — muss leer bleiben, Bots fuellen es aus
+    website = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    def clean_website(self):
+        if self.cleaned_data.get('website'):
+            raise forms.ValidationError('Bot erkannt.')
+        return ''
+
+
 class PasswordResetConfirmForm(forms.Form):
     """
     Formular zum Setzen des neuen Passworts

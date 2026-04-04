@@ -213,6 +213,7 @@
                         data-postaladdress="{{ user.postalAddress|default:'' }}"
                         data-birthdate="{{ user.birthDate|default:'' }}"
                         data-familyrole="{{ user.familyRole|default:'' }}"
+                        data-accountdisabled="{{ user.accountDisabled|default:'' }}"
                         data-parent="{{ user.parent_cn|default:'' }}"
                         data-photo="{{ user.photo_base64|default:'' }}"
                         data-status="{{ user.status|default:'' }}">
@@ -546,11 +547,28 @@
 
                     <!-- Rolle/Position -->
                     <div class="mb-3">
-                        <label for="modal-title" class="form-label">
+                        <label class="form-label">
                             <i class="bi bi-briefcase me-1"></i>Rolle/Position
                         </label>
-                        <input type="text" name="title" class="form-control" id="modal-title" placeholder="z.B. Pastor, Ältester, Diakon">
-                        <small class="text-muted">Optional: Funktion in der Gemeinde</small>
+                        <div id="modal-title-checkboxes">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input role-check" type="checkbox" value="Pastor" id="role-pastor">
+                                <label class="form-check-label" for="role-pastor">Pastor</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input role-check" type="checkbox" value="Ältester" id="role-aeltester">
+                                <label class="form-check-label" for="role-aeltester">Aeltester</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input role-check" type="checkbox" value="Diakon" id="role-diakon">
+                                <label class="form-check-label" for="role-diakon">Diakon</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input role-check" type="checkbox" value="Sekretariat" id="role-sekretariat">
+                                <label class="form-check-label" for="role-sekretariat">Sekretariat</label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="title" id="modal-title">
                     </div>
 
                     <!-- Telefonnummer -->
@@ -583,6 +601,16 @@
                             <i class="bi bi-calendar me-1"></i>Geburtstag
                         </label>
                         <input type="date" name="birthDate" class="form-control" id="modal-birthDate">
+                    </div>
+
+                    <!-- Account Status -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="accountDisabled" id="modal-accountDisabled">
+                            <label class="form-check-label text-danger" for="modal-accountDisabled">
+                                <i class="bi bi-person-x me-1"></i>Account deaktiviert
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Familienrolle -->
@@ -653,15 +681,66 @@
                         </small>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-1"></i>Abbrechen
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-danger" id="btn-delete-user"
+                            onclick="showDeleteConfirm()" style="display: none;">
+                        <i class="bi bi-trash me-1"></i>Löschen
                     </button>
-                    <button type="submit" class="btn btn-church-primary">
-                        <i class="bi bi-check-circle me-1"></i>Änderungen speichern
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>Abbrechen
+                        </button>
+                        <button type="submit" class="btn btn-church-primary">
+                            <i class="bi bi-check-circle me-1"></i>Änderungen speichern
+                        </button>
+                    </div>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Benutzer löschen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Möchten Sie den Benutzer <strong id="delete-user-name"></strong> wirklich löschen?</p>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden!
+                    <ul class="mb-0 mt-2">
+                        <li>LDAP-Konto wird gelöscht</li>
+                        <li>E-Mail-Postfach wird entfernt</li>
+                        <li>Gruppenmitgliedschaften gehen verloren</li>
+                    </ul>
+                </div>
+                <div id="delete-family-warning" class="alert alert-warning" style="display: none;">
+                    <i class="bi bi-people-fill me-1"></i>
+                    <strong>Familienlöschung:</strong> Dieser Benutzer hat Kinder, die ebenfalls gelöscht werden!
+                </div>
+                <p class="text-muted">Der Benutzer erhält eine Benachrichtigungs-E-Mail.</p>
+            </div>
+            <div class="modal-body border-top">
+                <form id="deleteUserForm" method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="confirm_family_delete" value="yes">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-1"></i>Abbrechen
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Endgültig löschen
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -806,6 +885,18 @@ parentSearchInput.addEventListener('blur', function() {
     setTimeout(function() { parentResults.style.display = 'none'; }, 200);
 });
 
+// Rolle/Position Checkboxen → Hidden-Field synchronisieren
+function syncRoleCheckboxes() {
+    var roles = [];
+    document.querySelectorAll('.role-check:checked').forEach(function(cb) {
+        roles.push(cb.value);
+    });
+    document.getElementById('modal-title').value = roles.join(', ');
+}
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('role-check')) syncRoleCheckboxes();
+});
+
 function clearParent() {
     parentHidden.value = '';
     parentSearchInput.value = '';
@@ -863,12 +954,18 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('modal-givenName').value = givenName;
     document.getElementById('modal-sn').value = sn;
     document.getElementById('modal-mail-display').value = mail;
-    document.getElementById('modal-title').value = title || '';
+    // Rolle/Position Checkboxen setzen
+    var titleVal = title || '';
+    document.querySelectorAll('.role-check').forEach(function(cb) {
+        cb.checked = titleVal.indexOf(cb.value) !== -1;
+    });
+    syncRoleCheckboxes();
     document.getElementById('modal-telephoneNumber').value = telephone || '';
     document.getElementById('modal-mobile').value = mobile || '';
     document.getElementById('modal-postalAddress').value = postalAddress || '';
     document.getElementById('modal-birthDate').value = birthDate || '';
     document.getElementById('modal-familyRole').value = button.getAttribute('data-familyrole') || '';
+    document.getElementById('modal-accountDisabled').checked = button.getAttribute('data-accountdisabled') === 'TRUE';
 
     // Mail-Admin-Felder befüllen
     const mailListEl = document.getElementById('modal-mail-list');
@@ -904,11 +1001,27 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     // Setze Form Action URL
     const form = document.getElementById('editUserForm');
     form.action = `/ldap/user/${cn}/edit/`;
+
+    // Zeige Delete-Button und setze Delete-Action
+    const deleteBtn = document.getElementById('btn-delete-user');
+    deleteBtn.style.display = 'inline-block';
+    deleteBtn.setAttribute('data-cn', cn);
+    deleteBtn.setAttribute('data-name', `${givenName} ${sn} (${cn})`);
+    document.getElementById('deleteUserForm').action = `/ldap/user/${cn}/delete/`;
+    document.getElementById('delete-user-name').textContent = `${givenName} ${sn} (${cn})`;
 });
 
 // Passwort-Match-Validierung
 document.getElementById('modal-password').addEventListener('input', checkPasswordMatch);
 document.getElementById('modal-password2').addEventListener('input', checkPasswordMatch);
+
+function showDeleteConfirm() {
+    // Schließe Edit-Modal und öffne Delete-Bestätigung
+    const editModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+    editModal.hide();
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    deleteModal.show();
+}
 
 function checkPasswordMatch() {
     const password1 = document.getElementById('modal-password').value;
@@ -998,6 +1111,7 @@ if (urlParams.get('create') === '1') {
     // Setze Modal-Titel und Form-Action für Create-Modus
     document.getElementById('editUserModalLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Neuen Benutzer erstellen';
     document.getElementById('editUserForm').action = '/ldap/user/create/';
+    document.getElementById('btn-delete-user').style.display = 'none';
 
     // Leere alle Felder
     document.getElementById('modal-cn').textContent = '';
@@ -1015,12 +1129,14 @@ if (urlParams.get('create') === '1') {
         document.getElementById('modal-mailalias-enabled').checked = false;
         document.getElementById('modal-mailrouting-enabled').checked = false;
     }
+    document.querySelectorAll('.role-check').forEach(function(cb) { cb.checked = false; });
     document.getElementById('modal-title').value = '';
     document.getElementById('modal-telephoneNumber').value = '';
     document.getElementById('modal-mobile').value = '';
     document.getElementById('modal-postalAddress').value = '';
     document.getElementById('modal-birthDate').value = '';
     document.getElementById('modal-familyRole').value = '';
+    document.getElementById('modal-accountDisabled').checked = false;
     setParentValue('');
     document.getElementById('modal-password').value = '';
     document.getElementById('modal-password2').value = '';

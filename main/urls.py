@@ -12,6 +12,11 @@ urlpatterns = [
     path('login/', auth_views.ldap_login, name='login'),
     path('logout/', auth_views.custom_logout, name='logout'),
     path('register/', auth_views.register, name='register'),
+    path('register/verify/<str:token>/', auth_views.register_verify, name='register_verify'),
+    path('ldap/registrations/', auth_views.registration_requests, name='registration_requests'),
+    path('ldap/registrations/<int:pk>/approve/', auth_views.registration_approve, name='registration_approve'),
+    path('ldap/registrations/<int:pk>/reject/', auth_views.registration_reject, name='registration_reject'),
+    path('ldap/registrations/<int:pk>/delete/', auth_views.registration_delete, name='registration_delete'),
     path('profile/', auth_views.profile, name='profile'),
     path('dashboard/', auth_views.user_dashboard, name='user_dashboard'),
     path('dashboard/family/', auth_views.family_manage, name='family_manage'),
@@ -28,6 +33,7 @@ urlpatterns = [
     path('ldap/family/<str:parent_cn>/add-member/', auth_views.family_add_member, name='family_add_member'),
     path('ldap/user/<str:cn>/edit/', auth_views.user_edit, name='user_edit'),
     path('ldap/user/create/', auth_views.user_create, name='user_create'),
+    path('ldap/user/<str:cn>/delete/', auth_views.user_delete, name='user_delete'),
 
     # Member List Export URLs
     path('ldap/export/', export_views.member_list_export, name='member_list_export'),

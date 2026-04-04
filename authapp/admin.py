@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate, LDAPBackup, AppSettings
+from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate, LDAPBackup, AppSettings, RegistrationRequest
 
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User, Group
@@ -487,6 +487,15 @@ class LDAPBackupAdmin(admin.ModelAdmin):
             messages.error(request, f"Backup fehlgeschlagen: {str(e)}")
 
     run_new_backup.short_description = "Neues Backup erstellen"
+
+
+@admin.register(RegistrationRequest)
+class RegistrationRequestAdmin(admin.ModelAdmin):
+    list_display = ('first_name', 'last_name', 'email', 'status', 'created_at', 'reviewed_by')
+    list_filter = ('status', 'created_at')
+    search_fields = ('first_name', 'last_name', 'email')
+    readonly_fields = ('ip_address', 'created_at')
+    list_editable = ('status',)
 
 
 @admin.register(AppSettings)

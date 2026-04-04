@@ -387,6 +387,7 @@ class PermissionMapping(models.Model):
         ('manage_families', 'Familien verwalten'),
         ('manage_mail', 'Mail-Verwaltung'),
         ('manage_mail_domains', 'Mail-Domains verwalten'),
+        ('manage_registrations', 'Registrierungsanfragen bearbeiten'),
         ('view_members', 'Gemeindeliste ansehen'),
         ('edit_members', 'Gemeindeliste bearbeiten'),
         ('export_members', 'Gemeindeliste exportieren'),
@@ -607,6 +608,58 @@ class PasswordResetToken(models.Model):
         deleted_count = cls.objects.filter(created_at__lt=cutoff_date).delete()[0]
 
         return deleted_count
+
+
+# ==================== REGISTRATION REQUESTS ====================
+
+class RegistrationRequest(models.Model):
+    """
+    Registrierungsanfrage - wird von der Leitung/Pastor geprueft
+    """
+    STATUS_CHOICES = [
+        ('unverified', 'E-Mail nicht bestaetigt'),
+        ('pending', 'Ausstehend'),
+        ('approved', 'Genehmigt'),
+        ('rejected', 'Abgelehnt'),
+    ]
+
+    first_name = models.CharField(max_length=100, verbose_name="Vorname")
+    last_name = models.CharField(max_length=100, verbose_name="Nachname")
+    email = models.EmailField(verbose_name="E-Mail-Adresse")
+    reason = models.TextField(
+        verbose_name="Begruendung",
+        help_text="Warum moechten Sie sich registrieren? Wie haben Sie zur Gemeinde gefunden?"
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='unverified',
+        verbose_name="Status"
+    )
+    reviewed_by = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="Geprueft von", related_name='reviewed_registrations'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name="Geprueft am")
+    rejection_reason = models.TextField(blank=True, verbose_name="Ablehnungsgrund")
+    ip_address = models.GenericIPAddressField(verbose_name="IP-Adresse")
+    verification_token = models.CharField(max_length=64, blank=True, verbose_name="Bestaetigungstoken")
+    email_verified = models.BooleanField(default=False, verbose_name="E-Mail bestaetigt")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+
+    class Meta:
+        verbose_name = "Registrierungsanfrage"
+        verbose_name_plural = "Registrierungsanfragen"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.get_status_display()})"
+
+    @classmethod
+    def count_from_ip(cls, ip_address, hours=1):
+        """Zaehlt Anfragen von einer IP in den letzten X Stunden"""
+        from django.utils import timezone
+        from datetime import timedelta
+        since = timezone.now() - timedelta(hours=hours)
+        return cls.objects.filter(ip_address=ip_address, created_at__gte=since).count()
 
 
 # ==================== E-MAIL TEMPLATES ====================

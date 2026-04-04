@@ -281,16 +281,17 @@ class LDAPManager:
         """
         try:
             if parent_cn:
-                user_dn = self.build_dn(cn, self.build_dn(parent_cn))
+                search_base = self.build_dn(parent_cn)
+                search_scope = ldap.SCOPE_ONELEVEL
             else:
-                user_dn = self.build_dn(cn)
+                search_base = f"ou=Users,{self.base_dn}"
+                search_scope = ldap.SCOPE_SUBTREE
 
-            self.validate_dn(user_dn)
-
+            # Case-insensitive Suche per cn-Filter
             result = self.conn.search_s(
-                user_dn,
-                ldap.SCOPE_BASE,
-                "(objectClass=*)",
+                search_base,
+                search_scope,
+                f"(cn={cn})",
                 None
             )
 

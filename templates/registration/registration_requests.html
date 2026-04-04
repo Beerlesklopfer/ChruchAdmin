@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrierungsanfragen - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px; margin-top: 2rem;">
+    <h2 style="color: var(--church-navy);">
+        <i class="bi bi-person-plus-fill me-2"></i>Registrierungsanfragen
+        {% if pending_count %}
+            <span class="badge bg-warning text-dark">{{ pending_count }} offen</span>
+        {% endif %}
+    </h2>
+
+    <div class="table-responsive mt-4">
+        <table class="table table-hover">
+            <thead style="background: var(--church-navy); color: white;">
+                <tr>
+                    <th style="border: none;">Name</th>
+                    <th style="border: none;">E-Mail</th>
+                    <th style="border: none;">Begruendung</th>
+                    <th style="border: none;">Datum</th>
+                    <th style="border: none;">Status</th>
+                    <th style="border: none;">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td><strong>{{ req.first_name }} {{ req.last_name }}</strong></td>
+                    <td>{{ req.email }}</td>
+                    <td><small>{{ req.reason|truncatewords:15 }}</small></td>
+                    <td>{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if req.status == 'unverified' %}
+                            <span class="badge bg-secondary"><i class="bi bi-envelope-x me-1"></i>Nicht bestaetigt</span>
+                        {% elif req.status == 'pending' %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Ausstehend</span>
+                        {% elif req.status == 'approved' %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Genehmigt</span>
+                            {% if req.reviewed_by %}<br><small class="text-muted">von {{ req.reviewed_by }}</small>{% endif %}
+                        {% elif req.status == 'rejected' %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Abgelehnt</span>
+                            {% if req.reviewed_by %}<br><small class="text-muted">von {{ req.reviewed_by }}</small>{% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                            <a href="{% url 'registration_approve' req.pk %}" class="btn btn-sm btn-success" title="Genehmigen">
+                                <i class="bi bi-check-lg"></i>
+                            </a>
+                            <a href="{% url 'registration_reject' req.pk %}" class="btn btn-sm btn-danger" title="Ablehnen">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        {% elif req.status == 'rejected' or req.status == 'unverified' %}
+                            <form method="post" action="{% url 'registration_delete' req.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Loeschen" onclick="return confirm('Wirklich loeschen?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        {% else %}
+                            <small class="text-muted">-</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Keine Registrierungsanfragen vorhanden.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

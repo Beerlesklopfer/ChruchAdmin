@@ -1,0 +1,15 @@
+# Schema-Erweiterung: accountDisabled Attribut
+# Anwenden (als root):
+#   sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f schema_extend_accountDisabled.ldif
+
+# Schritt 1: Neues Attribut hinzufuegen
+dn: cn={6}postmodernalperson,cn=schema,cn=config
+changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: ( 1.3.6.1.4.1.99999.16 NAME 'accountDisabled' DESC 'Account is disabled (TRUE/FALSE)' EQUALITY caseIgnoreMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
+
+# Schritt 2: Zur objectClass hinzufuegen
+dn: cn={6}postmodernalperson,cn=schema,cn=config
+changetype: modify
+replace: olcObjectClasses
+olcObjectClasses: ( 1.3.6.1.4.1.99990.1 NAME 'postModernalPerson' DESC 'Domain that can receive mail' SUP top AUXILIARY MUST cn MAY ( birthDate $ maidName $ civilState $ sex $ familyRole $ accountDisabled $ wWWHomePage $ socialYouTube $ socialTikTok $ socialMeta $ socialSnapChat $ socialDiscord $ socialTwitch $ socialPinterest $ socialInstagram $ socialX $ socialFediverse ) )

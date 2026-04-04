@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrierung - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 550px; margin-top: 50px;">
+    <div class="card shadow">
+        <div class="card-header text-center" style="background-color: #1c2647; color: white;">
+            <i class="bi bi-person-plus" style="font-size: 2rem;"></i>
+            <h3 class="mt-2">Registrierungsanfrage</h3>
+            <p class="mb-0"><small>Beispielgemeinde</small></p>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <p class="text-muted mb-4">
+                Stellen Sie eine Anfrage zur Registrierung. Die Gemeindeleitung wird Ihre Anfrage pruefen
+                und Sie per E-Mail benachrichtigen.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                {{ form.website }}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.first_name.label }} <span class="text-danger">*</span></label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}<div class="invalid-feedback d-block">{{ form.first_name.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.last_name.label }} <span class="text-danger">*</span></label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}<div class="invalid-feedback d-block">{{ form.last_name.errors }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.email.label }} <span class="text-danger">*</span></label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.reason.label }} <span class="text-danger">*</span></label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}<div class="invalid-feedback d-block">{{ form.reason.errors }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.captcha.label }}</label>
+                    <div class="d-flex align-items-center gap-2">
+                        {{ form.captcha }}
+                    </div>
+                    {% if form.captcha.errors %}<div class="invalid-feedback d-block">{{ form.captcha.errors }}</div>{% endif %}
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-lg" style="background-color: #e6c068; color: #1c2647; font-weight: bold;">
+                        <i class="bi bi-send me-2"></i>Anfrage absenden
+                    </button>
+                </div>
+            </form>
+
+            <hr class="my-4">
+            <div class="text-center">
+                <a href="{% url 'login' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Zurueck zur Anmeldung
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

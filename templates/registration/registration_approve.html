@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrierung genehmigen - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 3rem;">
+    <div class="card shadow" style="border: none; border-radius: 12px; overflow: hidden;">
+        <div class="card-header p-3" style="background: var(--church-navy); color: white;">
+            <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Registrierung genehmigen</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Bei Genehmigung wird ein LDAP-Benutzer erstellt und die Zugangsdaten per E-Mail versendet.
+            </div>
+
+            <table class="table table-sm">
+                <tr><th>Name</th><td>{{ reg.first_name }} {{ reg.last_name }}</td></tr>
+                <tr><th>E-Mail</th><td>{{ reg.email }}</td></tr>
+                <tr><th>Begruendung</th><td>{{ reg.reason }}</td></tr>
+                <tr><th>Datum</th><td>{{ reg.created_at|date:"d.m.Y H:i" }}</td></tr>
+                <tr><th>Benutzername</th><td><code>{{ reg.first_name }}.{{ reg.last_name }}</code></td></tr>
+            </table>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success flex-grow-1">
+                        <i class="bi bi-check-circle me-2"></i>Genehmigen und User erstellen
+                    </button>
+                    <a href="{% url 'registration_requests' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

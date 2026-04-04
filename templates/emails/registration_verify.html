@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1c2647;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f7f3e6;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #e6c068;
+            color: #1c2647;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #0dcaf0;
+            padding: 12px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>E-Mail-Adresse bestaetigen</h1>
+            <p style="margin: 0;">Beispielgemeinde</p>
+        </div>
+        <div class="content">
+            <p>Hallo {{ first_name }},</p>
+
+            <p>vielen Dank fuer Ihre Registrierungsanfrage bei der Beispielgemeinde.</p>
+
+            <p>Bitte bestaetigen Sie Ihre E-Mail-Adresse, damit wir Ihre Anfrage bearbeiten koennen:</p>
+
+            <center>
+                <a href="{{ verify_url }}" class="button">E-Mail-Adresse bestaetigen</a>
+            </center>
+
+            <p>Oder kopieren Sie diesen Link in Ihren Browser:</p>
+            <p style="word-break: break-all; background-color: #fff; padding: 10px; border: 1px solid #ddd;">
+                {{ verify_url }}
+            </p>
+
+            <div class="info">
+                <strong>Wie geht es weiter?</strong>
+                <ol>
+                    <li>Bestaetigen Sie Ihre E-Mail-Adresse ueber den Link oben</li>
+                    <li>Die Gemeindeleitung prueft Ihre Anfrage</li>
+                    <li>Sie erhalten eine E-Mail mit Ihren Zugangsdaten</li>
+                </ol>
+            </div>
+
+            <p style="font-size: 12px; color: #666;">
+                Dieser Link ist 24 Stunden gueltig. Falls Sie keine Registrierung angefragt haben,
+                koennen Sie diese E-Mail ignorieren.
+            </p>
+
+            <p>Mit freundlichen Gruessen,<br>
+            Beispielgemeinde</p>
+        </div>
+        <div class="footer">
+            <p>Diese E-Mail wurde automatisch generiert.</p>
+            <p>&copy; 2026 Beispielgemeinde</p>
+        </div>
+    </div>
+</body>
+</html>
