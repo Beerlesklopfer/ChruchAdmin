@@ -7,164 +7,148 @@
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen)
 
-Webbasiertes Gemeinde-Verwaltungssystem fuer Freikirchen mit LDAP-Backend, E-Mail-Verwaltung und DSGVO-Compliance.
+## Was ist ChurchAdmin?
 
-## Features
+ChurchAdmin ist eine Webanwendung fuer Gemeinden, die ihre Mitglieder, Familien, Gruppen und Kommunikation an einem Ort verwalten moechten — einfach, sicher und datenschutzkonform.
 
-### Benutzerverwaltung
-- LDAP-basierte Authentifizierung (django-auth-ldap)
-- Vollstaendiges CRUD fuer Benutzer mit Foto-Upload und Cropper
-- Familienverwaltung mit Hierarchie (Oberhaupt/Ehepartner/Kind/Angehoeriger)
-- Heirats-Workflow (LDAP move_user, Namensaenderung)
-- Account-Deaktivierung mit Warn-E-Mails an Admins
-- Self-Registration mit E-Mail-Verifizierung, CAPTCHA, Honeypot
+**Fuer wen ist es gedacht?**
+- Pastoren und Gemeindeleitung, die den Ueberblick behalten wollen
+- Sekretariat und Mitarbeiter, die Mitgliederdaten pflegen
+- Gemeindemitglieder, die ihre eigenen Daten verwalten moechten
 
-### Berechtigungssystem
-- Gruppen-basierte Berechtigungsmatrix (Admin-UI)
-- Rollen: Pastor, Aeltester, Diakon, Sekretariat
-- Feingranulare Rechte: view_members, edit_members, manage_mail, send_massmail, etc.
+## Was kann es?
 
-### Gemeindeliste & Export
-- Familien-basierte Gemeindeliste mit Rollen-Icons
-- PDF-Export (Landscape A4, DejaVuSans fuer Unicode)
-- DSGVO-konform: Opt-out fuer Gemeindeliste-Sichtbarkeit
+### Mitglieder & Familien
+- Mitglieder mit Kontaktdaten, Foto und Gruppenzugehoerigkeit verwalten
+- Familien als Einheit sehen: Oberhaupt, Ehepartner, Kinder
+- Neue Mitglieder koennen sich selbst registrieren (mit Genehmigung durch die Leitung)
+- Jedes Mitglied hat ein eigenes Profil und kann seine Daten selbst pflegen
 
-### Massen-E-Mail (Phase 13)
-- TinyMCE WYSIWYG-Editor (selbst gehostet, kein API-Key)
-- Empfaenger per Checkboxen: Mitglieder/Besucher/Angehoerige/Gaeste/Gruppen
-- Personalisierung mit `[[vorname]]`, `[[nachname]]`, `[[name]]`
-- Vorlagen-System (Du/Sie-Varianten) mit `manage.py seed_templates`
-- Test-Mail, Versandprotokoll, Opt-out-Link in jeder Mail
-- Editierbarer Footer mit DSGVO-Hinweisen
+### Gemeindeliste
+- Uebersichtliche Liste aller Familien und Mitglieder
+- Als PDF exportierbar — praktisch fuer Hauskreise oder Gebetslisten
+- Jedes Mitglied entscheidet selbst, ob es in der Liste erscheint (Datenschutz)
 
-### DSGVO-Compliance (Phase 12)
-- Datenschutzerklaerung und Impressum (editierbar im Admin)
-- DSGVO-Auskunftsseite: Alle eigenen Daten einsehen und exportieren (JSON)
-- Einwilligungsverwaltung: Opt-out-Verfahren mit Consent-Log
-- Recht auf Vergessenwerden: Loeschantrag mit Admin-Benachrichtigung
-- Familienoberhaupt verwaltet Consents fuer Kinder (ab 16 selbstverwaltet)
-- Signierter Opt-out-Link in jeder E-Mail (ohne Login)
+### Rundschreiben & E-Mail
+- Gemeindebriefe und Ankuendigungen direkt aus der Anwendung versenden
+- Vorlagen in Du- und Sie-Form, personalisiert mit Namen
+- Empfaenger nach Gruppen, Status oder manuell waehlbar
+- Jede E-Mail enthaelt einen Abmelde-Link (DSGVO-konform)
 
-### Ticket-System (Phase 10)
-- Bug-Reports, Feature-Requests, Aufgaben, Fragen
-- Prioritaeten, Status-Workflow, Kommentare
-- Zuweisung, Filter, Statistiken
+### Berechtigungen
+- Wer darf was? Uebersichtliche Matrix fuer alle Gruppen
+- Rollen wie Pastor, Aeltester, Diakon, Sekretariat
+- Feingranular: Wer darf Mitglieder sehen, bearbeiten, E-Mails versenden?
 
-### Backup & Recovery
-- LDAP-Daten-Export (LDIF)
-- Schema-Backup (slapcat -n0 + lokale LDIF-Dateien)
-- Backup-Dashboard mit Download/Restore
-- Bareos-Integration
+### Datenschutz (DSGVO)
+- Impressum und Datenschutzerklaerung — editierbar, ohne Programmierkenntnisse
+- Jedes Mitglied kann seine gespeicherten Daten einsehen und exportieren
+- Einwilligungen verwalten: E-Mail-Empfang, Sichtbarkeit in der Gemeindeliste
+- Familienoberhaupter verwalten den Datenschutz fuer ihre Kinder
+- Ab 16 Jahren koennen Jugendliche ihre Einstellungen selbst verwalten
+- Recht auf Vergessenwerden: Loeschantrag mit einem Klick
 
-## Tech Stack
+### Tickets & Fehlerberichte
+- Probleme melden, Wuensche aeussern, Aufgaben verteilen
+- Jedes Gemeindemitglied kann Tickets erstellen
+- Uebersichtlich mit Status, Prioritaet und Kommentaren
 
-| Komponente | Technologie |
-|-----------|-------------|
-| Backend | Django 4.2 / Python 3.13 |
-| Authentifizierung | OpenLDAP / django-auth-ldap |
-| Frontend | Bootstrap 5.1 / Bootstrap Icons |
-| WYSIWYG | TinyMCE 6 (selbst gehostet) |
-| Foto-Crop | Cropper.js |
-| PDF | ReportLab mit DejaVuSans |
-| CAPTCHA | django-simple-captcha |
-| Deployment | Gunicorn + nginx + systemd |
-| Backup | Bareos LDAP-Plugin |
+### Sicherheit
+- Passwort-Zuruecksetzung per E-Mail (an die private Adresse)
+- Deaktivierte Accounts werden beim Login blockiert
+- Bei verdaechtigen Login-Versuchen wird die Leitung benachrichtigt
+- Automatische Datensicherung (LDAP-Backup mit Schema)
 
-## Installation
+## Fuer Gemeindemitglieder
+
+Nach der Anmeldung unter `wir.example-church.de` koennen Sie:
+
+1. **Ihr Profil bearbeiten** — Telefon, Adresse, Foto, Passwort
+2. **Ihre Familie sehen** — Familienoberhaupter koennen Daten der Kinder pflegen
+3. **Die Gemeindeliste einsehen** — und als PDF herunterladen
+4. **Datenschutz verwalten** — unter "Meine Daten (DSGVO)" im Menue
+5. **Probleme melden** — unter "Tools → Tickets & Bugs"
+
+---
+
+## Fuer Administratoren
 
 ### Voraussetzungen
 
-- Python 3.11+
-- OpenLDAP (slapd)
-- nginx
-- Postfix (E-Mail-Versand)
+- Linux-Server mit Python 3.11+
+- OpenLDAP (slapd) als Benutzerverwaltung
+- nginx als Webserver
+- Postfix fuer E-Mail-Versand
 
-### Setup
+### Installation
 
 ```bash
-# Repository klonen
 git clone https://github.com/Beerlesklopfer/ChruchAdmin.git
 cd ChruchAdmin
 
-# Virtual Environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Datenbank initialisieren
 python main/manage.py migrate
-
-# Standard-Berechtigungen und Templates
 python main/manage.py seed_templates
-
-# Superuser erstellen
 python main/manage.py createsuperuser
-
-# Entwicklungsserver
 python main/manage.py runserver
 ```
 
-### Deployment (Produktion)
+### Produktiv-Deployment
 
 ```bash
-# Deploy-Script ausfuehren (rsync, migrate, collectstatic, restart)
 sudo bash deploy.sh
 ```
 
-Das Deploy-Script:
-- Synchronisiert Dateien nach `/usr/share/python/ChruchAdmin/`
-- Erstellt/aktualisiert venv und Abhaengigkeiten
-- Fuehrt Migrationen und collectstatic aus
-- Setzt Standard-Berechtigungen und AppSettings
-- Aktualisiert Mail-Vorlagen (`seed_templates`)
-- Installiert sudoers fuer Schema-Backup
-- Startet den Gunicorn-Service neu
+Das Script kuemmert sich um alles: Dateien synchronisieren, Datenbank aktualisieren, E-Mail-Vorlagen einrichten, Dienst neu starten.
 
-### LDAP-Schema
-
-Eigene Schema-Erweiterungen muessen einmalig angewendet werden:
+### LDAP-Schema einmalig erweitern
 
 ```bash
-# familyRole Attribut (head/spouse/child/dependent)
 sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ldap/schema_extend_familyRole.ldif
 sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ldap/schema_extend_familyRole_step2.ldif
-
-# accountDisabled Attribut (TRUE/FALSE)
 sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f ldap/schema_extend_accountDisabled.ldif
 ```
 
-## Konfiguration
+### Einstellungen
 
-Alle Einstellungen sind im Django-Admin unter **Anwendungseinstellungen** editierbar:
+Alle Einstellungen sind im Admin-Bereich unter **Anwendungseinstellungen** aenderbar — kein Programmieren noetig:
 
-| Setting | Beschreibung |
-|---------|-------------|
-| `church_name` | Name der Gemeinde |
-| `church_address` | Anschrift |
-| `church_email` | Kontakt-E-Mail |
-| `church_contact_person` | Verantwortlicher |
-| `church_domain` | Domain |
-| `privacy_contact_person` | Datenschutz-Ansprechperson |
+| Einstellung | Beschreibung |
+|-------------|-------------|
+| Gemeindename | Wird ueberall angezeigt (Titel, Footer, E-Mails) |
+| Anschrift | Fuer Impressum und Datenschutzerklaerung |
+| Kontakt-E-Mail | Antwort-Adresse fuer Gemeinde-Mails |
+| Ansprechperson | Verantwortlicher im Sinne der DSGVO |
 
-## Projektstruktur
+### Tech Stack
+
+| Was | Womit |
+|-----|-------|
+| Anwendung | Django 4.2 / Python 3.13 |
+| Benutzerverwaltung | OpenLDAP |
+| Oberflaeche | Bootstrap 5 |
+| E-Mail-Editor | TinyMCE 6 |
+| PDF-Export | ReportLab |
+| Deployment | Gunicorn + nginx + systemd |
+| Backup | Bareos LDAP-Plugin |
+
+### Projektstruktur
 
 ```
 ChruchAdmin/
-├── main/              # Django-Projekt (settings, urls, wsgi)
-│   ├── ldap_manager.py   # Zentrale LDAP-Verwaltungsklasse
-│   └── forms.py          # Formulare
-├── authapp/           # Authentifizierung, Views, Berechtigungen
-│   ├── views.py          # Haupt-Views (~3000 Zeilen)
-│   ├── export_views.py   # PDF/vCard Export
-│   └── permissions_views.py
-├── mailing/           # Massen-E-Mail-System
-├── privacy/           # DSGVO-Compliance
-├── tickets/           # Ticket & Bug Tracking
-├── templates/         # Django-Templates
-├── static/            # CSS, JS, TinyMCE, Cropper.js
-├── ldap/              # LDAP-Schema-Erweiterungen
-├── config/            # sudoers, Systemkonfiguration
-└── deploy.sh          # Deployment-Script
+├── main/          — Projekt-Konfiguration und LDAP-Anbindung
+├── authapp/       — Benutzerverwaltung, Login, Berechtigungen
+├── mailing/       — Rundschreiben und E-Mail-Vorlagen
+├── privacy/       — Datenschutz, Impressum, Einwilligungen
+├── tickets/       — Ticket-System und Fehlerberichte
+├── templates/     — Alle HTML-Vorlagen
+├── static/        — Design, Schriften, Editoren
+├── ldap/          — LDAP-Schema-Erweiterungen
+├── tests/         — Tests und Fehlerbehebung
+└── deploy.sh      — Installations-Script
 ```
 
 ## Screenshots
@@ -173,7 +157,7 @@ ChruchAdmin/
 
 ## Lizenz
 
-AGPL-3.0
+AGPL-3.0 — Der Quellcode ist frei verfuegbar. Wenn Sie ChurchAdmin weiterentwickeln und oeffentlich betreiben, muessen die Aenderungen ebenfalls veroeffentlicht werden.
 
 ## Autor
 
