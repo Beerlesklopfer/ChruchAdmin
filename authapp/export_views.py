@@ -140,6 +140,10 @@ def member_list_export_pdf(request, settings_id=None):
             sort_field = export_settings.sort_by
             filtered_users.sort(key=lambda u: u['attributes'].get(sort_field, [b''])[0].decode('utf-8') if isinstance(u['attributes'].get(sort_field, [b''])[0], bytes) else u['attributes'].get(sort_field, [''])[0])
 
+            # DSGVO: Benutzer mit widerrufener Gemeindeliste-Sichtbarkeit filtern
+            from privacy.models import ConsentLog
+            from django.contrib.auth.models import User as DjangoUser
+
             # Daten extrahieren
             for user in filtered_users:
                 attrs = user['attributes']
@@ -150,6 +154,16 @@ def member_list_export_pdf(request, settings_id=None):
                     if isinstance(val, bytes):
                         val = val.decode('utf-8')
                     return val or ''
+
+                # DSGVO-Check: member_list Consent pruefen
+                user_cn = _d('cn')
+                dj_user = DjangoUser.objects.filter(username__iexact=user_cn).first()
+                if dj_user:
+                    latest_consent = ConsentLog.objects.filter(
+                        user=dj_user, consent_type='member_list'
+                    ).order_by('-timestamp').first()
+                    if latest_consent and not latest_consent.granted:
+                        continue  # Benutzer hat Gemeindeliste-Sichtbarkeit widerrufen
 
                 given_name = _d('givenName')
                 sn = _d('sn')

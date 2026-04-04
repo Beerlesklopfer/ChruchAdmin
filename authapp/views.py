@@ -769,6 +769,18 @@ def user_dashboard(request):
     gemeinde_singles = []
     if has_permission(request.user, 'view_members'):
         try:
+            from privacy.models import ConsentLog as CLog
+            from django.contrib.auth.models import User as DUser
+
+            def _check_member_list_consent(cn):
+                """Prueft ob Benutzer Gemeindeliste-Sichtbarkeit erlaubt (Opt-out)"""
+                du = DUser.objects.filter(username__iexact=cn).first()
+                if du:
+                    lc = CLog.objects.filter(user=du, consent_type='member_list').order_by('-timestamp').first()
+                    if lc and not lc.granted:
+                        return False
+                return True  # Opt-out: Default = erlaubt
+
             with LDAPManager() as ldap_conn2:
                 all_users = ldap_conn2.list_users()
                 for u in all_users:
@@ -781,6 +793,10 @@ def user_dashboard(request):
                         if isinstance(v, bytes): v = v.decode('utf-8')
                         return v or ''
                     u_cn = _da('cn')
+
+                    # DSGVO: Gemeindeliste-Sichtbarkeit pruefen
+                    if not _check_member_list_consent(u_cn):
+                        continue
                     u_gn = _da('givenName')
                     u_sn = _da('sn')
                     u_mail = _da('mail')

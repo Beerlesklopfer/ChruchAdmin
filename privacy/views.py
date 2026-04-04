@@ -322,6 +322,54 @@ def consent_update(request):
         action = 'erteilt' if granted else 'widerrufen'
         messages.success(request, f'Einwilligung fuer {name} {action}.')
 
+        # Bei Widerruf von Datenverarbeitung/Datenschutzerklaerung -> Loeschantrag erstellen
+        trigger_deletion = request.POST.get('trigger_deletion') == 'true'
+        if trigger_deletion and not granted and consent_type in ('data_processing', 'privacy_policy'):
+            existing = DeletionRequest.objects.filter(
+                user=target_user, status__in=['pending', 'approved']
+            ).first()
+            if not existing:
+                DeletionRequest.objects.create(
+                    user=target_user,
+                    username=target_user.username,
+                    email=target_user.email,
+                    reason=f'Automatisch erstellt: Einwilligung "{consent_type}" widerrufen',
+                )
+                messages.warning(request,
+                    f'Da die Einwilligung zur Datenverarbeitung widerrufen wurde, '
+                    f'wurde automatisch ein Loeschantrag fuer {name} erstellt. '
+                    f'Die Gemeindeleitung wird benachrichtigt.')
+
+                # Admin benachrichtigen
+                try:
+                    from authapp.models import PermissionMapping
+                    from django.contrib.auth.models import Group
+                    from django.core.mail import send_mail
+
+                    admin_emails = set()
+                    for group_name in PermissionMapping.get_groups_for_permission('manage_registrations'):
+                        try:
+                            for u in Group.objects.get(name=group_name).user_set.all():
+                                if u.email: admin_emails.add(u.email)
+                        except Group.DoesNotExist:
+                            pass
+                    for u in DjangoUser.objects.filter(is_superuser=True):
+                        if u.email: admin_emails.add(u.email)
+
+                    if admin_emails:
+                        send_mail(
+                            f'DSGVO: Datenverarbeitung widerrufen - {name}',
+                            f'Der Benutzer {name} ({target_user.username}) hat die Einwilligung '
+                            f'zur Datenverarbeitung widerrufen.\n\n'
+                            f'Ein Loeschantrag wurde automatisch erstellt.\n'
+                            f'Bitte bearbeiten Sie den Antrag zeitnah.',
+                            settings.DEFAULT_FROM_EMAIL,
+                            list(admin_emails),
+                            fail_silently=True,
+                        )
+                except Exception:
+                    pass
+
     return redirect('privacy:my_data')
 
 

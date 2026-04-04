@@ -112,12 +112,36 @@
                         </span>
                         <span>
                             {% if cinfo.granted %}
+                            {% if ctype == 'data_processing' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="if(confirm('ACHTUNG: Wenn Sie der Datenverarbeitung widersprechen, muessen alle Ihre Daten geloescht werden (LDAP-Konto, E-Mail, Gruppenmitgliedschaften).{% if family_members %}\n\nAls Familienoberhaupt betrifft dies auch alle Ihre Familienmitglieder!{% endif %}\n\nDies entspricht einem Loeschantrag. Moechten Sie fortfahren?')) { document.getElementById('revoke-{{ ctype }}').submit(); }">
+                                <i class="bi bi-x me-1"></i>Widerrufen
+                            </button>
+                            <form id="revoke-{{ ctype }}" method="post" action="{% url 'privacy:consent_update' %}" class="d-none">
+                                {% csrf_token %}
+                                <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                <input type="hidden" name="granted" value="false">
+                                <input type="hidden" name="trigger_deletion" value="true">
+                            </form>
+                            {% elif ctype == 'privacy_policy' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="if(confirm('Wenn Sie die Datenschutzerklaerung widerrufen, koennen wir Ihre Daten nicht mehr verarbeiten. Dies fuehrt zur Loeschung Ihres Kontos.{% if family_members %}\n\nAls Familienoberhaupt betrifft dies auch Ihre Familie!{% endif %}\n\nMoechten Sie fortfahren?')) { document.getElementById('revoke-{{ ctype }}').submit(); }">
+                                <i class="bi bi-x me-1"></i>Widerrufen
+                            </button>
+                            <form id="revoke-{{ ctype }}" method="post" action="{% url 'privacy:consent_update' %}" class="d-none">
+                                {% csrf_token %}
+                                <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                <input type="hidden" name="granted" value="false">
+                                <input type="hidden" name="trigger_deletion" value="true">
+                            </form>
+                            {% else %}
                             <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="consent_type" value="{{ ctype }}">
                                 <input type="hidden" name="granted" value="false">
                                 <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x me-1"></i>Widerrufen</button>
                             </form>
+                            {% endif %}
                             {% else %}
                             <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
                                 {% csrf_token %}
