@@ -13,12 +13,58 @@
 3. **Security** - Two-Factor Authentication (2FA)
 
 ### Mittelfristig
-1. **DSGVO-Compliance (Phase 12)** - Datenschutzerklaerung, Einwilligungen
-2. **Verschluesselte Notizen (Phase 11)** - Seelsorge-Notizen fuer Pastor/Aelteste
+1. **Verschluesselte Notizen (Phase 11)** - Seelsorge-Notizen fuer Pastor/Aelteste (Benutzer liest eigene Eintraege)
 
 ---
 
 ## Erledigte Aufgaben (2026-04-04)
+
+### DSGVO-Compliance (Phase 12) ✅
+- [x] **Privacy-App**: Eigene Django-App mit PrivacyPolicy, LegalPage, ConsentLog, DeletionRequest
+- [x] **Datenschutzerklaerung**: Oeffentliche Seite, versioniert, editierbar im Admin
+- [x] **Impressum**: Editierbar im Admin (LegalPage Model), Default per Data-Migration
+- [x] **DSGVO-Auskunftsseite**: Alle LDAP/Django-Daten, Gruppen, Einwilligungen (/datenschutz/my-data/)
+- [x] **Datenexport**: JSON-Download aller eigenen Daten
+- [x] **Einwilligungsverwaltung**: Opt-out-Verfahren (Standard=erteilt), erteilen/widerrufen mit Protokoll
+- [x] **Consent-Typen**: Datenschutzerklaerung, Datenverarbeitung, E-Mail-Kommunikation, Gemeindeliste
+- [x] **Gemeindeliste-Consent**: Widerruf blendet User in Dashboard und PDF-Export aus (rekursiv fuer Familie)
+- [x] **Datenverarbeitung-Widerruf**: Warndialog + automatischer Loeschantrag + Admin-Benachrichtigung
+- [x] **Recht auf Vergessenwerden**: Loeschantrag mit Begruendung und Admin-Email
+- [x] **Familien-Consent**: Oberhaupt verwaltet Consents fuer alle Familienmitglieder
+- [x] **Ab 16 selbstverwaltet**: Kinder ab 16 koennen Consents auch selbst verwalten (Hinweis im UI)
+- [x] **DSGVO im Admin-Editor**: Consent-Toggles (Schalter) im Benutzer-Edit-Modal
+- [x] **DSGVO im Familien-Editor**: Consent-Toggles mit Datenschutzerklaerung-Link
+- [x] **DSGVO-Checkbox bei Registrierung**: Pflichtfeld mit Link zur Datenschutzerklaerung
+- [x] **get_or_create_django_user()**: Zentrale Funktion, erstellt Django-User aus LDAP bei Bedarf
+- [x] **Footer**: Impressum + Datenschutz Links
+- [x] **User-Menue**: "Meine Daten (DSGVO)" Link
+
+### Massen-E-Mail (Phase 13) ✅
+- [x] **Mailing-App**: Eigene Django-App mit MailCampaign, MailLog, MailTemplate Models
+- [x] **TinyMCE WYSIWYG-Editor**: Selbst gehostet (kein API-Key), fuer Body und Footer
+- [x] **Empfaenger-Checkboxen**: Mitglieder/Besucher/Angehoerige/Gaeste/Gruppen/Manuell (Mehrfachauswahl)
+- [x] **Personalisierung**: [[vorname]], [[nachname]], [[name]] Platzhalter
+- [x] **Vorlagen-System**: seed_templates Management Command, 4 Vorlagen (Gemeindebrief, System, Willkommen Sie/Du)
+- [x] **DSGVO-Hinweise in Vorlagen**: Gemeindeliste-Opt-out, Familien-Consent, Datenschutz-Verwaltung
+- [x] **Vorschau**: Empfaengerliste mit Anzahl, Mail-Vorschau
+- [x] **Test-Mail**: An sich selbst senden mit Opt-out-Link
+- [x] **Versand mit Bestaetigung**: Bestaetigungsdialog vor Massenversand
+- [x] **Versandprotokoll**: Pro Empfaenger (zugestellt/fehlgeschlagen)
+- [x] **Opt-out-Link**: Signierter Abmelde-Link in jeder Mail (1 Jahr gueltig, ohne Login)
+- [x] **Opt-out-Seite**: Bestaetigungsmeldung mit Anleitung zur Wiederanmeldung
+- [x] **Opt-out-Pruefung**: Widerrufene Empfaenger werden beim Versand uebersprungen
+- [x] **Editierbarer Footer**: Eigene TinyMCE-Instanz, DSGVO-Default aus AppSettings
+- [x] **Kampagnen**: Duplizieren, loeschen, bearbeiten (nur Entwuerfe)
+- [x] **Berechtigung**: send_massmail (getrennt von manage_mail)
+- [x] **Tools-Menue**: Berechtigungsgesteuert (can_send_massmail, can_export_members)
+
+### Konfiguration ✅
+- [x] **Gemeindename konfigurierbar**: church_name, church_domain, church_address aus AppSettings
+- [x] **Ansprechpersonen**: church_contact_person, privacy_contact_person
+- [x] **Context Processor**: church_settings stellt alle Werte in Templates bereit
+- [x] **Berechtigungsmatrix dynamisch**: Liest aus PermissionMapping.PERMISSION_CHOICES (keine hardcoded Listen)
+- [x] **Status-Dropdown im Benutzer-Editor**: Mitglied/Besucher/Gast mit Gruppenmitgliedschaft
+- [x] **familyRole dependent**: Angehoeriger als neue Familienrolle
 
 ### Account-Deaktivierung & Sicherheit ✅
 - [x] **accountDisabled LDAP-Attribut**: Neues Attribut im postModernalPerson-Schema (OID 1.3.6.1.4.1.99999.16)
@@ -47,7 +93,7 @@
 - [x] **Username-Sanitisierung**: Umlaute/Akzente werden automatisch ersetzt, Unique-Suffix bei Duplikaten
 
 ### LDAP-Schema-Erweiterungen ✅
-- [x] **familyRole Attribut**: head/spouse/child (OID 1.3.6.1.4.1.99999.15)
+- [x] **familyRole Attribut**: head/spouse/child/dependent (OID 1.3.6.1.4.1.99999.15)
 - [x] **accountDisabled Attribut**: TRUE/FALSE (OID 1.3.6.1.4.1.99999.16)
 - [x] **NISplus-Schema**: posixAccount fuer uidNumber, gidNumber, homeDirectory, loginShell
 - [x] **Auto-uidNumber**: Naechste freie UID wird automatisch vergeben
@@ -67,12 +113,12 @@
 - [x] **Gemeindeliste im Dashboard**: Tabelle mit Familien
 - [x] **Login-Redirect**: Admins → Admin-Dashboard, normale User → Benutzer-Dashboard, next-Parameter respektiert
 - [x] **Navigation**: LDAP-Verwaltung nur fuer Admins, "Mein Bereich" fuer alle
-- [x] **Context Processor**: is_ldap_admin und can_manage_ldap in allen Templates
+- [x] **Context Processor**: is_ldap_admin, can_manage_ldap, can_send_massmail, can_export_members, show_tools_menu
 
 ### Berechtigungssystem ✅
 - [x] **PermissionMapping Model**: Gruppen-basierte Berechtigungen
 - [x] **Berechtigungsmatrix**: Admin-UI zum Zuweisen von Rechten pro Gruppe
-- [x] **Berechtigungen**: view_members, edit_members, manage_mail, export_members, manage_registrations
+- [x] **Berechtigungen**: view_members, edit_members, manage_mail, export_members, manage_registrations, send_massmail
 - [x] **Rollen-Checkboxen**: Pastor, Aeltester, Diakon, Sekretariat im Benutzer-Dialog
 
 ### CAPTCHA & Passwort-Reset ✅
@@ -102,6 +148,7 @@
 - [x] **Header auf jeder Seite**: Mit Datum und Seitenzahl
 - [x] **Filter**: Mitglieder (inkl. Familienangehoerige), alle, Besucher, Gaeste
 - [x] **Alle Mitglieder duerfen exportieren**: export_members-Berechtigung
+- [x] **DSGVO-Consent-Pruefung**: Benutzer mit widerrufener Gemeindeliste-Sichtbarkeit ausgeblendet
 
 ### Backup & Recovery ✅
 - [x] **LDAP-Backup**: Django Management Command backup_ldap
@@ -115,18 +162,20 @@
 - [x] **Pagination**: Auswaehlbare Seitengroesse (10/20/30/40/50 pro Seite)
 
 ### Deployment ✅
-- [x] **Deploy-Script**: deploy.sh mit rsync, venv, migrate, collectstatic, Service-Restart
+- [x] **Deploy-Script**: deploy.sh mit rsync, venv, migrate, collectstatic, seed_templates, Service-Restart
 - [x] **DB-Schutz**: db.sqlite3 wird beim Deploy nicht ueberschrieben
 - [x] **Default-Berechtigungen**: view_members + export_members fuer Mitglieder bei Deploy
+- [x] **Default-AppSettings**: church_name, church_address, etc. bei Erstinstallation
 - [x] **Gunicorn + systemd**: Socket-Activation
 - [x] **nginx Reverse Proxy**: Static Files, SSL
 
 ### E-Mail-Vorlagen ✅
 - [x] **registration_verify.html**: Verifizierungs-Link (HTML)
-- [x] **registration_approved.html**: Willkommens-Mail mit Zugangsdaten (HTML)
+- [x] **registration_approved.html**: Willkommens-Mail mit Zugangsdaten, DSGVO-Hinweisen (HTML)
 - [x] **registration_rejected.html**: Ablehnungs-Mail mit Begruendung (HTML)
 - [x] **account_deleted.html**: Benachrichtigung bei Konto-Loeschung (HTML)
 - [x] **disabled_login_attempt.html**: Sicherheitshinweis an Admins (HTML)
+- [x] **optout_result.html**: Opt-out-Bestaetigungsseite mit Wiederanmeldeanleitung
 
 ---
 
@@ -172,29 +221,8 @@
 
 ### Phase 11: Verschluesselte Notizen fuer Pastor/Aelteste
 - [ ] PersonNote Model mit AES-256-Verschluesselung
-- [ ] Zugriffskontrolle nur fuer Pastor/Aelteste
+- [ ] Zugriffskontrolle: Pastor/Aelteste lesen alle, Benutzer liest eigene Eintraege
 - [ ] Audit-Log
-
-### Phase 12: DSGVO-Compliance ✅
-- [x] Datenschutzerklaerung (oeffentliche Seite, versioniert, editierbar im Admin)
-- [x] Einwilligungsverwaltung (ConsentLog, erteilen/widerrufen pro Benutzer)
-- [x] Recht auf Vergessenwerden (Loeschantrag mit Admin-Benachrichtigung)
-- [x] Datenexport (JSON-Download aller eigenen Daten)
-- [x] DSGVO-Auskunftsseite (Meine Daten: LDAP + Django + Gruppen + Einwilligungen)
-- [x] DSGVO-Checkbox bei Registrierung (Pflichtfeld)
-- [x] Datenschutz-Link im Footer und User-Menue
-
-### Phase 13: Massen-E-Mail (Massemailing)
-- [ ] **Mail-Composer**: WYSIWYG-Editor fuer HTML-Mails (z.B. Gemeindebriefe, Ankuendigungen)
-- [ ] **Empfaenger-Auswahl**: Nach Gruppe, Status (Mitglieder/Besucher/Alle), oder manuell
-- [ ] **Vorlagen-System**: Wiederverwendbare Mail-Vorlagen mit Platzhaltern ({{vorname}}, {{nachname}}, etc.)
-- [ ] **Personalisierung**: Individuelle Anrede pro Empfaenger
-- [ ] **Anhang-Support**: Dateien (PDF, Bilder) an Massen-Mail anhaengen
-- [ ] **Versand-Warteschlange**: Asynchroner Versand ueber Celery/Background-Task (Throttling)
-- [ ] **Versand-Protokoll**: Wer hat wann welche Mail erhalten (Zustellung/Fehler)
-- [ ] **Vorschau & Test-Mail**: Mail an sich selbst senden bevor Massenversand
-- [ ] **Abmelde-Link**: Opt-out fuer nicht-essentielle Mails (DSGVO)
-- [ ] **Berechtigungssteuerung**: Nur bestimmte Rollen duerfen Massen-Mails versenden
 
 ---
 
@@ -223,6 +251,6 @@
 
 ---
 
-**Stand:** 2026-04-04
-**Version:** 1.2.0
+**Stand:** 2026-04-05
+**Version:** 2.0.0
 **Maintainer:** Joerg Bernau
