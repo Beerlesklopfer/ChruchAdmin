@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Tickets - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);"><i class="bi bi-ticket-detailed me-2"></i>Tickets</h2>
+        <a href="{% url 'tickets:ticket_create' %}" class="btn btn-church-primary">
+            <i class="bi bi-plus-circle me-1"></i>Neues Ticket
+        </a>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-3"><div class="card shadow-sm text-center py-3"><h3 style="color: var(--church-navy);">{{ stats.total }}</h3><small class="text-muted">Gesamt</small></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center py-3"><h3 class="text-primary">{{ stats.open }}</h3><small class="text-muted">Offen</small></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center py-3"><h3 class="text-warning">{{ stats.in_progress }}</h3><small class="text-muted">In Bearbeitung</small></div></div>
+        <div class="col-md-3"><div class="card shadow-sm text-center py-3"><h3 class="text-danger">{{ stats.bugs_open }}</h3><small class="text-muted">Offene Bugs</small></div></div>
+    </div>
+
+    <!-- Filter -->
+    <div class="mb-3">
+        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-sm {% if not current_type and not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">Alle</a>
+        <a href="?type=bug" class="btn btn-sm {% if current_type == 'bug' %}btn-danger{% else %}btn-outline-danger{% endif %}"><i class="bi bi-bug me-1"></i>Bugs</a>
+        <a href="?type=feature" class="btn btn-sm {% if current_type == 'feature' %}btn-success{% else %}btn-outline-success{% endif %}"><i class="bi bi-lightbulb me-1"></i>Features</a>
+        <a href="?type=task" class="btn btn-sm {% if current_type == 'task' %}btn-info{% else %}btn-outline-info{% endif %}"><i class="bi bi-check2-square me-1"></i>Aufgaben</a>
+        <a href="?type=question" class="btn btn-sm {% if current_type == 'question' %}btn-warning{% else %}btn-outline-warning{% endif %}"><i class="bi bi-question-circle me-1"></i>Fragen</a>
+        <span class="mx-2">|</span>
+        <a href="?status=open" class="btn btn-sm {% if current_status == 'open' %}btn-primary{% else %}btn-outline-primary{% endif %}">Offen</a>
+        <a href="?status=in_progress" class="btn btn-sm {% if current_status == 'in_progress' %}btn-warning{% else %}btn-outline-warning{% endif %}">In Bearbeitung</a>
+        <a href="?status=resolved" class="btn btn-sm {% if current_status == 'resolved' %}btn-success{% else %}btn-outline-success{% endif %}">Geloest</a>
+        <a href="?mine=1" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person me-1"></i>Meine</a>
+    </div>
+
+    {% if tickets %}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: #1c2647 !important;">
+                    <tr>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">#</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Typ</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Titel</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Prioritaet</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Status</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Erstellt</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Zugewiesen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr style="cursor: pointer;" onclick="window.location='{% url 'tickets:ticket_detail' pk=t.pk %}'">
+                        <td class="align-middle"><strong>#{{ t.pk }}</strong></td>
+                        <td class="align-middle"><i class="bi {{ t.type_icon }} me-1"></i>{{ t.get_ticket_type_display }}</td>
+                        <td class="align-middle">
+                            <a href="{% url 'tickets:ticket_detail' pk=t.pk %}" class="text-decoration-none" style="color: var(--church-navy);">
+                                <strong>{{ t.title }}</strong>
+                            </a>
+                            {% if t.comments.count > 0 %}
+                            <small class="text-muted ms-1"><i class="bi bi-chat-dots me-1"></i>{{ t.comments.count }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle"><span class="badge bg-{{ t.priority_color }}">{{ t.get_priority_display }}</span></td>
+                        <td class="align-middle"><span class="badge bg-{{ t.status_color }}">{{ t.get_status_display }}</span></td>
+                        <td class="align-middle"><small>{{ t.created_at|date:"d.m.Y" }}</small><br><small class="text-muted">{{ t.created_by.get_full_name|default:t.created_by.username }}</small></td>
+                        <td class="align-middle">
+                            {% if t.assigned_to %}
+                            <small>{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}</small>
+                            {% else %}<small class="text-muted">-</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-ticket-detailed" style="font-size: 3rem; color: var(--church-gold);"></i>
+            <h4 class="mt-3" style="color: var(--church-navy);">Keine Tickets</h4>
+            <p class="text-muted">Erstellen Sie ein neues Ticket.</p>
+            <a href="{% url 'tickets:ticket_create' %}" class="btn btn-church-primary">
+                <i class="bi bi-plus-circle me-1"></i>Neues Ticket
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

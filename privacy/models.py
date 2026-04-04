@@ -37,6 +37,7 @@ class LegalPage(models.Model):
     PAGE_CHOICES = [
         ('impressum', 'Impressum'),
         ('nutzungsbedingungen', 'Nutzungsbedingungen'),
+        ('cookies', 'Cookie-Richtlinie'),
     ]
 
     page_type = models.CharField('Seitentyp', max_length=50, choices=PAGE_CHOICES, unique=True)

@@ -4,6 +4,7 @@
 {% block title %}Mein Profil - Church Admin{% endblock %}
 
 {% block extra_css %}
+<link href="{% static 'vendor/cropper.min.css' %}" rel="stylesheet">
 <style>
     .profile-container {
         max-width: 900px;
@@ -44,9 +45,17 @@
         border-radius: 50%;
         border: 4px solid var(--church-gold);
         object-fit: cover;
+        object-position: center 20%;
         margin: 0 auto 1rem;
         display: block;
     }
+
+    #crop-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; }
+    #crop-modal .crop-container { max-width: 500px; margin: 50px auto; background: white; border-radius: 12px; overflow: hidden; }
+    #crop-modal .crop-header { background: var(--church-navy); color: white; padding: 15px 20px; }
+    #crop-modal .crop-body { padding: 20px; }
+    #crop-modal .crop-body img { max-width: 100%; }
+    #crop-modal .crop-footer { padding: 15px 20px; display: flex; justify-content: flex-end; gap: 10px; }
 
     .photo-placeholder {
         width: 200px;
@@ -143,25 +152,40 @@
                 </div>
             {% endif %}
 
-            <form method="post" enctype="multipart/form-data" class="mt-3">
+            <form method="post" enctype="multipart/form-data" class="mt-3" id="photo-form">
                 {% csrf_token %}
+                <input type="file" id="photo-input" accept="image/*" class="d-none">
+                <input type="hidden" name="jpegPhoto_cropped" id="photo-cropped">
                 <div class="mb-3">
-                    <input
-                        type="file"
-                        name="jpegPhoto"
-                        class="form-control"
-                        id="id_jpegPhoto"
-                        accept="image/jpeg,image/jpg"
-                    >
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('photo-input').click()"
+                            style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-camera me-2"></i>Foto auswaehlen & zuschneiden
+                    </button>
                     <div class="help-text text-muted mt-2">
                         <i class="bi bi-info-circle me-1"></i>
-                        Nur JPEG-Bilder, max. 1MB
+                        Bild auswaehlen, Ausschnitt verschieben, speichern
                     </div>
                 </div>
-                <button type="submit" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
-                    <i class="bi bi-upload me-2"></i>Foto hochladen
-                </button>
             </form>
+
+            <!-- Crop Modal -->
+            <div id="crop-modal">
+                <div class="crop-container">
+                    <div class="crop-header">
+                        <h6 class="mb-0"><i class="bi bi-crop me-2"></i>Foto zuschneiden</h6>
+                    </div>
+                    <div class="crop-body">
+                        <img id="crop-image" src="">
+                    </div>
+                    <div class="crop-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCropModal()">Abbrechen</button>
+                        <button type="button" class="btn btn-sm" onclick="saveCrop()"
+                                style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                            <i class="bi bi-check-circle me-1"></i>Speichern
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Profil-Daten (LDAP) -->
@@ -439,4 +463,84 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/cropper.min.js' %}"></script>
+<script>
+let cropper = null;
+
+document.getElementById('photo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Bild zu gross (max. 5MB)');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = document.getElementById('crop-image');
+        img.src = ev.target.result;
+        document.getElementById('crop-modal').style.display = 'block';
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(img, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: 'move',
+            cropBoxResizable: true,
+            cropBoxMovable: true,
+            minCropBoxWidth: 100,
+            minCropBoxHeight: 100,
+        });
+    };
+    reader.readAsDataURL(file);
+});
+
+function closeCropModal() {
+    document.getElementById('crop-modal').style.display = 'none';
+    if (cropper) { cropper.destroy(); cropper = null; }
+}
+
+function saveCrop() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingQuality: 'high',
+    });
+    canvas.toBlob(function(blob) {
+        // Preview aktualisieren
+        const url = URL.createObjectURL(blob);
+        const preview = document.querySelector('.photo-preview');
+        if (preview) {
+            preview.src = url;
+        } else {
+            const placeholder = document.querySelector('.photo-placeholder');
+            if (placeholder) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'photo-preview';
+                placeholder.replaceWith(img);
+            }
+        }
+
+        // Blob als File an Form anhaengen und absenden
+        const form = document.getElementById('photo-form');
+        const formData = new FormData(form);
+        const croppedFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        formData.append('jpegPhoto', croppedFile);
+
+        fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        }).then(r => {
+            if (r.ok) window.location.reload();
+            else alert('Fehler beim Speichern');
+        });
+
+        closeCropModal();
+    }, 'image/jpeg', 0.9);
+}
+</script>
 {% endblock %}

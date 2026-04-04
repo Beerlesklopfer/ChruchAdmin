@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Cookie-Richtlinie - {{ church_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <h2 class="mb-0"><i class="bi bi-cookie me-2"></i>Cookie-Richtlinie</h2>
+                </div>
+                <div class="card-body">
+                    {% if page %}
+                        {{ page.content_html|safe }}
+                    {% else %}
+                        <h3 style="color: var(--church-navy);">Welche Cookies verwenden wir?</h3>
+                        <p>Diese Webanwendung verwendet ausschliesslich <strong>technisch notwendige Cookies</strong>. Es werden keine Tracking-, Werbe- oder Analyse-Cookies eingesetzt.</p>
+
+                        <table class="table table-sm">
+                            <thead><tr><th>Cookie</th><th>Zweck</th><th>Dauer</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>sessionid</code></td><td>Sitzungsverwaltung (Login)</td><td>Sitzung (bis Logout/Browser-Schluss)</td></tr>
+                                <tr><td><code>csrftoken</code></td><td>Schutz vor Cross-Site-Request-Forgery</td><td>1 Jahr</td></tr>
+                                <tr><td><code>per_page</code></td><td>Seitengroesse in Listen (Benutzereinstellung)</td><td>1 Jahr</td></tr>
+                                <tr><td><code>cookie_consent</code></td><td>Speichert Ihre Cookie-Zustimmung</td><td>1 Jahr</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h3 style="color: var(--church-navy);">Keine Drittanbieter-Cookies</h3>
+                        <p>Wir binden keine externen Dienste ein, die eigene Cookies setzen (kein Google Analytics, kein Facebook, keine Werbung).</p>
+
+                        <h3 style="color: var(--church-navy);">Rechtsgrundlage</h3>
+                        <p>Die technisch notwendigen Cookies werden auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse) gesetzt. Sie sind fuer den Betrieb der Anwendung erforderlich.</p>
+
+                        <h3 style="color: var(--church-navy);">Cookies verwalten</h3>
+                        <p>Sie koennen Cookies jederzeit in Ihren Browser-Einstellungen loeschen oder blockieren. Beachten Sie, dass die Anwendung ohne Session-Cookies nicht funktioniert.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

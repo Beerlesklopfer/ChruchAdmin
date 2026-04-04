@@ -29,6 +29,12 @@ def impressum(request):
     return render(request, 'privacy/impressum.html', {'page': page})
 
 
+def cookies(request):
+    """Cookie-Richtlinie anzeigen (oeffentlich)"""
+    page = LegalPage.get_page('cookies')
+    return render(request, 'privacy/cookies.html', {'page': page})
+
+
 def legal_page(request, page_type):
     """Beliebige rechtliche Seite anzeigen"""
     page = LegalPage.get_page(page_type)

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'authapp',
     'mailing',
     'privacy',
+    'tickets',
 ]
 
 MIDDLEWARE = [

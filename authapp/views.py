@@ -597,11 +597,14 @@ def ldap_user_search(request):
     except Exception as e:
         messages.error(request, f"LDAP Suchfehler: {str(e)}")
 
-    # Pagination mit waehlbarer Seitengroesse
+    # Pagination mit waehlbarer Seitengroesse (Cookie-basiert)
     from django.core.paginator import Paginator
     per_page_options = [10, 20, 50, 100]
     try:
-        per_page = int(request.GET.get('per_page', 50))
+        if 'per_page' in request.GET:
+            per_page = int(request.GET['per_page'])
+        else:
+            per_page = int(request.COOKIES.get('per_page', 50))
         if per_page not in per_page_options:
             per_page = 50
     except (ValueError, TypeError):
@@ -612,7 +615,7 @@ def ldap_user_search(request):
 
     is_mail_admin = has_permission(request.user, 'manage_mail') or request.user.is_superuser
 
-    return render(request, 'ldap/user_search.html', {
+    response = render(request, 'ldap/user_search.html', {
         'users': page_obj,
         'page_obj': page_obj,
         'per_page': per_page,
@@ -622,6 +625,8 @@ def ldap_user_search(request):
         'all_users_for_parent': all_users_for_parent,
         'is_mail_admin': is_mail_admin,
     })
+    response.set_cookie('per_page', per_page, max_age=365*24*60*60)
+    return response
 
 ###############################################################################
 # LDAP Dashboard mit Family Tree Support
@@ -2844,11 +2849,14 @@ def group_list(request):
     except Exception as e:
         messages.error(request, f"LDAP Suchfehler: {str(e)}")
 
-    # Pagination mit waehlbarer Seitengroesse
+    # Pagination mit waehlbarer Seitengroesse (Cookie-basiert)
     from django.core.paginator import Paginator
     per_page_options = [10, 20, 50, 100]
     try:
-        per_page = int(request.GET.get('per_page', 50))
+        if 'per_page' in request.GET:
+            per_page = int(request.GET['per_page'])
+        else:
+            per_page = int(request.COOKIES.get('per_page', 50))
         if per_page not in per_page_options:
             per_page = 50
     except (ValueError, TypeError):
@@ -2857,13 +2865,15 @@ def group_list(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'ldap/group_list.html', {
+    response = render(request, 'ldap/group_list.html', {
         'groups': page_obj,
         'page_obj': page_obj,
         'per_page': per_page,
         'per_page_options': per_page_options,
         'search_query': search_query,
     })
+    response.set_cookie('per_page', per_page, max_age=365*24*60*60)
+    return response
 
 
 @login_required

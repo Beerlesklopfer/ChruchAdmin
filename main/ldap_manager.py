@@ -297,10 +297,14 @@ class LDAPManager:
 
             if result:
                 dn, attrs = result[0]
-                # Dekodiere alle Attribute
+                # Dekodiere alle Attribute (ausser binaere)
+                BINARY_ATTRS = {'jpegPhoto', 'userCertificate', 'objectSid'}
                 decoded_attrs = {}
                 for key, value in attrs.items():
-                    decoded_attrs[key] = self.decode_attribute(value)
+                    if key in BINARY_ATTRS:
+                        decoded_attrs[key] = value  # Binaer belassen
+                    else:
+                        decoded_attrs[key] = self.decode_attribute(value)
 
                 logger.info(f"Benutzer gefunden: {cn}")
                 return {'dn': dn, 'attributes': decoded_attrs}
@@ -340,12 +344,16 @@ class LDAPManager:
                 None
             )
 
+            BINARY_ATTRS = {'jpegPhoto', 'userCertificate', 'objectSid'}
             users = []
             for dn, attrs in results:
                 if dn:
                     decoded_attrs = {}
                     for key, value in attrs.items():
-                        decoded_attrs[key] = self.decode_attribute(value)
+                        if key in BINARY_ATTRS:
+                            decoded_attrs[key] = value
+                        else:
+                            decoded_attrs[key] = self.decode_attribute(value)
                     users.append({'dn': dn, 'attributes': decoded_attrs})
 
             logger.info(f"Gefundene Benutzer: {len(users)}")

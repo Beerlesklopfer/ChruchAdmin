@@ -216,8 +216,25 @@
 - [ ] Gruppen-Mail-Adressen konfigurieren
 - [ ] Bulk-Mail-Konfiguration
 
-### Phase 10: Todo & Bug Tracking
-- [ ] Internes Tracking-System
+### Phase 10: Ticket & Bug Tracking ✅
+- [x] Ticket Model (Bug, Feature, Aufgabe, Frage)
+- [x] Prioritaeten (Niedrig, Mittel, Hoch, Kritisch)
+- [x] Status-Workflow (Offen, In Bearbeitung, Wartet, Geloest, Geschlossen)
+- [x] Kommentare mit Verlauf
+- [x] Zuweisung (Mir zuweisen / entfernen)
+- [x] Filter nach Typ, Status, eigene Tickets
+- [x] Statistiken (Gesamt, Offen, In Bearbeitung, Offene Bugs)
+- [x] CRUD (Erstellen, Bearbeiten, Loeschen)
+- [x] Menue-Eintrag unter Tools
+
+### Testing & Troubleshooting
+- [x] Zentrales `tests/`-Verzeichnis
+- [x] `tests/TROUBLESHOOTING.md` — Fehlerbehebung (LDAP, Django, Mail, Deploy)
+- [x] `tests/test_models.py` — Model-Tests (AppSettings, Permissions, Campaigns, Consents, Tickets)
+- [x] `tests/test_views.py` — View-Tests (oeffentliche Seiten, Auth-Redirects, Ticket-CRUD)
+- [ ] Integration-Tests mit LDAP-Mock
+- [ ] E2E-Tests (Selenium/Playwright)
+- [ ] CI/CD Pipeline (GitHub Actions)
 
 ### Phase 11: Verschluesselte Notizen fuer Pastor/Aelteste
 - [ ] PersonNote Model mit AES-256-Verschluesselung

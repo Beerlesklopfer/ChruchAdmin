@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Neues Ticket - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Neues Ticket</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="ticket_type" class="form-label">Typ</label>
+                                <select name="ticket_type" class="form-select" id="ticket_type">
+                                    <option value="bug"><i class="bi bi-bug"></i> Fehlermeldung</option>
+                                    <option value="feature">Funktionswunsch</option>
+                                    <option value="task">Aufgabe</option>
+                                    <option value="question">Frage</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="priority" class="form-label">Prioritaet</label>
+                                <select name="priority" class="form-select" id="priority">
+                                    <option value="low">Niedrig</option>
+                                    <option value="medium" selected>Mittel</option>
+                                    <option value="high">Hoch</option>
+                                    <option value="critical">Kritisch</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Titel <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="Kurze Beschreibung des Problems oder Wunsches">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschreibung</label>
+                            <textarea class="form-control" id="description" name="description" rows="6"
+                                      placeholder="Detaillierte Beschreibung...&#10;&#10;Bei Bugs:&#10;- Was passiert?&#10;- Was wurde erwartet?&#10;- Schritte zum Reproduzieren"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'tickets:ticket_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Zurueck
+                            </a>
+                            <button type="submit" class="btn btn-church-primary">
+                                <i class="bi bi-check-circle me-1"></i>Ticket erstellen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

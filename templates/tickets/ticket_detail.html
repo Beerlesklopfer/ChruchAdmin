@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}#{{ ticket.pk }} {{ ticket.title }} - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi {{ ticket.type_icon }} me-2"></i>#{{ ticket.pk }} {{ ticket.title }}
+        </h2>
+        <a href="{% url 'tickets:ticket_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Ticket-Details -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-file-text me-2"></i>Beschreibung
+                </div>
+                <div class="card-body">
+                    <div style="white-space: pre-wrap;">{{ ticket.description|default:"Keine Beschreibung" }}</div>
+                </div>
+            </div>
+
+            <!-- Bearbeiten (Collapse) -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#editForm">
+                    <i class="bi bi-pencil me-2"></i>Bearbeiten
+                </div>
+                <div class="collapse" id="editForm">
+                    <div class="card-body">
+                        <form method="post" action="{% url 'tickets:ticket_edit' pk=ticket.pk %}">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Typ</label>
+                                    <select name="ticket_type" class="form-select">
+                                        {% for val, label in ticket.TYPE_CHOICES %}
+                                        <option value="{{ val }}" {% if ticket.ticket_type == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Prioritaet</label>
+                                    <select name="priority" class="form-select">
+                                        {% for val, label in ticket.PRIORITY_CHOICES %}
+                                        <option value="{{ val }}" {% if ticket.priority == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Titel</label>
+                                <input type="text" name="title" class="form-control" value="{{ ticket.title }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Beschreibung</label>
+                                <textarea name="description" class="form-control" rows="5">{{ ticket.description }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-church-primary btn-sm">
+                                <i class="bi bi-check-circle me-1"></i>Speichern
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kommentare -->
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-chat-dots me-2"></i>Kommentare ({{ comments.count }})
+                </div>
+                <div class="card-body">
+                    {% for c in comments %}
+                    <div class="mb-3 p-3 rounded" style="background: var(--church-beige);">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong style="color: var(--church-navy);">{{ c.author.get_full_name|default:c.author.username }}</strong>
+                            <small class="text-muted">{{ c.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <div style="white-space: pre-wrap;">{{ c.content }}</div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Noch keine Kommentare.</p>
+                    {% endfor %}
+
+                    <hr>
+                    <form method="post" action="{% url 'tickets:ticket_comment' pk=ticket.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <textarea name="content" class="form-control" rows="3" placeholder="Kommentar schreiben..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-church-primary">
+                            <i class="bi bi-send me-1"></i>Kommentieren
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seitenleiste -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-info-circle me-2"></i>Details
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tr><td class="text-muted">Typ:</td><td><i class="bi {{ ticket.type_icon }} me-1"></i>{{ ticket.get_ticket_type_display }}</td></tr>
+                        <tr><td class="text-muted">Prioritaet:</td><td><span class="badge bg-{{ ticket.priority_color }}">{{ ticket.get_priority_display }}</span></td></tr>
+                        <tr><td class="text-muted">Status:</td><td><span class="badge bg-{{ ticket.status_color }}">{{ ticket.get_status_display }}</span></td></tr>
+                        <tr><td class="text-muted">Erstellt:</td><td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td></tr>
+                        <tr><td class="text-muted">Erstellt von:</td><td>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</td></tr>
+                        <tr><td class="text-muted">Zugewiesen:</td><td>{{ ticket.assigned_to.get_full_name|default:"-" }}</td></tr>
+                        {% if ticket.resolved_at %}
+                        <tr><td class="text-muted">Geloest:</td><td>{{ ticket.resolved_at|date:"d.m.Y H:i" }}</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Status aendern -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-arrow-repeat me-2"></i>Status aendern
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {% for val, label in ticket.STATUS_CHOICES %}
+                    {% if val != ticket.status %}
+                    <form method="post" action="{% url 'tickets:ticket_update_status' pk=ticket.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="{{ val }}">
+                        <button type="submit" class="btn btn-sm btn-outline-{{ ticket.status_color }} w-100">{{ label }}</button>
+                    </form>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Zuweisung -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-person-check me-2"></i>Zuweisung
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {% if ticket.assigned_to != request.user %}
+                    <form method="post" action="{% url 'tickets:ticket_assign' pk=ticket.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="me">
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-person-plus me-1"></i>Mir zuweisen
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if ticket.assigned_to %}
+                    <form method="post" action="{% url 'tickets:ticket_assign' pk=ticket.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="unassign">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Zuweisung entfernen</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Loeschen -->
+            {% if ticket.created_by == request.user or request.user.is_superuser %}
+            <form method="post" action="{% url 'tickets:ticket_delete' pk=ticket.pk %}"
+                  onsubmit="return confirm('Ticket wirklich loeschen?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                    <i class="bi bi-trash me-1"></i>Ticket loeschen
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
