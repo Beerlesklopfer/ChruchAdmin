@@ -805,17 +805,22 @@ def user_dashboard(request):
                     u_address = _da('postalAddress')
                     children = ldap_conn2.list_users(parent_dn=u_dn)
                     if children:
-                        # Ehepartner erkennen
+                        # Ehepartner und Kinder mit DSGVO-Check
                         spouse_name = ''
                         child_names = []
                         for c in children:
                             c_attrs = c['attributes']
                             c_gn = c_attrs.get('givenName', [''])[0]
                             c_sn = c_attrs.get('sn', [''])[0]
+                            c_cn = c_attrs.get('cn', [''])[0]
                             c_role = c_attrs.get('familyRole', [''])[0]
                             if isinstance(c_gn, bytes): c_gn = c_gn.decode('utf-8')
                             if isinstance(c_sn, bytes): c_sn = c_sn.decode('utf-8')
+                            if isinstance(c_cn, bytes): c_cn = c_cn.decode('utf-8')
                             if isinstance(c_role, bytes): c_role = c_role.decode('utf-8')
+                            # DSGVO: Consent des Familienmitglieds pruefen
+                            if not _check_member_list_consent(c_cn):
+                                continue
                             if c_role == 'spouse':
                                 spouse_name = f"{c_gn} {c_sn}"
                             else:
