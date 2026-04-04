@@ -21,8 +21,11 @@
                         </div>
 
                         <h3 style="color: var(--church-navy);">1. Verantwortlicher</h3>
-                        <p>Beispielgemeinde<br>
-                        Verantwortlich fuer die Datenverarbeitung im Sinne der DSGVO.</p>
+                        <p><strong>{{ church_name }}</strong><br>
+                        {% if church_address %}{{ church_address }}<br>{% endif %}
+                        {% if church_contact_person %}Ansprechperson: {{ church_contact_person }}<br>{% endif %}
+                        {% if church_email %}E-Mail: <a href="mailto:{{ church_email }}">{{ church_email }}</a><br>{% endif %}
+                        {% if church_phone %}Telefon: {{ church_phone }}{% endif %}</p>
 
                         <h3 style="color: var(--church-navy);">2. Welche Daten werden erhoben?</h3>
                         <ul>
@@ -64,8 +67,11 @@
                         Nach Beendigung der Mitgliedschaft werden die Daten innerhalb von 30 Tagen geloescht,
                         sofern keine gesetzlichen Aufbewahrungspflichten bestehen.</p>
 
-                        <h3 style="color: var(--church-navy);">8. Kontakt</h3>
-                        <p>Bei Fragen zum Datenschutz wenden Sie sich an die Gemeindeleitung.</p>
+                        <h3 style="color: var(--church-navy);">8. Datenschutz-Ansprechperson</h3>
+                        <p>Bei Fragen zum Datenschutz wenden Sie sich an:<br>
+                        <strong>{{ privacy_contact_person|default:church_contact_person }}</strong><br>
+                        {% if church_email %}<a href="mailto:{{ church_email }}">{{ church_email }}</a>{% endif %}
+                        </p>
                     {% endif %}
                 </div>
             </div>

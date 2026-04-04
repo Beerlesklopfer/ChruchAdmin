@@ -1,3 +1,17 @@
+def church_settings(request):
+    """Stellt globale Gemeinde-Einstellungen fuer alle Templates bereit."""
+    from authapp.models import AppSettings
+    return {
+        'church_name': AppSettings.get('church_name', 'Beispielgemeinde'),
+        'church_domain': AppSettings.get('church_domain', 'example-church.de'),
+        'church_address': AppSettings.get('church_address', ''),
+        'church_phone': AppSettings.get('church_phone', ''),
+        'church_email': AppSettings.get('church_email', ''),
+        'church_contact_person': AppSettings.get('church_contact_person', ''),
+        'privacy_contact_person': AppSettings.get('privacy_contact_person', ''),
+    }
+
+
 def user_permissions(request):
     """Stellt Berechtigungs-Flags fuer alle Templates bereit."""
     if not request.user.is_authenticated:
