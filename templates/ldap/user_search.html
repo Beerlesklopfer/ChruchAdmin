@@ -216,7 +216,8 @@
                         data-accountdisabled="{{ user.accountDisabled|default:'' }}"
                         data-parent="{{ user.parent_cn|default:'' }}"
                         data-photo="{{ user.photo_base64|default:'' }}"
-                        data-status="{{ user.status|default:'' }}">
+                        data-status="{{ user.status|default:'' }}"
+                        data-consents="{{ user.consents|default:'' }}">
                         <td>
                             <div class="d-flex align-items-center">
                                 {% if user.photo_base64 %}
@@ -613,6 +614,14 @@
                         </div>
                     </div>
 
+                    <!-- DSGVO Einwilligungen -->
+                    <div class="mb-3" id="consent-section">
+                        <label class="form-label">
+                            <i class="bi bi-shield-check me-1"></i>DSGVO-Einwilligungen
+                        </label>
+                        <div id="consent-toggles"></div>
+                    </div>
+
                     <!-- Status -->
                     <div class="mb-3">
                         <label for="modal-status" class="form-label">
@@ -980,6 +989,10 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('modal-birthDate').value = birthDate || '';
     document.getElementById('modal-status').value = button.getAttribute('data-status') || '';
     document.getElementById('modal-familyRole').value = button.getAttribute('data-familyrole') || '';
+
+    // DSGVO Consents rendern
+    document.getElementById('consent-section').style.display = 'block';
+    renderConsents(button.getAttribute('data-consents') || '', button.getAttribute('data-cn'));
     document.getElementById('modal-accountDisabled').checked = button.getAttribute('data-accountdisabled') === 'TRUE';
 
     // Mail-Admin-Felder befüllen
@@ -1029,6 +1042,45 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
 // Passwort-Match-Validierung
 document.getElementById('modal-password').addEventListener('input', checkPasswordMatch);
 document.getElementById('modal-password2').addEventListener('input', checkPasswordMatch);
+
+const consentLabels = {
+    'privacy_policy': 'Datenschutzerklaerung',
+    'data_processing': 'Datenverarbeitung',
+    'email_communication': 'E-Mail-Kommunikation',
+    'member_list': 'Gemeindeliste',
+};
+
+function renderConsents(consentStr, cn) {
+    const container = document.getElementById('consent-toggles');
+    container.innerHTML = '';
+    if (!consentStr) { container.innerHTML = '<small class="text-muted">Keine Daten</small>'; return; }
+    consentStr.split(',').forEach(function(item) {
+        const [ctype, granted] = item.split(':');
+        const label = consentLabels[ctype] || ctype;
+        const isGranted = granted === 'true';
+        const icon = isGranted ? '<i class="bi bi-check-circle-fill text-success me-1"></i>' : '<i class="bi bi-x-circle-fill text-danger me-1"></i>';
+        const btnClass = isGranted ? 'btn-outline-danger' : 'btn-outline-success';
+        const btnText = isGranted ? '<i class="bi bi-x"></i>' : '<i class="bi bi-check"></i>';
+        const newVal = isGranted ? 'false' : 'true';
+        container.innerHTML += `<div class="d-flex align-items-center justify-content-between mb-1 p-1 rounded" style="background: var(--church-beige);">
+            <small>${icon} ${label}</small>
+            <button type="button" class="btn btn-sm ${btnClass} py-0 px-1" onclick="toggleConsent('${ctype}', '${newVal}', '${cn}')">${btnText}</button>
+        </div>`;
+    });
+}
+
+function toggleConsent(ctype, granted, cn) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/datenschutz/consent/';
+    form.innerHTML = `<input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+        <input type="hidden" name="consent_type" value="${ctype}">
+        <input type="hidden" name="granted" value="${granted}">
+        <input type="hidden" name="target_user_cn" value="${cn}">`;
+    document.body.appendChild(form);
+    form.submit();
+}
 
 function showDeleteConfirm() {
     // Schließe Edit-Modal und öffne Delete-Bestätigung
@@ -1152,6 +1204,7 @@ if (urlParams.get('create') === '1') {
     document.getElementById('modal-birthDate').value = '';
     document.getElementById('modal-familyRole').value = '';
     document.getElementById('modal-accountDisabled').checked = false;
+    document.getElementById('consent-section').style.display = 'none';
     setParentValue('');
     document.getElementById('modal-password').value = '';
     document.getElementById('modal-password2').value = '';

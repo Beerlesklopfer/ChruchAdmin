@@ -301,6 +301,24 @@ def ldap_admin(request):
 
 @login_required
 @user_passes_test(is_ldap_admin)
+def _get_user_consents(cn):
+    """Hole aktuellen Consent-Status eines Benutzers als komma-getrennte Strings"""
+    try:
+        from privacy.models import ConsentLog
+        from django.contrib.auth.models import User as DjangoUser
+        dj_user = DjangoUser.objects.filter(username__iexact=cn).first()
+        if not dj_user:
+            return 'email_communication:true,member_list:true,data_processing:true,privacy_policy:true'
+        result = []
+        for ctype, _ in ConsentLog.CONSENT_TYPES:
+            latest = ConsentLog.objects.filter(user=dj_user, consent_type=ctype).order_by('-timestamp').first()
+            granted = latest.granted if latest else True
+            result.append(f'{ctype}:{"true" if granted else "false"}')
+        return ','.join(result)
+    except Exception:
+        return ''
+
+
 def ldap_user_search(request):
     """LDAP Benutzer Suche mit LDAPManager"""
     users = []
@@ -533,6 +551,7 @@ def ldap_user_search(request):
                             'accountDisabled': account_disabled,
                             'photo_base64': photo_base64,
                             'status': status,
+                            'consents': _get_user_consents(cn_value),
                         })
 
     except LDAPConnectionError as e:

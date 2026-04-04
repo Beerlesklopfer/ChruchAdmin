@@ -315,13 +315,19 @@ def consent_update(request):
         granted = request.POST.get('granted') == 'true'
         target_user_id = request.POST.get('target_user_id')
 
-        # Fuer Familienmitglied oder sich selbst?
+        # Fuer Familienmitglied, per CN (Admin), oder sich selbst?
         from django.contrib.auth.models import User as DjangoUser
+        target_user_cn = request.POST.get('target_user_cn')
         if target_user_id:
             target_user = DjangoUser.objects.filter(pk=target_user_id).first()
             if not target_user:
                 messages.error(request, 'Benutzer nicht gefunden.')
                 return redirect('privacy:my_data')
+        elif target_user_cn:
+            target_user = DjangoUser.objects.filter(username__iexact=target_user_cn).first()
+            if not target_user:
+                messages.error(request, f'Benutzer {target_user_cn} nicht gefunden.')
+                return redirect('ldap_user_search')
         else:
             target_user = request.user
 
@@ -386,6 +392,8 @@ def consent_update(request):
                 except Exception:
                     pass
 
+    if target_user_cn:
+        return redirect('ldap_user_search')
     return redirect('privacy:my_data')
 
 
