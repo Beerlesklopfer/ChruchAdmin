@@ -148,6 +148,12 @@
     <div class="user-info">
         <i class="bi bi-info-circle me-2"></i>
         <strong>Benutzername:</strong> {{ ldap_user.cn }}
+        <br>
+        <small><i class="bi bi-envelope-at me-1"></i>UID: {{ ldap_user.cn }}</small>
+        {% if ldap_user.mail %}
+        <br>
+        <small><i class="bi bi-building me-1"></i>Organisations-E-Mail: <strong>{{ ldap_user.mail }}</strong></small>
+        {% endif %}
     </div>
 
     <form method="post" enctype="multipart/form-data">
@@ -185,17 +191,36 @@
             >
         </div>
 
-        <!-- E-Mail -->
+        <!-- Private E-Mail (mailRoutingAddress) -->
         <div class="mb-3">
-            <label for="id_mail" class="form-label">
-                <i class="bi bi-envelope me-1"></i>E-Mail-Adresse
+            <label for="id_mailRoutingAddress" class="form-label">
+                <i class="bi bi-envelope me-1"></i>Private E-Mail-Adresse
             </label>
             <input
                 type="email"
-                name="mail"
+                name="mailRoutingAddress"
                 class="form-control"
-                id="id_mail"
-                value="{{ ldap_user.mail }}"
+                id="id_mailRoutingAddress"
+                value="{{ ldap_user.mailRoutingAddress }}"
+                placeholder="Ihre private E-Mail-Adresse"
+            >
+            <div class="help-text">
+                <i class="bi bi-info-circle me-1"></i>
+                Die Organisations-E-Mail ({{ ldap_user.mail }}) wird automatisch vergeben und kann nicht geändert werden.
+            </div>
+        </div>
+
+        <!-- Geburtstag -->
+        <div class="mb-3">
+            <label for="id_birthDate" class="form-label">
+                <i class="bi bi-calendar-event me-1"></i>Geburtstag
+            </label>
+            <input
+                type="date"
+                name="birthDate"
+                class="form-control"
+                id="id_birthDate"
+                value="{{ ldap_user.birthDateISO }}"
             >
         </div>
 
@@ -241,6 +266,84 @@
                 Nur ausfüllen, wenn Sie das Passwort ändern möchten
             </div>
         </div>
+
+        {% if is_mail_admin %}
+        <!-- Mail-Administration (nur für Admins) -->
+        <hr class="my-4">
+        <div class="mb-4">
+            <h5 style="color: var(--church-navy);">
+                <i class="bi bi-envelope-gear me-2"></i>Mail-Verwaltung
+            </h5>
+            <p class="text-muted small">Diese Einstellungen sind nur für Administratoren sichtbar.</p>
+        </div>
+
+        {% with addresses=ldap_user.mail_list field_id="id_mail_list" field_name="mail_list" label="Organisations-E-Mail-Adressen" icon="bi-building" help_text="Eine Adresse pro Zeile. Primäre Organisations-Adressen (z.B. Vorname.Nachname@example-church.de)" %}
+            {% include "ldap/includes/mail_list_field.html" %}
+        {% endwith %}
+
+        {% with addresses=ldap_user.mailRoutingAddress_list field_id="id_mailRoutingAddress_list" field_name="mailRoutingAddress_list" label="Mail-Routing-Adressen" icon="bi-send" help_text="Weiterleitungsziele. Die erste externe Adresse wird für Passwort-Reset verwendet." %}
+            {% include "ldap/includes/mail_list_field.html" %}
+        {% endwith %}
+
+        {% with addresses=ldap_user.mailAliasAddress_list field_id="id_mailAliasAddress_list" field_name="mailAliasAddress_list" label="Mail-Alias-Adressen" icon="bi-at" rows="2" help_text="Alias-Adressen, unter denen der Benutzer ebenfalls erreichbar ist." %}
+            {% include "ldap/includes/mail_list_field.html" %}
+        {% endwith %}
+
+        <div class="row">
+            <!-- mailQuota -->
+            <div class="col-md-4 mb-3">
+                <label for="id_mailQuota" class="form-label">
+                    <i class="bi bi-hdd me-1"></i>Mail-Quota
+                </label>
+                <input
+                    type="text"
+                    name="mailQuota"
+                    class="form-control"
+                    id="id_mailQuota"
+                    value="{{ ldap_user.mailQuota }}"
+                    placeholder="z.B. 500M"
+                >
+            </div>
+
+            <!-- mailAliasEnabled -->
+            <div class="col-md-4 mb-3">
+                <label class="form-label">
+                    <i class="bi bi-toggle-on me-1"></i>Alias aktiv
+                </label>
+                <div class="form-check form-switch mt-2">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="mailAliasEnabled"
+                        id="id_mailAliasEnabled"
+                        {% if ldap_user.mailAliasEnabled == "TRUE" %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="id_mailAliasEnabled">
+                        Alias-Adressen aktiviert
+                    </label>
+                </div>
+            </div>
+
+            <!-- mailRoutingEnabled -->
+            <div class="col-md-4 mb-3">
+                <label class="form-label">
+                    <i class="bi bi-toggle-on me-1"></i>Routing aktiv
+                </label>
+                <div class="form-check form-switch mt-2">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="mailRoutingEnabled"
+                        id="id_mailRoutingEnabled"
+                        {% if ldap_user.mailRoutingEnabled == "TRUE" %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="id_mailRoutingEnabled">
+                        Mail-Routing aktiviert
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Buttons -->
         <button type="submit" class="btn btn-submit">

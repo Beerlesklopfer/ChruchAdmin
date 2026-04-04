@@ -20,7 +20,40 @@
 3. **Backup & Recovery** - LDAP-Backup und Restore-Funktionen
 4. **Production Deployment** - Docker-Container, HTTPS, Monitoring
 
-## Kürzlich erledigte Aufgaben (2026-02-01)
+## Kürzlich erledigte Aufgaben (2026-04-04)
+
+### Benutzer-Dashboard & Familienverwaltung ✅
+- [x] **Benutzer-Dashboard**: Persoenliches Dashboard fuer alle Benutzer (`/dashboard/`)
+- [x] **Familienverwaltung**: Vaeter koennen ihre Familienmitglieder verwalten
+- [x] **Familienansicht**: Kinder/Angehoerige koennen Familiendaten einsehen (read-only)
+- [x] **Login-Redirect**: Admins → Admin-Dashboard, normale User → Benutzer-Dashboard
+- [x] **Navigation**: "Mein Bereich" fuer alle eingeloggten User
+
+### CAPTCHA & Passwort-Reset ✅
+- [x] **CAPTCHA**: django-simple-captcha fuer Passwort-Reset-Formulare
+- [x] **Passwort-Reset an private Mail**: Reset-Mail geht an mailRoutingAddress (nicht Org-Mail)
+- [x] **Suche per privater Mail**: Passwort-Reset funktioniert mit Username, Org-Mail oder privater Mail
+- [x] **LDAP change_password Fix**: Bytes-Encoding fuer SSHA-Passwort-Hash korrigiert
+
+### Mail-Verwaltung ✅
+- [x] **Mail-Attribute im Admin**: Alle LDAP-Mail-Attribute (mail, mailRoutingAddress, mailAliasAddress, mailQuota, mailAliasEnabled, mailRoutingEnabled) editierbar
+- [x] **CRUD-Listen**: Dynamische Add/Remove-Listen fuer Multi-Value-Mail-Attribute
+- [x] **Mail-Sub-Template**: Wiederverwendbares Template fuer E-Mail-Listen
+- [x] **AppSettings im Django-Admin**: E-Mail-Versand-Einstellungen (SMTP, Absender, Reply-To) konfigurierbar
+- [x] **Benachrichtigungs-E-Mail**: Benutzer koennen eigene Benachrichtigungsadresse auf Profilseite setzen
+
+### Profil & Benutzerdaten ✅
+- [x] **Editierbares Profil**: Benutzer koennen eigene Daten aendern (Name, Telefon, Mobil, Anschrift, Geburtstag)
+- [x] **Geburtstag-Widget**: HTML5 date-Input mit LDAP generalizedTime-Konvertierung
+- [x] **Organisations-Email read-only**: Mail-Adresse und Rolle/Position nur durch Admin aenderbar
+
+### Deployment ✅
+- [x] **Deploy-Script**: `deploy.sh` mit rsync, venv, migrate, collectstatic, Service-Restart
+- [x] **DB-Schutz**: Produktions-DB (db.sqlite3) wird beim Deploy nicht mehr ueberschrieben
+- [x] **LOGIN_URL**: Korrekte Weiterleitung auf `/login/` statt Django-Default `/accounts/login/`
+- [x] **Static Files Fix**: Duplikat-Admin-Statics entfernt
+
+## Erledigte Aufgaben (2026-02-01)
 
 ### Login & Authentifizierung ✅
 - [x] **Email-Login-Unterstützung**: Benutzer können sich nun mit E-Mail-Adresse statt Username anmelden
@@ -37,6 +70,7 @@
 - [x] **Toast-Notifications**: Verbesserte Sichtbarkeit des Close-Buttons mit Church CI
 - [x] **Status-basierte Filterung**: Filter für Mitglieder, Besucher, Gäste, Ehepartner, Angehörige
 - [x] **Live-Suche**: Debounced Live-Suche in Benutzer- und Mitgliederverwaltung
+- [x] Autoconfig für gemeindedienste (iOS)
 
 ### Git & Deployment ✅
 - [x] **Initial Git Commit**: Gesamtes Projekt ist jetzt versioniert
@@ -47,10 +81,12 @@
 ### Hohe Priorität
 - [x] **Email-Login IntegrityError**: ✅ BEHOBEN - Login mit E-Mail funktioniert nun korrekt
 - [ ] **First login after setup**: LDAP-Verbindung automatisch beim ersten Login nach Setup erstellen
+- [x] **Captcha for password reset**: ✅ BEHOBEN - django-simple-captcha implementiert
+- [x] **Gunicorn script fuer systemd**: ✅ BEHOBEN - Service laeuft, deploy.sh erstellt
 
 ### Mittlere Priorität
 - [x] **LDAP Connection Error bei Login**: ✅ BEHOBEN - Besseres Exception-Handling implementiert
-- [ ] Passwort-Zurücksetzen für LDAP-Benutzer testen und verfeinern
+- [x] Passwort-Zuruecksetzen fuer LDAP-Benutzer ✅ BEHOBEN - Bytes-Encoding Fix
 - [ ] Foto-Upload Validierung: Dateigröße und Format besser prüfen
 
 ### Niedrige Priorität
@@ -302,15 +338,15 @@
 
 ---
 
-**Stand:** 2026-02-01 (05:30 Uhr)
-**Version:** 1.0.1
+**Stand:** 2026-04-04
+**Version:** 1.1.0
 **Maintainer:** Church Admin Team
 
-**Letzte Änderungen:**
-- Email-Login-Unterstützung mit LDAP-Normalisierung
-- Email Unique Constraint in Datenbank
-- EmailTemplate-System für editierbare E-Mail-Vorlagen
-- Toast-Notifications mit verbesserter Sichtbarkeit (Church CI)
-- Status-basierte Benutzerfilterung (Mitglieder, Besucher, Gäste, etc.)
-- Initial Git Commit mit vollständigem .gitignore
-- Robustes Error-Handling für LDAP-Connection und IntegrityErrors
+**Letzte Aenderungen (2026-04-04):**
+- Benutzer-Dashboard mit Familienverwaltung
+- CAPTCHA fuer Passwort-Reset
+- Mail-Verwaltung mit CRUD-Listen im Admin
+- Editierbares Profil mit Geburtstag-Widget
+- Deploy-Script mit DB-Schutz
+- Passwort-Reset an private Mail (mailRoutingAddress)
+- AppSettings fuer E-Mail-Konfiguration

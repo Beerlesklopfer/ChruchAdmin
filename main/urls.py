@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib import admin
 from authapp import views as auth_views
 from authapp import export_views
@@ -7,11 +7,15 @@ from authapp import password_reset_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('captcha/', include('captcha.urls')),
     path('', auth_views.home, name='home'),
     path('login/', auth_views.ldap_login, name='login'),
     path('logout/', auth_views.custom_logout, name='logout'),
     path('register/', auth_views.register, name='register'),
     path('profile/', auth_views.profile, name='profile'),
+    path('dashboard/', auth_views.user_dashboard, name='user_dashboard'),
+    path('dashboard/family/', auth_views.family_manage, name='family_manage'),
+    path('dashboard/family/<str:cn>/edit/', auth_views.family_member_edit, name='family_member_edit'),
 
     # LDAP URLs
     path('ldap/', auth_views.ldap_dashboard, name='ldap_dashboard'),
@@ -52,4 +56,11 @@ urlpatterns = [
     # Member Management URLs
     path('ldap/member/add/', auth_views.member_add, name='member_add'),
     path('ldap/member/add-existing/', auth_views.member_add_existing, name='member_add_existing'),
+
+    # Backup Management URLs
+    path('ldap/backup/', auth_views.backup_dashboard, name='backup_dashboard'),
+    path('ldap/backup/<int:backup_id>/download/', auth_views.backup_download, name='backup_download'),
+    path('ldap/backup/<int:backup_id>/delete/', auth_views.backup_delete, name='backup_delete'),
+    path('ldap/backup/cleanup/', auth_views.backup_cleanup, name='backup_cleanup'),
+    path('ldap/backup/<int:backup_id>/restore/', auth_views.backup_restore, name='backup_restore'),
 ]

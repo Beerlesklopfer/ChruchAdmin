@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ member.givenName }} bearbeiten - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin-top: 2rem;">
+
+    <div class="card shadow-sm" style="border: none; border-radius: 12px; overflow: hidden;">
+        <div class="card-header p-3" style="background: var(--church-navy); color: white;">
+            <h5 class="mb-0">
+                <i class="bi bi-pencil-square me-2"></i>{{ member.givenName }} {{ member.sn }} bearbeiten
+            </h5>
+        </div>
+
+        <div class="card-body p-4">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Foto -->
+                {% if member.photo_base64 %}
+                <div class="text-center mb-4">
+                    <img src="data:image/jpeg;base64,{{ member.photo_base64 }}"
+                         class="rounded-circle"
+                         style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--church-gold);">
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="givenName" class="form-label">
+                            <i class="bi bi-person me-1"></i>Vorname <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="givenName" class="form-control" id="givenName"
+                               value="{{ member.givenName }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="sn" class="form-label">
+                            <i class="bi bi-person me-1"></i>Nachname <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="sn" class="form-control" id="sn"
+                               value="{{ member.sn }}" required>
+                    </div>
+                </div>
+
+                <!-- E-Mail (read-only) -->
+                {% if member.mail %}
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="bi bi-envelope me-1"></i>E-Mail
+                    </label>
+                    <input type="text" class="form-control" value="{{ member.mail }}" disabled>
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="telephoneNumber" class="form-label">
+                            <i class="bi bi-telephone me-1"></i>Telefon
+                        </label>
+                        <input type="tel" name="telephoneNumber" class="form-control" id="telephoneNumber"
+                               value="{{ member.telephoneNumber }}" placeholder="+49 123 456789">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="mobile" class="form-label">
+                            <i class="bi bi-phone me-1"></i>Mobil
+                        </label>
+                        <input type="tel" name="mobile" class="form-control" id="mobile"
+                               value="{{ member.mobile }}" placeholder="+49 170 1234567">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="postalAddress" class="form-label">
+                        <i class="bi bi-house me-1"></i>Anschrift
+                    </label>
+                    <textarea name="postalAddress" class="form-control" id="postalAddress"
+                              rows="2" placeholder="Strasse&#10;PLZ Ort">{{ member.postalAddress }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="birthDate" class="form-label">
+                        <i class="bi bi-calendar-event me-1"></i>Geburtstag
+                    </label>
+                    <input type="date" name="birthDate" class="form-control" id="birthDate"
+                           value="{{ member.birthDateISO }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="familyRole" class="form-label">
+                        <i class="bi bi-house-heart me-1"></i>Familienrolle
+                    </label>
+                    <select name="familyRole" class="form-select" id="familyRole">
+                        <option value="child" {% if member.familyRole == 'child' or not member.familyRole %}selected{% endif %}>Kind</option>
+                        <option value="spouse" {% if member.familyRole == 'spouse' %}selected{% endif %}>Ehepartner</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="jpegPhoto" class="form-label">
+                        <i class="bi bi-camera me-1"></i>Foto
+                    </label>
+                    <input type="file" name="jpegPhoto" class="form-control" id="jpegPhoto"
+                           accept="image/jpeg,image/jpg">
+                    <small class="text-muted">Optional: Nur JPEG, max. 1MB</small>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn flex-grow-1" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-check-circle me-2"></i>Speichern
+                    </button>
+                    <a href="{% url 'family_manage' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

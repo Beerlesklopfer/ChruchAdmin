@@ -283,26 +283,35 @@
     </h2>
     <p>Sie sind als <strong>{{ user.username }}</strong> angemeldet.</p>
 
-    {% if user.is_superuser or user.is_staff %}
-    <a href="{% url 'ldap_dashboard' %}" class="btn btn-church-navy">
-        <i class="bi bi-speedometer2 me-2"></i>Zum Dashboard
+    <a href="{% url 'user_dashboard' %}" class="btn btn-church-navy">
+        <i class="bi bi-house-door me-2"></i>Mein Bereich
+    </a>
+    {% if can_manage_ldap %}
+    <a href="{% url 'ldap_dashboard' %}" class="btn btn-outline-light ms-2">
+        <i class="bi bi-speedometer2 me-2"></i>Admin-Dashboard
     </a>
     {% endif %}
 </div>
 
 <!-- Quick Actions for Authenticated Users -->
-{% if user.is_superuser or user.is_staff %}
 <div class="quick-actions">
     <h3 class="text-center mb-4" style="color: var(--church-navy); font-weight: 600;">
         Schnellzugriff
     </h3>
     <div class="row g-3">
         <div class="col-md-3 col-sm-6">
-            <a href="{% url 'ldap_dashboard' %}" class="action-btn">
-                <i class="bi bi-speedometer2"></i>
-                <p class="action-btn-title">Dashboard</p>
+            <a href="{% url 'user_dashboard' %}" class="action-btn">
+                <i class="bi bi-house-door"></i>
+                <p class="action-btn-title">Mein Bereich</p>
             </a>
         </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{% url 'profile' %}" class="action-btn">
+                <i class="bi bi-person-gear"></i>
+                <p class="action-btn-title">Profil</p>
+            </a>
+        </div>
+        {% if can_manage_ldap %}
         <div class="col-md-3 col-sm-6">
             <a href="{% url 'ldap_user_search' %}" class="action-btn">
                 <i class="bi bi-people"></i>
@@ -310,16 +319,79 @@
             </a>
         </div>
         <div class="col-md-3 col-sm-6">
-            <a href="#" class="action-btn" onclick="alert('Wird in Phase 5 implementiert'); return false;">
-                <i class="bi bi-diagram-2"></i>
-                <p class="action-btn-title">Gruppen</p>
+            <a href="{% url 'ldap_dashboard' %}" class="action-btn">
+                <i class="bi bi-speedometer2"></i>
+                <p class="action-btn-title">Admin</p>
+            </a>
+        </div>
+        {% else %}
+        <div class="col-md-3 col-sm-6">
+            <a href="{% url 'family_tree' %}" class="action-btn">
+                <i class="bi bi-diagram-3"></i>
+                <p class="action-btn-title">Familien</p>
             </a>
         </div>
         <div class="col-md-3 col-sm-6">
-            <a href="#" class="action-btn" onclick="alert('Wird in Phase 6 implementiert'); return false;">
-                <i class="bi bi-envelope"></i>
-                <p class="action-btn-title">Mail</p>
+            <a href="{% url 'my_permissions' %}" class="action-btn">
+                <i class="bi bi-key"></i>
+                <p class="action-btn-title">Berechtigungen</p>
             </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Familien-Bereich auf der Startseite -->
+{% if family.is_head or family.is_child %}
+<div class="container" style="max-width: 900px; margin-top: 2rem;">
+    <div class="card shadow-sm" style="border: none; border-radius: 12px;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" style="color: var(--church-navy);">
+                    <i class="bi bi-house-heart me-2"></i>Familie {{ family.family_name }}
+                </h5>
+                <a href="{% url 'family_manage' %}" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    {% if family.is_head %}
+                        <i class="bi bi-pencil-square me-1"></i>Verwalten
+                    {% else %}
+                        <i class="bi bi-eye me-1"></i>Ansehen
+                    {% endif %}
+                </a>
+            </div>
+
+            {% if family.head %}
+            <div class="d-flex align-items-center p-3 mb-2" style="background: var(--church-beige); border-radius: 8px;">
+                {% if family.head.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ family.head.photo_base64 }}"
+                         class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                         style="width: 50px; height: 50px; background: var(--church-navy); color: white;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <strong>{{ family.head.givenName }} {{ family.head.sn }}</strong>
+                    <span class="badge bg-primary ms-2">Familienoberhaupt</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for child in family.children %}
+            <div class="d-flex align-items-center p-2 ms-4 mb-1" style="border-left: 3px solid var(--church-gold); padding-left: 1rem !important;">
+                {% if child.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ child.photo_base64 }}"
+                         class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                         style="width: 40px; height: 40px; background: #e9ecef; color: #6c757d;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                {% endif %}
+                <span>{{ child.givenName }} {{ child.sn }}</span>
+                {% if child.is_self %}<span class="badge bg-success ms-1">Ich</span>{% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>

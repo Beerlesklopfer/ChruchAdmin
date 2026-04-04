@@ -113,57 +113,50 @@
                         <!-- Pagination -->
                         <div class="card-footer bg-light">
                             <div class="row align-items-center">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <small class="text-muted">
                                         <i class="bi bi-info-circle me-1"></i>
-                                        Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
-                                        ({{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Gruppen)
+                                        {{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Gruppen
                                     </small>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4 text-center">
+                                    <small class="text-muted me-2">Eintraege:</small>
+                                    {% for opt in per_page_options %}
+                                        {% if opt == per_page %}
+                                            <span class="badge" style="background: var(--church-navy);">{{ opt }}</span>
+                                        {% else %}
+                                            <a href="?q={{ search_query }}&per_page={{ opt }}" class="badge bg-light text-dark text-decoration-none">{{ opt }}</a>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-4">
                                     <nav aria-label="Gruppen-Navigation">
                                         <ul class="pagination pagination-sm justify-content-end mb-0">
                                             {% if page_obj.has_previous %}
                                                 <li class="page-item">
-                                                    <a class="page-link" href="?q={{ search_query }}&page=1" aria-label="Erste">
+                                                    <a class="page-link" href="?q={{ search_query }}&per_page={{ per_page }}&page=1">
                                                         <i class="bi bi-chevron-bar-left"></i>
                                                     </a>
                                                 </li>
-                                                <li class="page-item">
-                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}" aria-label="Vorherige">
-                                                        <i class="bi bi-chevron-left"></i>
-                                                    </a>
-                                                </li>
-                                            {% else %}
-                                                <li class="page-item disabled">
-                                                    <span class="page-link"><i class="bi bi-chevron-bar-left"></i></span>
-                                                </li>
-                                                <li class="page-item disabled">
-                                                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
-                                                </li>
                                             {% endif %}
 
-                                            <li class="page-item active">
-                                                <span class="page-link">{{ page_obj.number }}</span>
-                                            </li>
+                                            {% for p in page_obj.paginator.page_range %}
+                                                {% if p == page_obj.number %}
+                                                    <li class="page-item active">
+                                                        <span class="page-link">{{ p }}</span>
+                                                    </li>
+                                                {% else %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?q={{ search_query }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
 
                                             {% if page_obj.has_next %}
                                                 <li class="page-item">
-                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.next_page_number }}" aria-label="Nächste">
-                                                        <i class="bi bi-chevron-right"></i>
-                                                    </a>
-                                                </li>
-                                                <li class="page-item">
-                                                    <a class="page-link" href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}" aria-label="Letzte">
+                                                    <a class="page-link" href="?q={{ search_query }}&per_page={{ per_page }}&page={{ page_obj.paginator.num_pages }}">
                                                         <i class="bi bi-chevron-bar-right"></i>
                                                     </a>
-                                                </li>
-                                            {% else %}
-                                                <li class="page-item disabled">
-                                                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
-                                                </li>
-                                                <li class="page-item disabled">
-                                                    <span class="page-link"><i class="bi bi-chevron-bar-right"></i></span>
                                                 </li>
                                             {% endif %}
                                         </ul>

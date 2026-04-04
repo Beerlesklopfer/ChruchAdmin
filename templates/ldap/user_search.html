@@ -200,12 +200,19 @@
                         data-givenname="{{ user.givenName }}"
                         data-sn="{{ user.sn }}"
                         data-mail="{{ user.mail|default:'' }}"
+                        data-mail-list="{{ user.mail_list|join:'||' }}"
+                        data-mailrouting-list="{{ user.mailRoutingAddress_list|join:'||' }}"
+                        data-mailalias-list="{{ user.mailAliasAddress_list|join:'||' }}"
+                        data-mailalias-enabled="{{ user.mailAliasEnabled|default:'' }}"
+                        data-mailrouting-enabled="{{ user.mailRoutingEnabled|default:'' }}"
+                        data-mailquota="{{ user.mailQuota|default:'' }}"
                         data-uid="{{ user.uid }}"
                         data-title="{{ user.title|default:'' }}"
                         data-telephone="{{ user.telephoneNumber|default:'' }}"
                         data-mobile="{{ user.mobile|default:'' }}"
                         data-postaladdress="{{ user.postalAddress|default:'' }}"
                         data-birthdate="{{ user.birthDate|default:'' }}"
+                        data-familyrole="{{ user.familyRole|default:'' }}"
                         data-parent="{{ user.parent_cn|default:'' }}"
                         data-photo="{{ user.photo_base64|default:'' }}"
                         data-status="{{ user.status|default:'' }}">
@@ -232,6 +239,9 @@
                                     ">{{ user.cn }}</strong>
                                     <br>
                                     <small class="text-muted">{{ user.uid }}</small>
+                                    {% if user.birthDateDisplay %}
+                                        <br><small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ user.birthDateDisplay }}</small>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>
@@ -292,13 +302,24 @@
                             {% endif %}
                         </td>
                         <td class="align-middle">
-                            {% if user.relationship == 'Kind' %}
+                            {% if user.relationship == 'Ehepartner' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-heart-fill me-1"></i>Ehepartner
+                                </span>
+                                {% if user.parent_name %}
+                                    <br><small class="text-muted">von {{ user.parent_name }}</small>
+                                {% endif %}
+                            {% elif user.relationship == 'Kind' %}
                                 <span class="badge-relationship">
                                     <i class="bi bi-arrow-return-right me-1"></i>Kind
                                 </span>
                                 {% if user.parent_name %}
                                     <br><small class="text-muted">von {{ user.parent_name }}</small>
                                 {% endif %}
+                            {% elif user.relationship == 'Familienoberhaupt' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-star-fill me-1"></i>Oberhaupt
+                                </span>
                             {% else %}
                                 <span class="badge-role">{{ user.relationship }}</span>
                             {% endif %}
@@ -321,48 +342,49 @@
 
         <div class="p-3 bg-light border-top">
             <div class="row align-items-center">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <small class="text-muted">
                         <i class="bi bi-info-circle me-1"></i>
-                        Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
-                        ({{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Benutzer)
+                        {{ page_obj.start_index }}-{{ page_obj.end_index }} von {{ page_obj.paginator.count }} Benutzer
                     </small>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4 text-center">
+                    <!-- Seitengroesse -->
+                    <small class="text-muted me-2">Eintraege:</small>
+                    {% for opt in per_page_options %}
+                        {% if opt == per_page %}
+                            <span class="badge" style="background: var(--church-navy);">{{ opt }}</span>
+                        {% else %}
+                            <a href="?q={{ search_query }}&status={{ status_filter }}&per_page={{ opt }}" class="badge bg-light text-dark text-decoration-none">{{ opt }}</a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="col-md-4">
                     <nav aria-label="Benutzer-Navigation">
                         <ul class="pagination pagination-sm justify-content-end mb-0">
                             {% if page_obj.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page=1" aria-label="Erste">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&per_page={{ per_page }}&page=1">
                                         <i class="bi bi-chevron-bar-left"></i>
                                     </a>
                                 </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.previous_page_number }}" aria-label="Vorherige">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link"><i class="bi bi-chevron-bar-left"></i></span>
-                                </li>
-                                <li class="page-item disabled">
-                                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
-                                </li>
                             {% endif %}
 
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_obj.number }}</span>
-                            </li>
+                            {% for p in page_obj.paginator.page_range %}
+                                {% if p == page_obj.number %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ p }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
 
                             {% if page_obj.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.next_page_number }}" aria-label="Nächste">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                </li>
-                                <li class="page-item">
-                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&page={{ page_obj.paginator.num_pages }}" aria-label="Letzte">
+                                    <a class="page-link" href="?q={{ search_query }}&status={{ status_filter }}&per_page={{ per_page }}&page={{ page_obj.paginator.num_pages }}">
                                         <i class="bi bi-chevron-bar-right"></i>
                                     </a>
                                 </li>
@@ -436,13 +458,91 @@
                         <input type="text" name="sn" class="form-control" id="modal-sn" required>
                     </div>
 
-                    <!-- E-Mail -->
+                    <!-- Organisations-E-Mail (read-only Anzeige) -->
                     <div class="mb-3">
-                        <label for="modal-mail" class="form-label">
-                            <i class="bi bi-envelope me-1"></i>E-Mail-Adresse
+                        <label class="form-label">
+                            <i class="bi bi-building me-1"></i>Organisations-E-Mail
                         </label>
-                        <input type="email" name="mail" class="form-control" id="modal-mail">
+                        <input type="text" class="form-control" id="modal-mail-display" disabled>
                     </div>
+
+                    {% if is_mail_admin %}
+                    <!-- Mail-Verwaltung (Admin) -->
+                    <hr>
+                    <div class="mb-3">
+                        <h6 style="color: var(--church-navy);">
+                            <i class="bi bi-envelope-gear me-2"></i>Mail-Verwaltung
+                        </h6>
+                    </div>
+
+                    <!-- Organisations-E-Mail-Adressen -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-building me-1"></i>Organisations-E-Mail-Adressen
+                        </label>
+                        <div id="mail-list-container" class="mail-list-container"></div>
+                        <div class="input-group input-group-sm mt-1">
+                            <input type="email" class="form-control" id="mail-list-input" placeholder="Neue Adresse hinzufügen">
+                            <button type="button" class="btn btn-outline-success" onclick="addMailItem('mail-list')">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <textarea name="mail_list" id="modal-mail-list" class="d-none"></textarea>
+                    </div>
+
+                    <!-- Mail-Routing-Adressen -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-send me-1"></i>Mail-Routing-Adressen
+                        </label>
+                        <div id="mailrouting-list-container" class="mail-list-container"></div>
+                        <div class="input-group input-group-sm mt-1">
+                            <input type="email" class="form-control" id="mailrouting-list-input" placeholder="Neue Adresse hinzufügen">
+                            <button type="button" class="btn btn-outline-success" onclick="addMailItem('mailrouting-list')">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Erste externe Adresse wird für Passwort-Reset verwendet.</small>
+                        <textarea name="mailRoutingAddress_list" id="modal-mailrouting-list" class="d-none"></textarea>
+                    </div>
+
+                    <!-- Mail-Alias-Adressen -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-at me-1"></i>Mail-Alias-Adressen
+                        </label>
+                        <div id="mailalias-list-container" class="mail-list-container"></div>
+                        <div class="input-group input-group-sm mt-1">
+                            <input type="email" class="form-control" id="mailalias-list-input" placeholder="Neue Adresse hinzufügen">
+                            <button type="button" class="btn btn-outline-success" onclick="addMailItem('mailalias-list')">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <textarea name="mailAliasAddress_list" id="modal-mailalias-list" class="d-none"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="modal-mailquota" class="form-label">
+                                <i class="bi bi-hdd me-1"></i>Quota
+                            </label>
+                            <input type="text" name="mailQuota" class="form-control" id="modal-mailquota" placeholder="z.B. 500M">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" name="mailAliasEnabled" id="modal-mailalias-enabled">
+                                <label class="form-check-label" for="modal-mailalias-enabled">Alias aktiv</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" name="mailRoutingEnabled" id="modal-mailrouting-enabled">
+                                <label class="form-check-label" for="modal-mailrouting-enabled">Routing aktiv</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    {% endif %}
 
                     <!-- Rolle/Position -->
                     <div class="mb-3">
@@ -485,20 +585,37 @@
                         <input type="date" name="birthDate" class="form-control" id="modal-birthDate">
                     </div>
 
+                    <!-- Familienrolle -->
+                    <div class="mb-3">
+                        <label for="modal-familyRole" class="form-label">
+                            <i class="bi bi-house-heart me-1"></i>Familienrolle
+                        </label>
+                        <select name="familyRole" class="form-select" id="modal-familyRole">
+                            <option value="">Keine</option>
+                            <option value="head">Familienoberhaupt</option>
+                            <option value="spouse">Ehepartner</option>
+                            <option value="child">Kind</option>
+                        </select>
+                    </div>
+
                     <!-- Elternteil/Verwandtschaft -->
                     <div class="mb-3">
-                        <label for="modal-parent" class="form-label">
+                        <label for="modal-parent-search" class="form-label">
                             <i class="bi bi-diagram-3 me-1"></i>Verwandtschaftsbeziehung
                         </label>
-                        <select name="parent_cn" class="form-select" id="modal-parent">
-                            <option value="">Keine (Eigenständiges Mitglied)</option>
-                            {% for user in all_users_for_parent %}
-                                <option value="{{ user.cn }}">{{ user.givenName }} {{ user.sn }} ({{ user.cn }})</option>
-                            {% endfor %}
-                        </select>
+                        <input type="hidden" name="parent_cn" id="modal-parent">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="modal-parent-search"
+                                   placeholder="Name suchen oder leer fuer eigenstaendig..."
+                                   autocomplete="off">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearParent()" title="Zuordnung entfernen">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div id="parent-search-results" class="list-group position-absolute" style="z-index: 1050; max-height: 200px; overflow-y: auto; display: none; width: calc(100% - 2rem);"></div>
                         <small class="text-muted">
                             <i class="bi bi-info-circle me-1"></i>
-                            Wählen Sie ein Elternteil, wenn dieser Benutzer ein Kind/Angehöriger ist
+                            Tippen Sie einen Namen ein um ein Elternteil zuzuordnen
                         </small>
                     </div>
 
@@ -549,7 +666,162 @@
     </div>
 </div>
 
+<style>
+.mail-list-container { display: flex; flex-direction: column; gap: 4px; }
+.mail-list-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px; background: var(--church-beige); border-radius: 6px;
+    font-size: 0.9rem;
+}
+.mail-list-item .mail-addr { flex: 1; word-break: break-all; }
+.mail-list-item .btn-remove {
+    background: none; border: none; color: #dc3545; cursor: pointer;
+    padding: 0 4px; font-size: 1.1rem; line-height: 1;
+}
+.mail-list-item .btn-remove:hover { color: #a71d2a; }
+</style>
+
 <script>
+// === Mail-Listen CRUD ===
+function renderMailList(listId) {
+    const container = document.getElementById(listId + '-container');
+    const hidden = document.getElementById('modal-' + listId.replace('-list', '-list'));
+    // hidden textarea id: modal-mail-list, modal-mailrouting-list, modal-mailalias-list
+    const items = getMailItems(listId);
+    container.innerHTML = '';
+    items.forEach(function(addr, idx) {
+        const div = document.createElement('div');
+        div.className = 'mail-list-item';
+        div.innerHTML = '<span class="mail-addr">' + escapeHtml(addr) + '</span>' +
+            '<button type="button" class="btn-remove" title="Entfernen" onclick="removeMailItem(\'' + listId + '\',' + idx + ')">' +
+            '<i class="bi bi-x-circle-fill"></i></button>';
+        container.appendChild(div);
+    });
+    syncMailHidden(listId);
+}
+
+function getMailItems(listId) {
+    const container = document.getElementById(listId + '-container');
+    if (!container._items) container._items = [];
+    return container._items;
+}
+
+function setMailItems(listId, items) {
+    document.getElementById(listId + '-container')._items = items.filter(function(a) { return a.trim(); });
+    renderMailList(listId);
+}
+
+function addMailItem(listId) {
+    const input = document.getElementById(listId + '-input');
+    const val = input.value.trim();
+    if (!val) return;
+    const items = getMailItems(listId);
+    if (items.indexOf(val) === -1) {
+        items.push(val);
+        renderMailList(listId);
+    }
+    input.value = '';
+    input.focus();
+}
+
+function removeMailItem(listId, idx) {
+    const items = getMailItems(listId);
+    items.splice(idx, 1);
+    renderMailList(listId);
+}
+
+function syncMailHidden(listId) {
+    // Map listId to hidden textarea id
+    const map = {'mail-list': 'modal-mail-list', 'mailrouting-list': 'modal-mailrouting-list', 'mailalias-list': 'modal-mailalias-list'};
+    const hidden = document.getElementById(map[listId]);
+    if (hidden) hidden.value = getMailItems(listId).join('\n');
+}
+
+function loadMailListFromData(listId, dataStr) {
+    const items = dataStr ? dataStr.split('||').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+    setMailItems(listId, items);
+}
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// Enter-Taste in Eingabefeldern
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        const id = e.target.id;
+        if (id === 'mail-list-input') { e.preventDefault(); addMailItem('mail-list'); }
+        if (id === 'mailrouting-list-input') { e.preventDefault(); addMailItem('mailrouting-list'); }
+        if (id === 'mailalias-list-input') { e.preventDefault(); addMailItem('mailalias-list'); }
+    }
+});
+
+// === Elternteil-Suche ===
+var parentUsers = [
+    {% for user in all_users_for_parent %}
+    {cn: "{{ user.cn }}", name: "{{ user.givenName }} {{ user.sn }}"},
+    {% endfor %}
+];
+
+var parentSearchInput = document.getElementById('modal-parent-search');
+var parentHidden = document.getElementById('modal-parent');
+var parentResults = document.getElementById('parent-search-results');
+
+parentSearchInput.addEventListener('input', function() {
+    var query = this.value.toLowerCase().trim();
+    parentResults.innerHTML = '';
+    if (!query) {
+        parentResults.style.display = 'none';
+        parentHidden.value = '';
+        return;
+    }
+    var matches = parentUsers.filter(function(u) {
+        return u.name.toLowerCase().includes(query) || u.cn.toLowerCase().includes(query);
+    }).slice(0, 10);
+
+    if (matches.length === 0) {
+        parentResults.style.display = 'none';
+        return;
+    }
+    matches.forEach(function(u) {
+        var item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action py-1 px-2';
+        item.style.fontSize = '0.9rem';
+        item.innerHTML = '<strong>' + u.name + '</strong> <small class="text-muted">(' + u.cn + ')</small>';
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            parentHidden.value = u.cn;
+            parentSearchInput.value = u.name + ' (' + u.cn + ')';
+            parentResults.style.display = 'none';
+        });
+        parentResults.appendChild(item);
+    });
+    parentResults.style.display = 'block';
+});
+
+parentSearchInput.addEventListener('blur', function() {
+    setTimeout(function() { parentResults.style.display = 'none'; }, 200);
+});
+
+function clearParent() {
+    parentHidden.value = '';
+    parentSearchInput.value = '';
+    parentResults.style.display = 'none';
+}
+
+function setParentValue(cn) {
+    parentHidden.value = cn;
+    if (cn) {
+        var found = parentUsers.find(function(u) { return u.cn === cn; });
+        parentSearchInput.value = found ? found.name + ' (' + cn + ')' : cn;
+    } else {
+        parentSearchInput.value = '';
+    }
+}
+
 // Fülle Modal mit Benutzerdaten beim Öffnen
 document.getElementById('editUserModal').addEventListener('show.bs.modal', function (event) {
     const button = event.relatedTarget;
@@ -590,13 +862,29 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('modal-uid').textContent = uid;
     document.getElementById('modal-givenName').value = givenName;
     document.getElementById('modal-sn').value = sn;
-    document.getElementById('modal-mail').value = mail;
+    document.getElementById('modal-mail-display').value = mail;
     document.getElementById('modal-title').value = title || '';
     document.getElementById('modal-telephoneNumber').value = telephone || '';
     document.getElementById('modal-mobile').value = mobile || '';
     document.getElementById('modal-postalAddress').value = postalAddress || '';
     document.getElementById('modal-birthDate').value = birthDate || '';
-    document.getElementById('modal-parent').value = parentCn || '';
+    document.getElementById('modal-familyRole').value = button.getAttribute('data-familyrole') || '';
+
+    // Mail-Admin-Felder befüllen
+    const mailListEl = document.getElementById('modal-mail-list');
+    if (mailListEl) {
+        loadMailListFromData('mail-list', button.getAttribute('data-mail-list'));
+        loadMailListFromData('mailrouting-list', button.getAttribute('data-mailrouting-list'));
+        loadMailListFromData('mailalias-list', button.getAttribute('data-mailalias-list'));
+        document.getElementById('modal-mailquota').value = button.getAttribute('data-mailquota') || '';
+        document.getElementById('modal-mailalias-enabled').checked = button.getAttribute('data-mailalias-enabled') === 'TRUE';
+        document.getElementById('modal-mailrouting-enabled').checked = button.getAttribute('data-mailrouting-enabled') === 'TRUE';
+        // Eingabefelder leeren
+        document.getElementById('mail-list-input').value = '';
+        document.getElementById('mailrouting-list-input').value = '';
+        document.getElementById('mailalias-list-input').value = '';
+    }
+    setParentValue(parentCn || '');
     document.getElementById('modal-password').value = '';
     document.getElementById('modal-password2').value = '';
 
@@ -658,10 +946,7 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
             modal.hide();
 
-            // Zeige Erfolgsmeldung
-            alert('Benutzer erfolgreich aktualisiert!');
-
-            // Lade Seite neu
+            // Lade Seite neu (Django-Message wird dort angezeigt)
             window.location.reload();
         } else {
             return response.text().then(text => {
@@ -719,13 +1004,24 @@ if (urlParams.get('create') === '1') {
     document.getElementById('modal-uid').textContent = '';
     document.getElementById('modal-givenName').value = '';
     document.getElementById('modal-sn').value = '';
-    document.getElementById('modal-mail').value = '';
+    const mailDisplay = document.getElementById('modal-mail-display');
+    if (mailDisplay) mailDisplay.value = '';
+    const mailListNew = document.getElementById('modal-mail-list');
+    if (mailListNew) {
+        setMailItems('mail-list', []);
+        setMailItems('mailrouting-list', []);
+        setMailItems('mailalias-list', []);
+        document.getElementById('modal-mailquota').value = '';
+        document.getElementById('modal-mailalias-enabled').checked = false;
+        document.getElementById('modal-mailrouting-enabled').checked = false;
+    }
     document.getElementById('modal-title').value = '';
     document.getElementById('modal-telephoneNumber').value = '';
     document.getElementById('modal-mobile').value = '';
     document.getElementById('modal-postalAddress').value = '';
     document.getElementById('modal-birthDate').value = '';
-    document.getElementById('modal-parent').value = '';
+    document.getElementById('modal-familyRole').value = '';
+    setParentValue('');
     document.getElementById('modal-password').value = '';
     document.getElementById('modal-password2').value = '';
     document.getElementById('current-photo-section').style.display = 'none';

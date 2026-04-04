@@ -1,0 +1,32 @@
+{% comment %}
+Subtemplate für Multi-Value E-Mail-Listen.
+
+Erwartet:
+  field_id    - HTML id (z.B. "id_mail_list")
+  field_name  - HTML name (z.B. "mail_list")
+  label       - Anzeige-Label
+  icon        - Bootstrap-Icon-Klasse (z.B. "bi-building")
+  addresses   - Liste der Adressen
+  help_text   - Hilfetext unter dem Feld
+  rows        - Anzahl Zeilen (optional, default 3)
+{% endcomment %}
+
+<div class="mb-3">
+    <label for="{{ field_id }}" class="form-label">
+        <i class="bi {{ icon }} me-1"></i>{{ label }}
+    </label>
+    <textarea
+        name="{{ field_name }}"
+        class="form-control"
+        id="{{ field_id }}"
+        rows="{{ rows|default:'3' }}"
+        placeholder="Eine Adresse pro Zeile"
+    >{% for addr in addresses %}{{ addr }}{% if not forloop.last %}
+{% endif %}{% endfor %}</textarea>
+    {% if help_text %}
+    <div class="help-text">
+        <i class="bi bi-info-circle me-1"></i>
+        {{ help_text }}
+    </div>
+    {% endif %}
+</div>

@@ -230,15 +230,17 @@
             </h1>
             <p class="text-muted">Genealogie und Verwandtschaftsbeziehungen</p>
         </div>
+        {% if can_manage_ldap %}
         <a href="{% url 'family_create' %}" class="btn btn-church-primary btn-lg">
             <i class="bi bi-plus-circle me-2"></i>Neue Familie erstellen
         </a>
+        {% endif %}
     </div>
 
     <!-- Statistics -->
     <div class="stats-row">
         <div class="stat-box">
-            <div class="stat-number">{{ families|length }}</div>
+            <div class="stat-number">{{ total_families }}</div>
             <div class="stat-label">
                 <i class="bi bi-people-fill me-1"></i>
                 Familien
@@ -255,7 +257,7 @@
             <div class="stat-number">{{ largest_family.member_count|default:0 }}</div>
             <div class="stat-label">
                 <i class="bi bi-trophy-fill me-1"></i>
-                Größte Familie
+                {% if largest_family.name %}{{ largest_family.name }}{% else %}Groesste Familie{% endif %}
             </div>
         </div>
     </div>
@@ -275,7 +277,7 @@
                 </span>
             </div>
 
-            <!-- Family Head -->
+            <!-- Family Head + Ehepartner -->
             <div class="tree-node {% if family.children %}has-children{% endif %}">
                 <div class="member-card">
                     <div class="member-info">
@@ -283,23 +285,34 @@
                             <i class="bi bi-person-fill"></i>
                         </div>
                         <div class="member-details">
-                            <h6>{{ family.head_name }}</h6>
+                            <h6>
+                                {{ family.head_name }}
+                                {% if family.spouse %}
+                                    &amp; {{ family.spouse.name }}
+                                {% endif %}
+                            </h6>
                             <p>
-                                <i class="bi bi-star-fill me-1"></i>Familienoberhaupt
                                 {% if family.head_email %}
-                                    • <i class="bi bi-envelope me-1"></i>{{ family.head_email }}
+                                    <i class="bi bi-envelope me-1"></i>{{ family.head_email }}
+                                {% endif %}
+                                {% if family.spouse.email %}
+                                    • <i class="bi bi-envelope me-1"></i>{{ family.spouse.email }}
                                 {% endif %}
                             </p>
                         </div>
                     </div>
+                    {% if can_manage_ldap or user.username == family.head_cn %}
                     <div class="member-actions">
+                        {% if can_manage_ldap %}
                         <a href="{% url 'family_add_member' family.head_cn %}" class="btn btn-add-child">
                             <i class="bi bi-person-plus me-1"></i>Kind hinzufügen
                         </a>
                         <a href="{% url 'user_edit' family.head_cn %}" class="btn btn-edit-member">
                             <i class="bi bi-pencil"></i>
                         </a>
+                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Children -->
@@ -322,11 +335,19 @@
                                     </p>
                                 </div>
                             </div>
+                            {% if can_manage_ldap or user.username == family.head_cn %}
                             <div class="member-actions">
+                                {% if can_manage_ldap %}
                                 <a href="{% url 'user_edit' child.cn %}" class="btn btn-edit-member">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                {% else %}
+                                <a href="{% url 'family_member_edit' child.cn %}" class="btn btn-edit-member">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -335,17 +356,70 @@
             </div>
         </div>
         {% endfor %}
+
+        <!-- Einzelmitglieder -->
+        {% if singles %}
+        <div class="family-card" style="margin-top: 2rem;">
+            <div class="family-header">
+                <div class="family-name">
+                    <i class="bi bi-person"></i>
+                    Einzelmitglieder
+                </div>
+                <span class="member-count">
+                    <i class="bi bi-people-fill me-1"></i>
+                    {{ total_singles }} Mitglied{{ total_singles|pluralize:"er" }}
+                </span>
+            </div>
+            <div class="tree-view">
+                {% for single in singles %}
+                <div class="tree-node">
+                    <div class="member-card">
+                        <div class="member-info">
+                            <div class="member-icon">
+                                {% if single.photo_base64 %}
+                                    <img src="data:image/jpeg;base64,{{ single.photo_base64 }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                                {% else %}
+                                    <i class="bi bi-person"></i>
+                                {% endif %}
+                            </div>
+                            <div class="member-details">
+                                <h6>{{ single.name }}</h6>
+                                <p>
+                                    {% if single.email %}
+                                        <i class="bi bi-envelope me-1"></i>{{ single.email }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% if can_manage_ldap %}
+                        <div class="member-actions">
+                            <a href="{% url 'user_edit' single.cn %}" class="btn btn-edit-member">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
     {% else %}
+        {% if not singles %}
         <div class="empty-state">
             <i class="bi bi-diagram-3"></i>
             <h3 style="color: var(--church-navy); margin-bottom: 1rem;">Noch keine Familien</h3>
             <p style="color: var(--church-gray); margin-bottom: 2rem;">
                 Erstellen Sie die erste Familie, um die Genealogie zu verwalten.
             </p>
+            {% if can_manage_ldap %}
             <a href="{% url 'family_create' %}" class="btn btn-church-primary btn-lg">
                 <i class="bi bi-plus-circle me-2"></i>Erste Familie erstellen
             </a>
+            {% endif %}
         </div>
+        {% endif %}
     {% endif %}
 </div>
 {% endblock %}

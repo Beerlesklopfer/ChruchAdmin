@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate
+from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate, LDAPBackup, AppSettings
 
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User, Group
@@ -339,9 +339,191 @@ class EmailTemplateAdmin(admin.ModelAdmin):
     template_type_display.admin_order_field = 'template_type'
 
 
+@admin.register(LDAPBackup)
+class LDAPBackupAdmin(admin.ModelAdmin):
+    """Admin für LDAP Backup Historie"""
+
+    list_display = (
+        'created_at_formatted',
+        'backup_type_display',
+        'status_badge',
+        'entry_count',
+        'user_count',
+        'group_count',
+        'file_size_display',
+        'duration_display',
+        'created_by'
+    )
+    list_filter = ('status', 'backup_type', 'created_at')
+    search_fields = ('filename', 'notes', 'error_message')
+    readonly_fields = (
+        'filename',
+        'file_path',
+        'file_size',
+        'file_size_display',
+        'entry_count',
+        'user_count',
+        'group_count',
+        'domain_count',
+        'created_at',
+        'completed_at',
+        'duration_display',
+        'status',
+        'error_message'
+    )
+    fieldsets = (
+        ('Backup-Informationen', {
+            'fields': ('backup_type', 'status', 'created_by', 'notes')
+        }),
+        ('Datei-Details', {
+            'fields': ('filename', 'file_path', 'file_size', 'file_size_display')
+        }),
+        ('Statistiken', {
+            'fields': ('entry_count', 'user_count', 'group_count', 'domain_count')
+        }),
+        ('Zeitstempel', {
+            'fields': ('created_at', 'completed_at', 'duration_display')
+        }),
+        ('Fehler', {
+            'fields': ('error_message',),
+            'classes': ('collapse',)
+        })
+    )
+    actions = ['download_backup', 'delete_backup_files', 'run_new_backup']
+
+    def created_at_formatted(self, obj):
+        return obj.created_at.strftime('%d.%m.%Y %H:%M')
+    created_at_formatted.short_description = 'Erstellt am'
+    created_at_formatted.admin_order_field = 'created_at'
+
+    def backup_type_display(self, obj):
+        return obj.get_backup_type_display()
+    backup_type_display.short_description = 'Typ'
+    backup_type_display.admin_order_field = 'backup_type'
+
+    def status_badge(self, obj):
+        colors = {
+            'running': 'blue',
+            'completed': 'green',
+            'failed': 'red'
+        }
+        icons = {
+            'running': '⏳',
+            'completed': '✓',
+            'failed': '✗'
+        }
+        from django.utils.html import format_html
+        return format_html(
+            '<span style="color: {};">{} {}</span>',
+            colors.get(obj.status, 'gray'),
+            icons.get(obj.status, '?'),
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    status_badge.admin_order_field = 'status'
+
+    def file_size_display(self, obj):
+        if obj.file_size > 0:
+            return f"{obj.get_file_size_mb()} MB"
+        return "-"
+    file_size_display.short_description = 'Dateigröße'
+
+    def duration_display(self, obj):
+        duration = obj.get_duration()
+        if duration:
+            if duration < 60:
+                return f"{duration:.1f}s"
+            else:
+                minutes = int(duration // 60)
+                seconds = int(duration % 60)
+                return f"{minutes}m {seconds}s"
+        return "-"
+    duration_display.short_description = 'Dauer'
+
+    def download_backup(self, request, queryset):
+        """Download ausgewählter Backups"""
+        if queryset.count() != 1:
+            messages.error(request, "Bitte wählen Sie genau ein Backup zum Download aus.")
+            return
+
+        backup = queryset.first()
+        if backup.status != 'completed':
+            messages.error(request, "Nur abgeschlossene Backups können heruntergeladen werden.")
+            return
+
+        import os
+        if not os.path.exists(backup.file_path):
+            messages.error(request, "Backup-Datei nicht gefunden.")
+            return
+
+        from django.http import FileResponse
+        response = FileResponse(open(backup.file_path, 'rb'))
+        response['Content-Disposition'] = f'attachment; filename="{backup.filename}"'
+        return response
+
+    download_backup.short_description = "Backup herunterladen"
+
+    def delete_backup_files(self, request, queryset):
+        """Lösche Backup-Dateien und DB-Einträge"""
+        deleted_count = 0
+        for backup in queryset:
+            if backup.delete_file():
+                backup.delete()
+                deleted_count += 1
+
+        messages.success(request, f"{deleted_count} Backup(s) gelöscht.")
+    delete_backup_files.short_description = "Backups löschen (Datei + DB)"
+
+    def run_new_backup(self, request, queryset):
+        """Starte neues Backup"""
+        from django.core.management import call_command
+        from io import StringIO
+
+        out = StringIO()
+        try:
+            call_command('backup_ldap', '--type=full', '--username=' + request.user.username, stdout=out)
+            messages.success(request, "Backup erfolgreich erstellt!")
+        except Exception as e:
+            messages.error(request, f"Backup fehlgeschlagen: {str(e)}")
+
+    run_new_backup.short_description = "Neues Backup erstellen"
+
+
+@admin.register(AppSettings)
+class AppSettingsAdmin(admin.ModelAdmin):
+    """Admin für Anwendungseinstellungen"""
+    list_display = ('key', 'category', 'value_preview', 'description', 'updated_at')
+    list_filter = ('category',)
+    search_fields = ('key', 'value', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    list_editable = ()
+
+    fieldsets = (
+        ('Einstellung', {
+            'fields': ('category', 'key', 'value', 'description')
+        }),
+        ('Sicherheit', {
+            'fields': ('is_encrypted',),
+            'classes': ('collapse',),
+        }),
+        ('Metadaten', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def value_preview(self, obj):
+        """Zeigt verschlüsselte Werte maskiert an"""
+        if obj.is_encrypted:
+            return '********'
+        val = obj.value or ''
+        return val[:80] + '...' if len(val) > 80 else val
+    value_preview.short_description = 'Wert'
+
+
 class ChurchAdminSite(AdminSite):
     """Custom Admin Site mit LDAP Funktionen"""
-    
+
     site_header = "ChurchAdmin Administration"
     site_title = "ChurchAdmin"
     index_title = "Willkommen in der ChurchAdmin Administration"
@@ -452,4 +634,5 @@ church_admin_site.register(LDAPUserLog, LDAPUserLogAdmin)
 church_admin_site.register(MemberListExportSettings, MemberListExportSettingsAdmin)
 church_admin_site.register(PermissionMapping, PermissionMappingAdmin)
 church_admin_site.register(EmailTemplate, EmailTemplateAdmin)
+church_admin_site.register(LDAPBackup, LDAPBackupAdmin)
 

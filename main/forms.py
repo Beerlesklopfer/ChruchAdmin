@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
+from captcha.fields import CaptchaField
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, label='E-Mail')
@@ -87,6 +88,13 @@ class PasswordResetRequestForm(forms.Form):
     Formular für Passwort-Reset-Anfrage
     Benutzer gibt Email oder Benutzername ein
     """
+    captcha = CaptchaField(
+        label='Sicherheitscode',
+        error_messages={
+            'invalid': 'Der eingegebene Sicherheitscode ist falsch. Bitte versuchen Sie es erneut.'
+        }
+    )
+
     identifier = forms.CharField(
         label='Benutzername oder E-Mail',
         max_length=254,
@@ -101,6 +109,7 @@ class PasswordResetRequestForm(forms.Form):
     def clean_identifier(self):
         """
         Validiert ob ein Benutzer mit diesem Identifier existiert
+        Sucht nach: Benutzername, Organisations-E-Mail, private E-Mail (mailRoutingAddress)
         """
         identifier = self.cleaned_data['identifier']
 
@@ -110,17 +119,37 @@ class PasswordResetRequestForm(forms.Form):
             # Erst nach Benutzername suchen
             user = User.objects.get(username=identifier)
         except User.DoesNotExist:
-            # Dann nach Email suchen
+            # Dann nach Organisations-Email suchen
             try:
                 user = User.objects.get(email=identifier)
             except User.DoesNotExist:
-                # WICHTIG: Aus Sicherheitsgründen gleiche Fehlermeldung
-                # damit man nicht testen kann ob ein Benutzer existiert
                 pass
             except User.MultipleObjectsReturned:
-                # Falls mehrere User mit derselber E-Mail existieren,
-                # nimm den ältesten (ersten erstellten)
                 user = User.objects.filter(email=identifier).order_by('date_joined').first()
+
+        # Falls nicht gefunden: LDAP nach mailRoutingAddress durchsuchen
+        if not user:
+            try:
+                from main.ldap_manager import LDAPManager
+                with LDAPManager() as ldap:
+                    results = ldap.conn.search_s(
+                        ldap.user_search_base,
+                        2,  # SCOPE_SUBTREE
+                        f'(mailRoutingAddress={identifier})',
+                        ['cn']
+                    )
+                    if results:
+                        dn, attrs = results[0]
+                        cn = attrs.get('cn', [b''])[0]
+                        if isinstance(cn, bytes):
+                            cn = cn.decode('utf-8')
+                        if cn:
+                            try:
+                                user = User.objects.get(username=cn)
+                            except User.DoesNotExist:
+                                pass
+            except Exception:
+                pass
 
         # Speichere gefundenen User für später
         self.user = user

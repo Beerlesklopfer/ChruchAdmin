@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mein Bereich - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px; margin-top: 2rem;">
+
+    <!-- Willkommen -->
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 12px; overflow: hidden;">
+        <div class="card-body p-4" style="background: linear-gradient(135deg, var(--church-navy) 0%, #2a3a5f 100%); color: white;">
+            <div class="d-flex align-items-center">
+                {% if user_photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ user_photo_base64 }}"
+                         alt="Profilfoto" class="rounded-circle me-4"
+                         style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--church-gold);">
+                {% else %}
+                    <div class="rounded-circle me-4 d-flex align-items-center justify-content-center"
+                         style="width: 80px; height: 80px; background: rgba(255,255,255,0.15); font-size: 2rem; color: var(--church-gold);">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <h3 class="mb-1">
+                        Willkommen, {{ ldap_user_data.givenName|default:user.username }}!
+                    </h3>
+                    <p class="mb-0 opacity-75">
+                        <i class="bi bi-building me-1"></i>{{ ldap_user_data.mail|default:"-" }}
+                        {% if ldap_user_data.telephoneNumber %}
+                            <span class="ms-3"><i class="bi bi-telephone me-1"></i>{{ ldap_user_data.telephoneNumber }}</span>
+                        {% endif %}
+                    </p>
+                    {% if ldap_user_data.mailRoutingAddress_list or ldap_user_data.mailAliasAddress_list %}
+                    <p class="mb-0 opacity-50" style="font-size: 0.85rem;">
+                        {% for addr in ldap_user_data.mailRoutingAddress_list %}
+                            {% if addr != ldap_user_data.mail %}
+                                <span class="me-2"><i class="bi bi-envelope me-1"></i>{{ addr }}</span>
+                            {% endif %}
+                        {% endfor %}
+                        {% for addr in ldap_user_data.mailAliasAddress_list %}
+                            {% if addr != ldap_user_data.mail %}
+                                <span class="me-2"><i class="bi bi-at me-1"></i>{{ addr }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Schnellaktionen -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 12px;">
+                <div class="card-body">
+                    <h5 style="color: var(--church-navy);">
+                        <i class="bi bi-lightning-charge me-2"></i>Schnellaktionen
+                    </h5>
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{% url 'profile' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-person-gear me-2"></i>Profil bearbeiten
+                        </a>
+                        <a href="{% url 'profile' %}#password" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-key me-2"></i>Passwort aendern
+                        </a>
+                        {% if family.is_head or family.is_child %}
+                        <a href="{% url 'family_manage' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-people me-2"></i>Meine Familie
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'family_tree' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-diagram-3 me-2"></i>Gemeindeliste
+                        </a>
+                        <a href="{% url 'member_list_export' %}" class="btn btn-outline-primary text-start">
+                            <i class="bi bi-download me-2"></i>Gemeindeliste exportieren
+                        </a>
+                        {% if is_admin %}
+                        <a href="{% url 'ldap_dashboard' %}" class="btn btn-outline-warning text-start">
+                            <i class="bi bi-speedometer2 me-2"></i>Admin-Dashboard
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gruppenmitgliedschaften -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100" style="border: none; border-radius: 12px;">
+                <div class="card-body">
+                    <h5 style="color: var(--church-navy);">
+                        <i class="bi bi-diagram-3 me-2"></i>Meine Gruppen
+                    </h5>
+                    <div class="mt-3">
+                        {% for group in user_groups %}
+                            <span class="badge bg-light text-dark me-1 mb-2" style="font-size: 0.85rem; padding: 0.5em 0.8em;">
+                                <i class="bi bi-people-fill me-1"></i>{{ group }}
+                            </span>
+                        {% empty %}
+                            <p class="text-muted">Keine Gruppenmitgliedschaften</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Familien-Bereich -->
+    {% if family.is_head or family.is_child %}
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 12px;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" style="color: var(--church-navy);">
+                    <i class="bi bi-house-heart me-2"></i>Familie {{ family.family_name }}
+                </h5>
+                <a href="{% url 'family_manage' %}" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    {% if family.is_head %}
+                        <i class="bi bi-pencil-square me-1"></i>Verwalten
+                    {% else %}
+                        <i class="bi bi-eye me-1"></i>Ansehen
+                    {% endif %}
+                </a>
+            </div>
+
+            <!-- Familienoberhaupt -->
+            {% if family.head %}
+            <div class="d-flex align-items-center p-3 mb-2" style="background: var(--church-beige); border-radius: 8px;">
+                {% if family.head.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ family.head.photo_base64 }}"
+                         class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                         style="width: 50px; height: 50px; background: var(--church-navy); color: white;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <strong>{{ family.head.givenName }} {{ family.head.sn }}</strong>
+                    <span class="badge bg-primary ms-2">Familienoberhaupt</span>
+                    {% if family.head.mail %}
+                        <br><small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ family.head.mail }}</small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Familienmitglieder -->
+            {% for child in family.children %}
+            <div class="d-flex align-items-center p-2 ms-4 mb-1" style="border-left: 3px solid var(--church-gold); padding-left: 1rem !important;">
+                {% if child.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ child.photo_base64 }}"
+                         class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                         style="width: 40px; height: 40px; background: #e9ecef; color: #6c757d; font-size: 0.9rem;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <span>{{ child.givenName }} {{ child.sn }}</span>
+                    {% if child.is_self %}<span class="badge bg-success ms-1">Ich</span>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Gemeindeliste -->
+    {% if gemeinde_families or gemeinde_singles %}
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 12px;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" style="color: var(--church-navy);">
+                    <i class="bi bi-people-fill me-2"></i>Gemeindeliste
+                </h5>
+                <div>
+                    <a href="{% url 'family_tree' %}" class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-diagram-3 me-1"></i>Familien-Baum
+                    </a>
+                    <a href="{% url 'member_list_export' %}" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-download me-1"></i>Export
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" style="font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: var(--church-navy); color: white;">
+                            <th style="border: none; padding: 0.5rem;">Familie</th>
+                            <th style="border: none; padding: 0.5rem;">Mitglieder</th>
+                            <th style="border: none; padding: 0.5rem;">Telefon</th>
+                            <th style="border: none; padding: 0.5rem;">Anschrift</th>
+                            <th style="border: none; padding: 0.5rem;">E-Mail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fam in gemeinde_families %}
+                        <tr>
+                            <td>
+                                <strong>{{ fam.name }}</strong>
+                                <span class="badge bg-light text-dark ms-1">{{ fam.member_count }}</span>
+                            </td>
+                            <td>
+                                <i class="bi bi-person-fill me-1"></i>{{ fam.head }}
+                                {% if fam.spouse %}
+                                    <br><i class="bi bi-heart-fill me-1 text-warning"></i>{{ fam.spouse }}
+                                {% endif %}
+                                {% if fam.children %}
+                                    <br><small class="text-muted">
+                                        <i class="bi bi-people me-1"></i>{{ fam.children|join:", " }}
+                                    </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if fam.phone %}<div><i class="bi bi-telephone me-1"></i>{{ fam.phone }}</div>{% endif %}
+                                {% if fam.mobile %}<div><i class="bi bi-phone me-1"></i>{{ fam.mobile }}</div>{% endif %}
+                            </td>
+                            <td><small>{{ fam.address }}</small></td>
+                            <td><small>{{ fam.email }}</small></td>
+                        </tr>
+                        {% endfor %}
+
+                        {% if gemeinde_singles %}
+                        <tr style="background: var(--church-navy); color: white;">
+                            <td colspan="5" style="border: none; padding: 0.5rem;"><strong><i class="bi bi-person me-1"></i>Einzelmitglieder</strong></td>
+                        </tr>
+                        {% for single in gemeinde_singles %}
+                        <tr>
+                            <td>{{ single.name }}</td>
+                            <td>-</td>
+                            <td>
+                                {% if single.phone %}<div><i class="bi bi-telephone me-1"></i>{{ single.phone }}</div>{% endif %}
+                                {% if single.mobile %}<div><i class="bi bi-phone me-1"></i>{{ single.mobile }}</div>{% endif %}
+                            </td>
+                            <td><small>{{ single.address }}</small></td>
+                            <td><small>{{ single.email }}</small></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

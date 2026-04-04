@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meine Familie - Church Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; margin-top: 2rem;">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 style="color: var(--church-navy);">
+                <i class="bi bi-house-heart me-2"></i>Familie {{ family.family_name }}
+            </h2>
+            <p class="text-muted mb-0">
+                {% if family.is_head %}
+                    Sie sind das Familienoberhaupt und koennen Familienmitglieder verwalten.
+                {% else %}
+                    Uebersicht Ihrer Familienmitglieder.
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'user_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck
+        </a>
+    </div>
+
+    <!-- Familienoberhaupt -->
+    {% if family.head %}
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 12px;">
+        <div class="card-header" style="background: var(--church-navy); color: white; border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-person-fill me-2"></i>Familienoberhaupt</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                {% if family.head.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ family.head.photo_base64 }}"
+                         class="rounded-circle me-4"
+                         style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--church-gold);">
+                {% else %}
+                    <div class="rounded-circle me-4 d-flex align-items-center justify-content-center"
+                         style="width: 80px; height: 80px; background: var(--church-beige); color: var(--church-navy); font-size: 2rem;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <h4 class="mb-1" style="color: var(--church-navy);">{{ family.head.givenName }} {{ family.head.sn }}</h4>
+                    {% if family.head.mail %}
+                        <p class="mb-0"><i class="bi bi-envelope me-1"></i>{{ family.head.mail }}</p>
+                    {% endif %}
+                    {% if family.head.telephoneNumber %}
+                        <p class="mb-0"><i class="bi bi-telephone me-1"></i>{{ family.head.telephoneNumber }}</p>
+                    {% endif %}
+                    {% if family.head.mobile %}
+                        <p class="mb-0"><i class="bi bi-phone me-1"></i>{{ family.head.mobile }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Familienmitglieder -->
+    {% if family.children %}
+    <div class="card shadow-sm" style="border: none; border-radius: 12px;">
+        <div class="card-header" style="background: var(--church-gold); color: var(--church-navy); border-radius: 12px 12px 0 0;">
+            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Familienmitglieder ({{ family.children|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+            {% for child in family.children %}
+            <div class="d-flex align-items-center p-3 {% if not forloop.last %}border-bottom{% endif %}">
+                {% if child.photo_base64 %}
+                    <img src="data:image/jpeg;base64,{{ child.photo_base64 }}"
+                         class="rounded-circle me-3"
+                         style="width: 60px; height: 60px; object-fit: cover; border: 2px solid var(--church-gold);">
+                {% else %}
+                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                         style="width: 60px; height: 60px; background: var(--church-beige); color: var(--church-navy); font-size: 1.5rem;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                {% endif %}
+
+                <div class="flex-grow-1">
+                    <h6 class="mb-0" style="color: var(--church-navy);">
+                        {{ child.givenName }} {{ child.sn }}
+                        {% if child.is_self %}
+                            <span class="badge bg-success ms-1">Ich</span>
+                        {% endif %}
+                    </h6>
+                    <div class="text-muted small">
+                        {% if child.mail %}
+                            <span class="me-3"><i class="bi bi-envelope me-1"></i>{{ child.mail }}</span>
+                        {% endif %}
+                        {% if child.telephoneNumber %}
+                            <span class="me-3"><i class="bi bi-telephone me-1"></i>{{ child.telephoneNumber }}</span>
+                        {% endif %}
+                        {% if child.mobile %}
+                            <span class="me-3"><i class="bi bi-phone me-1"></i>{{ child.mobile }}</span>
+                        {% endif %}
+                        {% if child.birthDate %}
+                            <span><i class="bi bi-calendar me-1"></i>{{ child.birthDate }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if family.is_head %}
+                <a href="{% url 'family_member_edit' cn=child.cn %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i>Bearbeiten
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Keine weiteren Familienmitglieder vorhanden.
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

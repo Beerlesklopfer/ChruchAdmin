@@ -10,9 +10,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from authapp.models import PasswordResetToken
+from authapp.models import PasswordResetToken, AppSettings
 from main.forms import PasswordResetRequestForm, PasswordResetConfirmForm
 from main.ldap_manager import LDAPManager
+from django.core.mail import get_connection, EmailMultiAlternatives
 
 
 def get_client_ip(request):
@@ -37,32 +38,79 @@ def password_reset_request(request):
             # Aus Sicherheitsgründen immer Erfolgsmeldung zeigen
             # auch wenn kein Benutzer gefunden wurde
             if user:
-                # Erstelle Reset-Token
-                ip_address = get_client_ip(request)
-                token = PasswordResetToken.create_token(user, ip_address)
+                # Private E-Mail aus LDAP holen (erste mailRoutingAddress
+                # die nicht auf @example-church.de endet)
+                recipient_email = None
+                try:
+                    with LDAPManager() as ldap:
+                        ldap_user = ldap.get_user(user.username)
+                        if ldap_user:
+                            attrs = ldap_user['attributes']
+                            routing_addrs = attrs.get('mailRoutingAddress', [])
+                            for addr in routing_addrs:
+                                if isinstance(addr, bytes):
+                                    addr = addr.decode('utf-8')
+                                addr = addr.strip()
+                                if addr and not addr.lower().endswith('@example-church.de'):
+                                    recipient_email = addr
+                                    break
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f'Password-Reset LDAP-Fehler für {user.username}: {e}')
 
-                # Sende Reset-Email
-                reset_url = request.build_absolute_uri(
-                    f'/password-reset/confirm/{token.token}/'
-                )
+                if not recipient_email:
+                    # Kein mailRoutingAddress vorhanden — kein Versand
+                    pass
+                else:
+                    # Erstelle Reset-Token
+                    ip_address = get_client_ip(request)
+                    token = PasswordResetToken.create_token(user, ip_address)
 
-                # Email-Text erstellen
-                subject = 'Passwort zurücksetzen - Church Admin'
-                html_message = render_to_string('emails/password_reset.html', {
-                    'user': user,
-                    'reset_url': reset_url,
-                    'valid_hours': 24,
-                })
-                plain_message = strip_tags(html_message)
+                    # Sende Reset-Email
+                    reset_url = request.build_absolute_uri(
+                        f'/password-reset/confirm/{token.token}/'
+                    )
 
-                send_mail(
-                    subject,
-                    plain_message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    html_message=html_message,
-                    fail_silently=False,
-                )
+                    # Email-Text erstellen
+                    subject = 'Passwort zurücksetzen - Church Admin'
+                    html_message = render_to_string('emails/password_reset.html', {
+                        'user': user,
+                        'reset_url': reset_url,
+                        'valid_hours': 24,
+                    })
+                    plain_message = strip_tags(html_message)
+
+                    # E-Mail-Einstellungen aus AppSettings laden
+                    from_email = AppSettings.get('email_from_address', settings.DEFAULT_FROM_EMAIL)
+                    from_name = AppSettings.get('email_from_name', '')
+                    if from_name:
+                        from_email = f'{from_name} <{from_email}>'
+                    reply_to = AppSettings.get('email_reply_to', '')
+
+                    email_host = AppSettings.get('email_host', settings.EMAIL_HOST)
+                    email_port = int(AppSettings.get('email_port', str(settings.EMAIL_PORT)))
+                    email_use_tls = AppSettings.get('email_use_tls', 'false').lower() == 'true'
+                    email_host_user = AppSettings.get('email_host_user', '')
+                    email_host_password = AppSettings.get('email_host_password', '')
+
+                    connection = get_connection(
+                        host=email_host,
+                        port=email_port,
+                        username=email_host_user or None,
+                        password=email_host_password or None,
+                        use_tls=email_use_tls,
+                    )
+
+                    msg = EmailMultiAlternatives(
+                        subject=subject,
+                        body=plain_message,
+                        from_email=from_email,
+                        to=[recipient_email],
+                        reply_to=[reply_to] if reply_to else [],
+                        connection=connection,
+                    )
+                    msg.attach_alternative(html_message, 'text/html')
+                    msg.send(fail_silently=False)
 
             # Immer gleiche Meldung (Sicherheit)
             messages.success(

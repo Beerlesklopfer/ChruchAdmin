@@ -1,0 +1,28 @@
+# Schema-Erweiterung: familyRole Attribut
+# Fuegt das Attribut "familyRole" zum postModernalPerson Schema hinzu
+# Werte: head (Familienoberhaupt), spouse (Ehepartner), child (Kind)
+#
+# Anwenden (als root):
+#   sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f schema_extend_familyRole.ldif
+#
+# WICHTIG: Vorher Backup machen!
+# Schema-Nummer {X} muss angepasst werden - ermitteln mit:
+#   sudo ls /etc/ldap/slapd.d/cn=config/cn=schema/
+#   => z.B. cn={4}postmodernalperson.ldif => dann {4} verwenden
+
+# Schritt 1: Neues Attribut "familyRole" hinzufuegen
+dn: cn={6}postmodernalperson,cn=schema,cn=config
+changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: ( 1.3.6.1.4.1.99999.15 NAME 'familyRole' DESC 'Role within family: head, spouse, child' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE )
+
+# Schritt 2: familyRole zur MAY-Liste von postModernalPerson hinzufuegen
+# ACHTUNG: olcObjectClasses muss KOMPLETT ersetzt werden (nicht nur append)
+# Die vollstaendige Definition mit dem neuen Attribut:
+dn: cn={6}postmodernalperson,cn=schema,cn=config
+changetype: modify
+delete: olcObjectClasses
+olcObjectClasses: ( 1.3.6.1.4.1.99990.1 NAME 'postModernalPerson' DESC 'Domain that can receive mail' SUP top AUXILIARY MUST cn MAY ( birthDate $ maidName $ civilState $ sex $ wWWHomePage $ socialYouTube $ socialTikTok $ socialMeta $ socialSnapChat $ socialDiscord $ socialTwitch $ socialPinterest $ socialInstagram $ socialX $ socialFediverse ) )
+-
+add: olcObjectClasses
+olcObjectClasses: ( 1.3.6.1.4.1.99990.1 NAME 'postModernalPerson' DESC 'Domain that can receive mail' SUP top AUXILIARY MUST cn MAY ( birthDate $ maidName $ civilState $ sex $ familyRole $ wWWHomePage $ socialYouTube $ socialTikTok $ socialMeta $ socialSnapChat $ socialDiscord $ socialTwitch $ socialPinterest $ socialInstagram $ socialX $ socialFediverse ) )

@@ -168,67 +168,93 @@
         {% if is_ldap_user %}
         <div style="background: var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
             <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
-                <i class="bi bi-person-lines-fill me-2"></i>Persönliche Daten (LDAP)
+                <i class="bi bi-person-lines-fill me-2"></i>Persönliche Daten
             </h5>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Benutzername:</strong></label>
-                    <p class="text-muted"><code>{{ ldap_user_data.cn }}</code></p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="profile_update" value="1">
+
+                <!-- Benutzername (read-only) -->
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="bi bi-person-badge me-1"></i><strong>Benutzername</strong>
+                    </label>
+                    <input type="text" class="form-control" value="{{ ldap_user_data.cn }}" disabled>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>E-Mail:</strong></label>
-                    <p class="text-muted">
-                        {% if ldap_user_data.mail %}
-                            <i class="bi bi-envelope me-1"></i>{{ ldap_user_data.mail }}
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </p>
+
+                <!-- Editierbare Felder -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_givenName" class="form-label">
+                            <i class="bi bi-person me-1"></i><strong>Vorname</strong>
+                        </label>
+                        <input type="text" name="givenName" class="form-control" id="profile_givenName"
+                               value="{{ ldap_user_data.givenName }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_sn" class="form-label">
+                            <i class="bi bi-person me-1"></i><strong>Nachname</strong>
+                        </label>
+                        <input type="text" name="sn" class="form-control" id="profile_sn"
+                               value="{{ ldap_user_data.sn }}" required>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Vorname:</strong></label>
-                    <p class="text-muted">{{ ldap_user_data.givenName }}</p>
+
+                <div class="row">
+                    {% if ldap_user_data.title %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-briefcase me-1"></i><strong>Rolle/Position</strong>
+                        </label>
+                        <input type="text" class="form-control" value="{{ ldap_user_data.title }}" disabled>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_birthDate" class="form-label">
+                            <i class="bi bi-calendar-event me-1"></i><strong>Geburtstag</strong>
+                        </label>
+                        <input type="date" name="birthDate" class="form-control" id="profile_birthDate"
+                               value="{{ ldap_user_data.birthDateISO }}">
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Nachname:</strong></label>
-                    <p class="text-muted">{{ ldap_user_data.sn }}</p>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_telephoneNumber" class="form-label">
+                            <i class="bi bi-telephone me-1"></i><strong>Telefon</strong>
+                        </label>
+                        <input type="tel" name="telephoneNumber" class="form-control" id="profile_telephoneNumber"
+                               value="{{ ldap_user_data.telephoneNumber }}"
+                               placeholder="+49 123 456789">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="profile_mobile" class="form-label">
+                            <i class="bi bi-phone me-1"></i><strong>Mobil</strong>
+                        </label>
+                        <input type="tel" name="mobile" class="form-control" id="profile_mobile"
+                               value="{{ ldap_user_data.mobile }}"
+                               placeholder="+49 170 1234567">
+                    </div>
                 </div>
-                {% if ldap_user_data.title %}
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Rolle/Position:</strong></label>
-                    <p class="text-muted">{{ ldap_user_data.title }}</p>
+
+                <div class="mb-3">
+                    <label for="profile_postalAddress" class="form-label">
+                        <i class="bi bi-house me-1"></i><strong>Anschrift</strong>
+                    </label>
+                    <textarea name="postalAddress" class="form-control" id="profile_postalAddress"
+                              rows="2" placeholder="Straße&#10;PLZ Ort">{{ ldap_user_data.postalAddress }}</textarea>
                 </div>
-                {% endif %}
-                {% if ldap_user_data.birthDate %}
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Geburtstag:</strong></label>
-                    <p class="text-muted"><i class="bi bi-calendar me-1"></i>{{ ldap_user_data.birthDate }}</p>
-                </div>
-                {% endif %}
-                {% if ldap_user_data.telephoneNumber %}
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Telefon:</strong></label>
-                    <p class="text-muted"><i class="bi bi-telephone me-1"></i>{{ ldap_user_data.telephoneNumber }}</p>
-                </div>
-                {% endif %}
-                {% if ldap_user_data.mobile %}
-                <div class="col-md-6 mb-3">
-                    <label class="form-label"><strong>Mobil:</strong></label>
-                    <p class="text-muted"><i class="bi bi-phone me-1"></i>{{ ldap_user_data.mobile }}</p>
-                </div>
-                {% endif %}
-                {% if ldap_user_data.postalAddress %}
-                <div class="col-12 mb-3">
-                    <label class="form-label"><strong>Anschrift:</strong></label>
-                    <p class="text-muted"><i class="bi bi-house me-1"></i>{{ ldap_user_data.postalAddress }}</p>
-                </div>
-                {% endif %}
-            </div>
+
+                <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-check-circle me-2"></i>Daten speichern
+                </button>
+            </form>
 
             <!-- Gruppenmitgliedschaften -->
             {% if user_groups %}
-            <div class="mt-4">
+            <hr class="my-4">
+            <div>
                 <h6 style="color: var(--church-navy);">
                     <i class="bi bi-diagram-3 me-2"></i>Gruppenmitgliedschaften
                 </h6>
@@ -263,13 +289,107 @@
                 </div>
             </div>
             {% endif %}
-
-            <div class="alert" style="background: white; border-left: 4px solid var(--church-navy); margin-top: 1.5rem;">
-                <i class="bi bi-info-circle me-2"></i>
-                <small><strong>Hinweis:</strong> Ihre persönlichen Daten werden aus LDAP geladen.
-                Kontaktieren Sie einen Administrator, um diese zu ändern.</small>
-            </div>
         </div>
+
+        <!-- Benachrichtigungs-E-Mails -->
+        <div style="background: white; border: 2px solid var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
+            <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
+                <i class="bi bi-envelope-at me-2"></i>Benachrichtigungs-E-Mails
+            </h5>
+            <p class="text-muted small mb-3">
+                An diese Adressen werden Benachrichtigungen wie Passwort-Reset-Links gesendet.
+                Die erste Adresse wird bevorzugt verwendet.
+            </p>
+
+            <form method="post" id="notificationEmailForm">
+                {% csrf_token %}
+                <textarea name="notification_emails" id="notification-emails-hidden" class="d-none"></textarea>
+
+                <div id="notification-email-list" class="mb-3"></div>
+
+                <div class="input-group mb-3">
+                    <input type="email" class="form-control" id="notification-email-input"
+                           placeholder="Neue private E-Mail-Adresse">
+                    <button type="button" class="btn btn-outline-success" onclick="addNotificationEmail()">
+                        <i class="bi bi-plus-lg"></i> Hinzufuegen
+                    </button>
+                </div>
+
+                <div class="help-text text-muted mb-3">
+                    <small>
+                        <i class="bi bi-info-circle me-1"></i>
+                        Ihre Organisations-E-Mail ({{ ldap_user_data.mail }}) kann hierfuer nicht verwendet werden.
+                    </small>
+                </div>
+
+                <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-check-circle me-2"></i>E-Mails speichern
+                </button>
+            </form>
+        </div>
+
+        <style>
+        .notif-email-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 12px; background: var(--church-beige); border-radius: 8px; margin-bottom: 6px;
+        }
+        .notif-email-item .addr { flex: 1; }
+        .notif-email-item .btn-rm {
+            background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1.1rem; padding: 0 4px;
+        }
+        .notif-email-item .btn-rm:hover { color: #a71d2a; }
+        .notif-email-item:first-child { border-left: 3px solid var(--church-gold); }
+        .notif-email-item:first-child::after {
+            content: 'Primaer'; font-size: 0.7rem; background: var(--church-gold); color: var(--church-navy);
+            padding: 2px 6px; border-radius: 4px; font-weight: 600;
+        }
+        </style>
+
+        <script>
+        (function() {
+            var emails = [{% for e in ldap_user_data.notification_emails %}"{{ e }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+            if (typeof emails === 'string') {
+                try { emails = JSON.parse(emails); } catch(e) { emails = []; }
+            }
+            var items = emails || [];
+
+            function render() {
+                var container = document.getElementById('notification-email-list');
+                var hidden = document.getElementById('notification-emails-hidden');
+                container.innerHTML = '';
+                items.forEach(function(addr, i) {
+                    var div = document.createElement('div');
+                    div.className = 'notif-email-item';
+                    div.innerHTML = '<span class="addr">' + addr.replace(/</g, '&lt;') + '</span>' +
+                        '<button type="button" class="btn-rm" title="Entfernen" onclick="removeNotificationEmail(' + i + ')">' +
+                        '<i class="bi bi-x-circle-fill"></i></button>';
+                    container.appendChild(div);
+                });
+                hidden.value = items.join('\n');
+            }
+
+            window.addNotificationEmail = function() {
+                var input = document.getElementById('notification-email-input');
+                var val = input.value.trim();
+                if (!val) return;
+                if (items.indexOf(val) === -1) items.push(val);
+                input.value = '';
+                input.focus();
+                render();
+            };
+
+            window.removeNotificationEmail = function(idx) {
+                items.splice(idx, 1);
+                render();
+            };
+
+            document.getElementById('notification-email-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); addNotificationEmail(); }
+            });
+
+            render();
+        })();
+        </script>
 
         <!-- Passwort ändern -->
         <div style="background: white; border: 2px solid var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">

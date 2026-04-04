@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Backup-Aufräumen{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card church-card">
+                <div class="card-header church-card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-trash"></i> Alte Backups aufräumen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Automatisches Löschen alter Backups</p>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Info:</strong> Derzeit sind <strong>{{ total_backups }}</strong> erfolgreich abgeschlossene Backups gespeichert.
+                    </div>
+
+                    <p>
+                        Wählen Sie, wie viele der neuesten Backups Sie behalten möchten.
+                        Alle älteren Backups werden gelöscht (Datei + Datenbank-Eintrag).
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="keep_count" class="form-label">Anzahl zu behaltender Backups:</label>
+                            <select name="keep_count" id="keep_count" class="form-select" required>
+                                <option value="5">5 neueste behalten</option>
+                                <option value="10" selected>10 neueste behalten</option>
+                                <option value="20">20 neueste behalten</option>
+                                <option value="30">30 neueste behalten</option>
+                                <option value="50">50 neueste behalten</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
+                            Gelöschte Backups können nicht wiederhergestellt werden.
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'backup_dashboard' %}" class="btn btn-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-warning flex-fill">
+                                <i class="bi bi-trash"></i> Aufräumen starten
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

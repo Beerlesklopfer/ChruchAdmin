@@ -7,11 +7,20 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# DejaVuSans registrieren fuer Unicode-Symbole
+try:
+    pdfmetrics.registerFont(TTFont('DejaVu', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+    pdfmetrics.registerFont(TTFont('DejaVu-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+except:
+    pass
 from reportlab.lib.enums import TA_CENTER
 import vobject
 
@@ -70,7 +79,7 @@ def member_list_export_pdf(request, settings_id=None):
             'include_birthday': True,
             'include_groups': True,
             'include_family': True,
-            'user_filter': 'all',
+            'user_filter': 'members',
             'sort_by': 'sn',
         })()
 
@@ -83,11 +92,34 @@ def member_list_export_pdf(request, settings_id=None):
             # Filter anwenden
             filtered_users = []
             if export_settings.user_filter == 'members':
+                # Mitglieder + deren Familien (Kinder/Ehepartner)
                 members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,dc=example-church,dc=de")
                 if members_group:
                     member_dns = members_group['attributes'].get('member', [])
+                    member_dns_set = set()
+                    for d in member_dns:
+                        member_dns_set.add(d.decode('utf-8') if isinstance(d, bytes) else d)
+                    # Sammle DNs der Mitglieder und deren Familien
+                    family_dns = set()
                     for user in all_users:
-                        if user['dn'].encode('utf-8') in member_dns or user['dn'] in member_dns:
+                        if user['dn'] in member_dns_set:
+                            family_dns.add(user['dn'])
+                            # Familienmitglieder (Kinder unter diesem User)
+                            children = ldap.list_users(parent_dn=user['dn'])
+                            for c in children:
+                                family_dns.add(c['dn'])
+                            # Falls User nested ist, auch das Oberhaupt einschliessen
+                            if ',cn=' in user['dn']:
+                                parts = user['dn'].split(',', 1)
+                                parent_dn = parts[1] if len(parts) > 1 else None
+                                if parent_dn:
+                                    # Auch Geschwister
+                                    siblings = ldap.list_users(parent_dn=parent_dn)
+                                    for s in siblings:
+                                        family_dns.add(s['dn'])
+                                    family_dns.add(parent_dn)
+                    for user in all_users:
+                        if user['dn'] in family_dns:
                             filtered_users.append(user)
             elif export_settings.user_filter == 'visitors':
                 visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,dc=example-church,dc=de")
@@ -113,28 +145,49 @@ def member_list_export_pdf(request, settings_id=None):
                 attrs = user['attributes']
 
                 # Dekodiere Basis-Felder
-                given_name = attrs.get('givenName', [b''])[0]
-                sn = attrs.get('sn', [b''])[0]
-                mail = attrs.get('mail', [b''])[0]
-                phone = attrs.get('telephoneNumber', [b''])[0]
+                def _d(attr_name):
+                    val = attrs.get(attr_name, [b''])[0]
+                    if isinstance(val, bytes):
+                        val = val.decode('utf-8')
+                    return val or ''
 
-                if isinstance(given_name, bytes):
-                    given_name = given_name.decode('utf-8')
-                if isinstance(sn, bytes):
-                    sn = sn.decode('utf-8')
-                if isinstance(mail, bytes):
-                    mail = mail.decode('utf-8')
-                if isinstance(phone, bytes):
-                    phone = phone.decode('utf-8')
+                given_name = _d('givenName')
+                sn = _d('sn')
+                mail = _d('mail')
+                phone = _d('telephoneNumber')
+                mobile = _d('mobile')
+                postal = _d('postalAddress')
+                birth_raw = _d('birthDate')
+
+                birth_display = ''
+                if birth_raw:
+                    try:
+                        from datetime import datetime
+                        birth_display = datetime.strptime(str(birth_raw)[:8], '%Y%m%d').strftime('%d.%m.%Y')
+                    except (ValueError, TypeError):
+                        birth_display = birth_raw
 
                 user_dict = {}
 
                 if export_settings.include_name:
-                    user_dict['name'] = f"{given_name} {sn}"
+                    family_role = _d('familyRole')
+                    role_icon = ''
+                    if family_role == 'head':
+                        role_icon = ' \u2605'       # ★
+                    elif family_role == 'spouse':
+                        role_icon = ' \u2665'       # ♥
+                    elif family_role == 'child' or (',cn=' in user['dn'] and family_role != 'head'):
+                        role_icon = ' \u21b3'       # ↳
+                    user_dict['name'] = f"{sn}, {given_name}{role_icon}"
                 if export_settings.include_email:
                     user_dict['email'] = mail
                 if export_settings.include_phone:
                     user_dict['phone'] = phone
+                    user_dict['mobile'] = mobile
+                if export_settings.include_address:
+                    user_dict['address'] = postal.replace('\n', ', ')
+                if export_settings.include_birthday:
+                    user_dict['birthday'] = birth_display
 
                 # Gruppen
                 if export_settings.include_groups:
@@ -159,25 +212,26 @@ def member_list_export_pdf(request, settings_id=None):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="gemeindeliste_{export_settings.name.replace(" ", "_")}.pdf"'
 
-    # PDF-Dokument
-    doc = SimpleDocTemplate(response, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    # PDF-Dokument mit Header auf jeder Seite
+    from reportlab.lib.pagesizes import landscape
+    from datetime import datetime as dt_now
+
+    def page_header(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('DejaVu-Bold', 12)
+        canvas.setFillColor(colors.HexColor('#1c2647'))
+        canvas.drawString(1.5*cm, landscape(A4)[1] - 1*cm, "Gemeindeliste - Beispielgemeinde")
+        canvas.setFont('DejaVu', 8)
+        canvas.setFillColor(colors.grey)
+        canvas.drawRightString(landscape(A4)[0] - 1.5*cm, landscape(A4)[1] - 1*cm, f"Stand: {dt_now.now().strftime('%d.%m.%Y')}")
+        canvas.drawRightString(landscape(A4)[0] - 1.5*cm, 0.8*cm, f"Seite {canvas.getPageNumber()}")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4), topMargin=1.8*cm, bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
     elements = []
 
     # Styles
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#1c2647'),
-        alignment=TA_CENTER,
-        spaceAfter=30,
-    )
-
-    # Titel
-    elements.append(Paragraph("Gemeindeliste - Beispielgemeinde", title_style))
-    elements.append(Paragraph(f"Export: {export_settings.name}", styles['Normal']))
-    elements.append(Spacer(1, 0.5*cm))
 
     # Tabelle erstellen
     table_data = []
@@ -190,6 +244,11 @@ def member_list_export_pdf(request, settings_id=None):
         header.append('E-Mail')
     if export_settings.include_phone:
         header.append('Telefon')
+        header.append('Mobil')
+    if export_settings.include_address:
+        header.append('Anschrift')
+    if export_settings.include_birthday:
+        header.append('Geburtstag')
     if export_settings.include_groups:
         header.append('Gruppen')
     table_data.append(header)
@@ -203,28 +262,59 @@ def member_list_export_pdf(request, settings_id=None):
             row.append(user.get('email', ''))
         if export_settings.include_phone:
             row.append(user.get('phone', ''))
+            row.append(user.get('mobile', ''))
+        if export_settings.include_address:
+            row.append(user.get('address', ''))
+        if export_settings.include_birthday:
+            row.append(user.get('birthday', ''))
         if export_settings.include_groups:
             row.append(user.get('groups', ''))
         table_data.append(row)
 
-    # Tabelle stylen
-    table = Table(table_data)
+    # Spaltenbreiten berechnen fuer volle Seitenbreite
+    page_width = landscape(A4)[0] - 3*cm  # Seitenbreite minus Raender
+    col_count = len(header)
+    # Proportionale Breiten: Name breit, Geburtstag/Gruppen schmal
+    col_widths = None
+    if col_count > 0:
+        widths = {
+            'Name': 3.5*cm,
+            'E-Mail': 5.5*cm,
+            'Telefon': 3*cm,
+            'Mobil': 3*cm,
+            'Anschrift': 4.5*cm,
+            'Geburtstag': 2.2*cm,
+            'Gruppen': 3*cm,
+        }
+        col_widths = [widths.get(h, page_width / col_count) for h in header]
+        # Restbreite auf Anschrift verteilen
+        used = sum(col_widths)
+        if used < page_width and 'Anschrift' in header:
+            idx = header.index('Anschrift')
+            col_widths[idx] += page_width - used
+
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1c2647')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f7f3e6')),
-        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('FONTNAME', (0, 0), (-1, 0), 'DejaVu-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'DejaVu'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f7f3e6')]),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
     elements.append(table)
 
     # PDF bauen
-    doc.build(elements)
+    doc.build(elements, onFirstPage=page_header, onLaterPages=page_header)
 
     return response
 
@@ -253,7 +343,7 @@ def member_list_export_vcard(request, settings_id=None):
             'include_phone': True,
             'include_address': True,
             'include_birthday': True,
-            'user_filter': 'all',
+            'user_filter': 'members',
             'sort_by': 'sn',
         })()
 

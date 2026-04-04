@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Backup löschen{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card church-card">
+                <div class="card-header church-card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Backup löschen?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Möchten Sie dieses Backup wirklich löschen?</p>
+
+                    <table class="table">
+                        <tr>
+                            <th>Erstellt am:</th>
+                            <td>{{ backup.created_at|date:"d.m.Y H:i" }} Uhr</td>
+                        </tr>
+                        <tr>
+                            <th>Typ:</th>
+                            <td>{{ backup.get_backup_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>{{ backup.get_status_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Größe:</th>
+                            <td>{{ backup.get_file_size_mb }} MB</td>
+                        </tr>
+                        <tr>
+                            <th>Datei:</th>
+                            <td><code>{{ backup.filename }}</code></td>
+                        </tr>
+                    </table>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden.
+                        Die Backup-Datei wird vom Server gelöscht.
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'backup_dashboard' %}" class="btn btn-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-danger flex-fill">
+                                <i class="bi bi-trash"></i> Ja, löschen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

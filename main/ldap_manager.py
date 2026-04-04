@@ -11,8 +11,12 @@ import hashlib
 import base64
 import os
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
+
+# Thread-lokaler Cache fuer LDAP-Verbindungen
+_thread_local = threading.local()
 
 
 # Custom Exceptions
@@ -100,13 +104,28 @@ class LDAPManager:
             return None
 
     def __enter__(self):
-        """Context Manager: Verbindung herstellen"""
+        """Context Manager: Verbindung herstellen oder aus Cache wiederverwenden"""
+        cached = getattr(_thread_local, 'ldap_conn', None)
+        if cached and cached.get('conn'):
+            try:
+                # Prüfe ob Verbindung noch lebt
+                cached['conn'].whoami_s()
+                self.conn = cached['conn']
+                self._is_cached = True
+                return self
+            except Exception:
+                # Verbindung tot — neu aufbauen
+                pass
+        self._is_cached = False
         self.connect()
+        _thread_local.ldap_conn = {'conn': self.conn}
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context Manager: Verbindung schließen"""
-        self.disconnect()
+        """Context Manager: Verbindung im Cache lassen (nicht schliessen)"""
+        if not self._is_cached:
+            # Verbindung bleibt im Cache fuer den naechsten with-Block
+            pass
         return False
 
     def connect(self):
@@ -335,6 +354,32 @@ class LDAPManager:
             logger.error(f"Fehler beim Auflisten der Benutzer: {e}")
             raise LDAPOperationError(f"Fehler beim Auflisten: {str(e)}")
 
+    def _next_uid_number(self):
+        """Ermittelt die naechste freie uidNumber aus dem LDAP"""
+        try:
+            results = self.conn.search_s(
+                self.user_search_base,
+                ldap.SCOPE_SUBTREE,
+                "(objectClass=posixAccount)",
+                ['uidNumber']
+            )
+            max_uid = 10000  # Startwert
+            for dn, attrs in results:
+                uid_vals = attrs.get('uidNumber', [])
+                for uid_val in uid_vals:
+                    if isinstance(uid_val, bytes):
+                        uid_val = uid_val.decode('utf-8')
+                    try:
+                        uid_int = int(uid_val)
+                        if uid_int > max_uid:
+                            max_uid = uid_int
+                    except ValueError:
+                        pass
+            return max_uid + 1
+        except ldap.LDAPError as e:
+            logger.error(f"Fehler beim Ermitteln der naechsten uidNumber: {e}")
+            return 10000
+
     def create_user(self, attributes, parent_cn=None):
         """
         Erstelle neuen LDAP-Benutzer
@@ -369,8 +414,21 @@ class LDAPManager:
                     b'person',
                     b'organizationalPerson',
                     b'inetOrgPerson',
-                    b'posixAccount'
+                    b'posixAccount',
+                    b'postModernalPerson',
                 ]
+
+            # Automatische POSIX-Attribute vergeben
+            if 'uidNumber' not in attributes:
+                attributes['uidNumber'] = str(self._next_uid_number())
+            if 'gidNumber' not in attributes:
+                attributes['gidNumber'] = '30000'
+            if 'uid' not in attributes:
+                attributes['uid'] = cn
+            if 'homeDirectory' not in attributes:
+                attributes['homeDirectory'] = f'/home/example-church.de/{cn}'
+            if 'loginShell' not in attributes:
+                attributes['loginShell'] = '/bin/false'
 
             # Enkodiere alle Attribute
             encoded_attrs = {}
@@ -445,6 +503,47 @@ class LDAPManager:
         except ldap.LDAPError as e:
             logger.error(f"Fehler beim Aktualisieren von Benutzer {cn}: {e}")
             raise LDAPOperationError(f"Fehler beim Aktualisieren: {str(e)}")
+
+    def move_user(self, cn, old_parent_cn=None, new_parent_cn=None):
+        """
+        Verschiebt einen User zu einem neuen Elternteil oder auf Top-Level.
+
+        Args:
+            cn: Common Name des Users
+            old_parent_cn: Aktueller Elternteil (None = Top-Level)
+            new_parent_cn: Neuer Elternteil (None = Top-Level)
+
+        Returns:
+            str: Neuer DN
+        """
+        try:
+            # Alten DN bauen
+            if old_parent_cn:
+                old_dn = self.build_dn(cn, self.build_dn(old_parent_cn))
+            else:
+                old_dn = self.build_dn(cn)
+
+            # Neuen Superior bauen
+            if new_parent_cn:
+                new_superior = self.build_dn(new_parent_cn)
+            else:
+                new_superior = f"ou=Users,{self.base_dn}"
+
+            new_rdn = f"cn={cn}"
+
+            self.conn.rename_s(old_dn, new_rdn, new_superior)
+
+            new_dn = f"{new_rdn},{new_superior}"
+            logger.info(f"User verschoben: {old_dn} -> {new_dn}")
+            return new_dn
+
+        except ldap.NO_SUCH_OBJECT:
+            raise LDAPOperationError(f"User {cn} nicht gefunden")
+        except ldap.ALREADY_EXISTS:
+            raise LDAPOperationError(f"User {cn} existiert bereits unter dem Ziel")
+        except ldap.LDAPError as e:
+            logger.error(f"Fehler beim Verschieben von {cn}: {e}")
+            raise LDAPOperationError(f"Fehler beim Verschieben: {str(e)}")
 
     def delete_user(self, cn, parent_cn=None, force=False):
         """
@@ -1027,7 +1126,9 @@ class LDAPManager:
             # Hash Passwort mit SSHA
             password_hash = self.encode_password(new_password)
 
-            # Setze neues Passwort
+            # Setze neues Passwort (muss bytes sein für modify_s)
+            if isinstance(password_hash, str):
+                password_hash = password_hash.encode('utf-8')
             mod_attrs = [
                 (ldap.MOD_REPLACE, 'userPassword', [password_hash])
             ]
@@ -1105,3 +1206,232 @@ class LDAPManager:
         except Exception as e:
             logger.error(f"Fehler beim Abrufen des Fotos: {e}")
             return None
+
+    # ==================== BACKUP & EXPORT ====================
+
+    def export_to_ldif(self, output_path, backup_type='full', base_dn=None):
+        """
+        Exportiert LDAP-Daten in LDIF-Format
+
+        Args:
+            output_path (str): Pfad zur Ausgabe-LDIF-Datei
+            backup_type (str): 'full', 'users', 'groups', 'domains'
+            base_dn (str): Optional - spezifische Base DN (überschreibt backup_type)
+
+        Returns:
+            dict: Statistiken über den Export
+                {
+                    'entry_count': int,
+                    'user_count': int,
+                    'group_count': int,
+                    'domain_count': int,
+                    'file_size': int,
+                    'success': bool,
+                    'error': str (optional)
+                }
+        """
+        stats = {
+            'entry_count': 0,
+            'user_count': 0,
+            'group_count': 0,
+            'domain_count': 0,
+            'file_size': 0,
+            'success': False,
+            'error': None
+        }
+
+        try:
+            # Bestimme Search Base
+            if base_dn:
+                search_base = base_dn
+            elif backup_type == 'users':
+                search_base = self.user_search_base
+            elif backup_type == 'groups':
+                search_base = self.group_search_base
+            elif backup_type == 'domains':
+                search_base = f"ou=Domains,{self.base_dn}"
+            else:  # full
+                search_base = self.base_dn
+
+            logger.info(f"LDIF-Export gestartet: {backup_type} von {search_base}")
+
+            # LDAP-Suche durchführen
+            search_filter = "(objectClass=*)"
+            search_scope = ldap.SCOPE_SUBTREE
+
+            # Alle Attribute abrufen
+            result = self.conn.search_s(
+                search_base,
+                search_scope,
+                search_filter,
+                None  # Alle Attribute
+            )
+
+            # LDIF-Datei schreiben
+            with open(output_path, 'w', encoding='utf-8') as ldif_file:
+                for dn, attributes in result:
+                    if dn is None:
+                        continue
+
+                    stats['entry_count'] += 1
+
+                    # Zähle Typ
+                    object_classes = attributes.get('objectClass', [])
+                    if isinstance(object_classes, bytes):
+                        object_classes = [object_classes]
+                    object_classes_str = [
+                        oc.decode('utf-8') if isinstance(oc, bytes) else oc
+                        for oc in object_classes
+                    ]
+
+                    if 'inetOrgPerson' in object_classes_str or 'posixAccount' in object_classes_str:
+                        stats['user_count'] += 1
+                    elif 'groupOfNames' in object_classes_str:
+                        stats['group_count'] += 1
+                    elif 'mailDomain' in object_classes_str:
+                        stats['domain_count'] += 1
+
+                    # DN schreiben
+                    ldif_file.write(f"dn: {dn}\n")
+
+                    # Attribute schreiben
+                    for attr, values in attributes.items():
+                        if isinstance(values, bytes):
+                            values = [values]
+
+                        for value in values:
+                            # Binäre Attribute (z.B. Fotos) als Base64
+                            if isinstance(value, bytes):
+                                # Prüfe ob es Text ist
+                                try:
+                                    value_str = value.decode('utf-8')
+                                    ldif_file.write(f"{attr}: {value_str}\n")
+                                except UnicodeDecodeError:
+                                    # Binäre Daten - Base64 kodieren
+                                    import base64
+                                    value_b64 = base64.b64encode(value).decode('ascii')
+                                    ldif_file.write(f"{attr}:: {value_b64}\n")
+                            else:
+                                ldif_file.write(f"{attr}: {value}\n")
+
+                    # Leere Zeile zwischen Einträgen
+                    ldif_file.write("\n")
+
+            # Dateigröße ermitteln
+            stats['file_size'] = os.path.getsize(output_path)
+            stats['success'] = True
+
+            logger.info(
+                f"LDIF-Export erfolgreich: {stats['entry_count']} Einträge, "
+                f"{stats['file_size']} Bytes"
+            )
+
+        except ldap.NO_SUCH_OBJECT as e:
+            error_msg = f"Base DN nicht gefunden: {search_base}"
+            logger.error(error_msg)
+            stats['error'] = error_msg
+            stats['success'] = False
+
+        except ldap.LDAPError as e:
+            error_msg = f"LDAP-Fehler beim Export: {str(e)}"
+            logger.error(error_msg)
+            stats['error'] = error_msg
+            stats['success'] = False
+
+        except IOError as e:
+            error_msg = f"Fehler beim Schreiben der LDIF-Datei: {str(e)}"
+            logger.error(error_msg)
+            stats['error'] = error_msg
+            stats['success'] = False
+
+        except Exception as e:
+            error_msg = f"Unerwarteter Fehler beim LDIF-Export: {str(e)}"
+            logger.error(error_msg)
+            stats['error'] = error_msg
+            stats['success'] = False
+
+        return stats
+
+    def import_from_ldif(self, ldif_path, delete_existing=False):
+        """
+        Importiert LDAP-Daten aus LDIF-Datei
+
+        Args:
+            ldif_path (str): Pfad zur LDIF-Datei
+            delete_existing (bool): Wenn True, werden bestehende Einträge gelöscht
+
+        Returns:
+            dict: Statistiken über den Import
+                {
+                    'success': bool,
+                    'imported_count': int,
+                    'skipped_count': int,
+                    'error_count': int,
+                    'errors': list
+                }
+        """
+        stats = {
+            'success': False,
+            'imported_count': 0,
+            'skipped_count': 0,
+            'error_count': 0,
+            'errors': []
+        }
+
+        try:
+            import ldif
+            from io import BytesIO
+
+            logger.info(f"LDIF-Import gestartet: {ldif_path}")
+
+            # LDIF-Datei lesen
+            with open(ldif_path, 'rb') as ldif_file:
+                parser = ldif.LDIFRecordList(ldif_file)
+                parser.parse()
+
+                for dn, attributes in parser.all_records:
+                    try:
+                        # Prüfe ob Eintrag existiert
+                        try:
+                            self.conn.search_s(dn, ldap.SCOPE_BASE)
+                            entry_exists = True
+                        except ldap.NO_SUCH_OBJECT:
+                            entry_exists = False
+
+                        if entry_exists:
+                            if delete_existing:
+                                # Lösche und erstelle neu
+                                self.conn.delete_s(dn)
+                                self.conn.add_s(dn, ldap.modlist.addModlist(attributes))
+                                stats['imported_count'] += 1
+                            else:
+                                # Überspringe bestehende Einträge
+                                stats['skipped_count'] += 1
+                        else:
+                            # Neuer Eintrag
+                            self.conn.add_s(dn, ldap.modlist.addModlist(attributes))
+                            stats['imported_count'] += 1
+
+                    except ldap.LDAPError as e:
+                        error_msg = f"Fehler beim Importieren von {dn}: {str(e)}"
+                        logger.error(error_msg)
+                        stats['errors'].append(error_msg)
+                        stats['error_count'] += 1
+
+            stats['success'] = True
+            logger.info(
+                f"LDIF-Import abgeschlossen: {stats['imported_count']} importiert, "
+                f"{stats['skipped_count']} übersprungen, {stats['error_count']} Fehler"
+            )
+
+        except FileNotFoundError:
+            error_msg = f"LDIF-Datei nicht gefunden: {ldif_path}"
+            logger.error(error_msg)
+            stats['errors'].append(error_msg)
+
+        except Exception as e:
+            error_msg = f"Unerwarteter Fehler beim LDIF-Import: {str(e)}"
+            logger.error(error_msg)
+            stats['errors'].append(error_msg)
+
+        return stats

@@ -1,0 +1,10 @@
+# Schritt 2: familyRole zur objectClass postModernalPerson hinzufuegen
+# Das Attribut familyRole wurde bereits in Schritt 1 angelegt.
+#
+# Anwenden:
+#   sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f schema_extend_familyRole_step2.ldif
+
+dn: cn={6}postmodernalperson,cn=schema,cn=config
+changetype: modify
+replace: olcObjectClasses
+olcObjectClasses: ( 1.3.6.1.4.1.99990.1 NAME 'postModernalPerson' DESC 'Domain that can receive mail' SUP top AUXILIARY MUST cn MAY ( birthDate $ maidName $ civilState $ sex $ familyRole $ wWWHomePage $ socialYouTube $ socialTikTok $ socialMeta $ socialSnapChat $ socialDiscord $ socialTwitch $ socialPinterest $ socialInstagram $ socialX $ socialFediverse ) )

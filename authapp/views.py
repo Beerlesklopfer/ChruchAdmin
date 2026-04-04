@@ -113,6 +113,125 @@ def has_permission(user, permission):
     return False
 
 
+def get_family_context(username):
+    """
+    Ermittelt den Familien-Kontext eines Benutzers aus dem LDAP.
+
+    Returns:
+        dict mit:
+        - is_head: bool - Ist der User ein Familienoberhaupt (hat Kinder)?
+        - is_child: bool - Ist der User ein Kind (nested DN)?
+        - head: dict oder None - Daten des Familienoberhaupts
+        - children: list - Liste der Kinder
+        - parent_cn: str oder None - CN des Elternteils (wenn Kind)
+    """
+    result = {
+        'is_head': False,
+        'is_child': False,
+        'head': None,
+        'children': [],
+        'parent_cn': None,
+        'family_name': '',
+    }
+    try:
+        with LDAPManager() as ldap_conn:
+            user = ldap_conn.get_user(username)
+            if not user:
+                return result
+
+            user_dn = user['dn']
+            attrs = user['attributes']
+
+            def _decode(val):
+                if isinstance(val, list):
+                    val = val[0] if val else ''
+                if isinstance(val, bytes):
+                    val = val.decode('utf-8')
+                return val or ''
+
+            # Prüfe ob der User ein Kind ist (nested DN: cn=Kind,cn=Vater,ou=Users,...)
+            if ',cn=' in user_dn:
+                result['is_child'] = True
+                parts = user_dn.split(',')
+                if len(parts) >= 2 and parts[1].startswith('cn='):
+                    parent_cn = parts[1][3:]
+                    result['parent_cn'] = parent_cn
+
+                    # Lade Elternteil-Daten
+                    parent = ldap_conn.get_user(parent_cn)
+                    if parent:
+                        p_attrs = parent['attributes']
+                        result['head'] = {
+                            'cn': parent_cn,
+                            'givenName': _decode(p_attrs.get('givenName', '')),
+                            'sn': _decode(p_attrs.get('sn', '')),
+                            'mail': _decode(p_attrs.get('mail', '')),
+                            'telephoneNumber': _decode(p_attrs.get('telephoneNumber', '')),
+                            'mobile': _decode(p_attrs.get('mobile', '')),
+                            'photo_base64': ldap_conn.get_photo_as_base64(parent_cn),
+                        }
+                        result['family_name'] = _decode(p_attrs.get('sn', ''))
+
+                        # Lade Geschwister
+                        parent_dn = parent['dn']
+                        siblings = ldap_conn.list_users(parent_dn=parent_dn)
+                        for sib in siblings:
+                            s_attrs = sib['attributes']
+                            s_cn = _decode(s_attrs.get('cn', ''))
+                            result['children'].append({
+                                'cn': s_cn,
+                                'givenName': _decode(s_attrs.get('givenName', '')),
+                                'sn': _decode(s_attrs.get('sn', '')),
+                                'mail': _decode(s_attrs.get('mail', '')),
+                                'telephoneNumber': _decode(s_attrs.get('telephoneNumber', '')),
+                                'mobile': _decode(s_attrs.get('mobile', '')),
+                                'birthDate': _decode(s_attrs.get('birthDate', '')),
+                                'photo_base64': ldap_conn.get_photo_as_base64(s_cn),
+                                'is_self': s_cn == username,
+                            })
+            else:
+                # User ist Top-Level — prüfe ob er Kinder hat
+                children = ldap_conn.list_users(parent_dn=user_dn)
+                if children:
+                    result['is_head'] = True
+                    result['family_name'] = _decode(attrs.get('sn', ''))
+                    result['head'] = {
+                        'cn': username,
+                        'givenName': _decode(attrs.get('givenName', '')),
+                        'sn': _decode(attrs.get('sn', '')),
+                        'mail': _decode(attrs.get('mail', '')),
+                        'telephoneNumber': _decode(attrs.get('telephoneNumber', '')),
+                        'mobile': _decode(attrs.get('mobile', '')),
+                        'photo_base64': ldap_conn.get_photo_as_base64(username),
+                    }
+                    for child in children:
+                        c_attrs = child['attributes']
+                        c_cn = _decode(c_attrs.get('cn', ''))
+                        birth_raw = _decode(c_attrs.get('birthDate', ''))
+                        birth_display = ''
+                        if birth_raw:
+                            try:
+                                from datetime import datetime
+                                birth_display = datetime.strptime(str(birth_raw)[:8], '%Y%m%d').strftime('%d.%m.%Y')
+                            except (ValueError, TypeError):
+                                birth_display = birth_raw
+                        result['children'].append({
+                            'cn': c_cn,
+                            'givenName': _decode(c_attrs.get('givenName', '')),
+                            'sn': _decode(c_attrs.get('sn', '')),
+                            'mail': _decode(c_attrs.get('mail', '')),
+                            'telephoneNumber': _decode(c_attrs.get('telephoneNumber', '')),
+                            'mobile': _decode(c_attrs.get('mobile', '')),
+                            'birthDate': birth_display,
+                            'photo_base64': ldap_conn.get_photo_as_base64(c_cn),
+                            'is_self': False,
+                        })
+    except Exception as e:
+        logger.error(f"Fehler beim Laden des Familien-Kontexts für {username}: {e}")
+
+    return result
+
+
 def require_permission(permission):
     """Decorator für Views, die eine bestimmte Berechtigung erfordern"""
     def decorator(view_func):
@@ -122,7 +241,7 @@ def require_permission(permission):
             else:
                 from django.http import HttpResponseForbidden
                 messages.error(request, f'Sie haben keine Berechtigung für diese Aktion ({permission}).')
-                return redirect('ldap_dashboard')
+                return redirect('user_dashboard')
         return wrapper
     return decorator
 
@@ -262,20 +381,29 @@ def ldap_user_search(request):
                     if isinstance(birth_date, list):
                         birth_date = birth_date[0] if birth_date else ''
 
-                    # Bestimme Verwandtschaftsbeziehung und Parent aus DN
+                    family_role = attrs.get('familyRole', '')
+                    if isinstance(family_role, list):
+                        family_role = family_role[0] if family_role else ''
+
+                    # Bestimme Verwandtschaftsbeziehung aus familyRole und DN
                     dn = user['dn']
-                    relationship = 'Mitglied'  # Default
                     parent_name = None
                     parent_cn = None
-                    if ',cn=' in dn:  # Nested User (Kind)
-                        # Extrahiere Parent CN
+                    if ',cn=' in dn:
                         parts = dn.split(',')
-                        if len(parts) >= 2:
-                            parent_cn_part = parts[1]
-                            if parent_cn_part.startswith('cn='):
-                                parent_cn = parent_cn_part[3:]
-                                relationship = 'Kind'
-                                parent_name = parent_cn.replace('.', ' ')
+                        if len(parts) >= 2 and parts[1].startswith('cn='):
+                            parent_cn = parts[1][3:]
+                            parent_name = parent_cn.replace('.', ' ')
+
+                    # Relationship aus familyRole bestimmen
+                    if family_role == 'head':
+                        relationship = 'Familienoberhaupt'
+                    elif family_role == 'spouse':
+                        relationship = 'Ehepartner'
+                    elif family_role == 'child' or (parent_cn and not family_role):
+                        relationship = 'Kind'
+                    else:
+                        relationship = 'Mitglied'
 
                     # Bestimme Status aus Gruppenmitgliedschaft
                     user_dn = user['dn']
@@ -340,23 +468,64 @@ def ldap_user_search(request):
                         match = True  # Zeige alle Benutzer ohne Filter
 
                     if match:
+                        # Geburtsdatum parsen
+                        birth_date_iso = ''
+                        birth_date_display = ''
+                        if birth_date:
+                            try:
+                                from datetime import datetime
+                                dt = datetime.strptime(str(birth_date)[:8], '%Y%m%d')
+                                birth_date_iso = dt.strftime('%Y-%m-%d')
+                                birth_date_display = dt.strftime('%d.%m.%Y')
+                            except (ValueError, TypeError):
+                                pass
+
+                        # Mail-Attribute (multi-value als Listen)
+                        mail_list = attrs.get('mail', [])
+                        if isinstance(mail_list, str):
+                            mail_list = [mail_list] if mail_list else []
+                        mail_routing_list = attrs.get('mailRoutingAddress', [])
+                        if isinstance(mail_routing_list, str):
+                            mail_routing_list = [mail_routing_list] if mail_routing_list else []
+                        mail_alias_list = attrs.get('mailAliasAddress', [])
+                        if isinstance(mail_alias_list, str):
+                            mail_alias_list = [mail_alias_list] if mail_alias_list else []
+
+                        mail_alias_enabled = attrs.get('mailAliasEnabled', '')
+                        if isinstance(mail_alias_enabled, list):
+                            mail_alias_enabled = mail_alias_enabled[0] if mail_alias_enabled else ''
+                        mail_routing_enabled = attrs.get('mailRoutingEnabled', '')
+                        if isinstance(mail_routing_enabled, list):
+                            mail_routing_enabled = mail_routing_enabled[0] if mail_routing_enabled else ''
+                        mail_quota = attrs.get('mailQuota', '')
+                        if isinstance(mail_quota, list):
+                            mail_quota = mail_quota[0] if mail_quota else ''
+
                         users.append({
                             'dn': user['dn'],
                             'uid': uid,
                             'cn': cn,
                             'mail': mail,
+                            'mail_list': mail_list,
+                            'mailRoutingAddress_list': mail_routing_list,
+                            'mailAliasAddress_list': mail_alias_list,
+                            'mailAliasEnabled': mail_alias_enabled,
+                            'mailRoutingEnabled': mail_routing_enabled,
+                            'mailQuota': mail_quota,
                             'givenName': given_name,
                             'sn': sn,
                             'title': title,
                             'telephoneNumber': telephone,
                             'mobile': mobile,
                             'postalAddress': postal_address,
-                            'birthDate': birth_date,
+                            'birthDate': birth_date_iso,
+                            'birthDateDisplay': birth_date_display,
                             'relationship': relationship,
                             'parent_name': parent_name,
-                            'parent_cn': parent_cn or '',  # Für data-parent Attribut
+                            'parent_cn': parent_cn or '',
+                            'familyRole': family_role,
                             'photo_base64': photo_base64,
-                            'status': status,  # NEU: Status hinzugefügt
+                            'status': status,
                         })
 
     except LDAPConnectionError as e:
@@ -364,18 +533,30 @@ def ldap_user_search(request):
     except Exception as e:
         messages.error(request, f"LDAP Suchfehler: {str(e)}")
 
-    # Pagination: 10 Benutzer pro Seite
+    # Pagination mit waehlbarer Seitengroesse
     from django.core.paginator import Paginator
-    paginator = Paginator(users, 10)  # 10 Einträge pro Seite
+    per_page_options = [10, 20, 50, 100]
+    try:
+        per_page = int(request.GET.get('per_page', 50))
+        if per_page not in per_page_options:
+            per_page = 50
+    except (ValueError, TypeError):
+        per_page = 50
+    paginator = Paginator(users, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
+    is_mail_admin = has_permission(request.user, 'manage_mail') or request.user.is_superuser
+
     return render(request, 'ldap/user_search.html', {
-        'users': page_obj,  # Paginierte Benutzer
-        'page_obj': page_obj,  # Für Pagination-Controls
+        'users': page_obj,
+        'page_obj': page_obj,
+        'per_page': per_page,
+        'per_page_options': per_page_options,
         'search_query': search_query,
-        'status_filter': status_filter,  # NEU: Status-Filter
-        'all_users_for_parent': all_users_for_parent
+        'status_filter': status_filter,
+        'all_users_for_parent': all_users_for_parent,
+        'is_mail_admin': is_mail_admin,
     })
 
 ###############################################################################
@@ -515,7 +696,256 @@ def ldap_dashboard(request):
 
 def home(request):
     """Startseite View"""
-    return render(request, 'home.html')
+    family = None
+    if request.user.is_authenticated:
+        family = get_family_context(request.user.username)
+    return render(request, 'home.html', {'family': family})
+
+
+@login_required
+def user_dashboard(request):
+    """Persönliches Dashboard für alle Benutzer"""
+    user_photo_base64 = None
+    ldap_user_data = None
+    user_groups = []
+    family = get_family_context(request.user.username)
+
+    try:
+        with LDAPManager() as ldap_conn:
+            user_data = ldap_conn.get_user(request.user.username)
+            if user_data:
+                attrs = user_data['attributes']
+
+                def _dec(a):
+                    v = attrs.get(a, '')
+                    if isinstance(v, list):
+                        v = v[0] if v else ''
+                    if isinstance(v, bytes):
+                        v = v.decode('utf-8')
+                    return v or ''
+
+                # Alle Mail-Adressen als Listen
+                def _dec_list(a):
+                    vals = attrs.get(a, [])
+                    if isinstance(vals, str):
+                        return [vals] if vals else []
+                    return [v.decode('utf-8') if isinstance(v, bytes) else v for v in vals if v]
+
+                ldap_user_data = {
+                    'cn': _dec('cn'),
+                    'givenName': _dec('givenName'),
+                    'sn': _dec('sn'),
+                    'mail': _dec('mail'),
+                    'mail_list': _dec_list('mail'),
+                    'mailRoutingAddress_list': _dec_list('mailRoutingAddress'),
+                    'mailAliasAddress_list': _dec_list('mailAliasAddress'),
+                    'telephoneNumber': _dec('telephoneNumber'),
+                    'mobile': _dec('mobile'),
+                }
+                user_photo_base64 = ldap_conn.get_photo_as_base64(request.user.username)
+
+                # Gruppenmitgliedschaften
+                user_dn = user_data['dn']
+                groups = ldap_conn.list_groups()
+                for g in groups:
+                    g_attrs = g['attributes']
+                    g_cn = g_attrs.get('cn', '')
+                    if isinstance(g_cn, list):
+                        g_cn = g_cn[0] if g_cn else ''
+                    if user_dn in g_attrs.get('member', []):
+                        user_groups.append(g_cn)
+    except Exception as e:
+        logger.error(f"Fehler beim Laden der Dashboard-Daten: {e}")
+
+    # Gemeindeliste laden (alle Familien + Einzelmitglieder)
+    gemeinde_families = []
+    gemeinde_singles = []
+    if has_permission(request.user, 'view_members'):
+        try:
+            with LDAPManager() as ldap_conn2:
+                all_users = ldap_conn2.list_users()
+                for u in all_users:
+                    u_dn = u['dn']
+                    if ',cn=' in u_dn:
+                        continue
+                    u_attrs = u['attributes']
+                    def _da(a):
+                        v = u_attrs.get(a, [''])[0]
+                        if isinstance(v, bytes): v = v.decode('utf-8')
+                        return v or ''
+                    u_cn = _da('cn')
+                    u_gn = _da('givenName')
+                    u_sn = _da('sn')
+                    u_mail = _da('mail')
+                    u_phone = _da('telephoneNumber')
+                    u_mobile = _da('mobile')
+                    u_address = _da('postalAddress')
+                    children = ldap_conn2.list_users(parent_dn=u_dn)
+                    if children:
+                        # Ehepartner erkennen
+                        spouse_name = ''
+                        child_names = []
+                        for c in children:
+                            c_attrs = c['attributes']
+                            c_gn = c_attrs.get('givenName', [''])[0]
+                            c_sn = c_attrs.get('sn', [''])[0]
+                            c_role = c_attrs.get('familyRole', [''])[0]
+                            if isinstance(c_gn, bytes): c_gn = c_gn.decode('utf-8')
+                            if isinstance(c_sn, bytes): c_sn = c_sn.decode('utf-8')
+                            if isinstance(c_role, bytes): c_role = c_role.decode('utf-8')
+                            if c_role == 'spouse':
+                                spouse_name = f"{c_gn} {c_sn}"
+                            else:
+                                child_names.append(f"{c_gn}")
+                        gemeinde_families.append({
+                            'name': u_sn,
+                            'head': f"{u_gn} {u_sn}",
+                            'spouse': spouse_name,
+                            'children': child_names,
+                            'phone': u_phone,
+                            'mobile': u_mobile,
+                            'address': u_address,
+                            'email': u_mail,
+                            'member_count': len(children) + 1,
+                        })
+                    else:
+                        gemeinde_singles.append({
+                            'name': f"{u_gn} {u_sn}",
+                            'phone': u_phone,
+                            'mobile': u_mobile,
+                            'address': u_address,
+                            'email': u_mail,
+                        })
+                gemeinde_families.sort(key=lambda f: f['name'])
+                gemeinde_singles.sort(key=lambda s: s['name'])
+        except Exception as e:
+            logger.error(f"Fehler beim Laden der Gemeindeliste: {e}")
+
+    return render(request, 'dashboard/user_dashboard.html', {
+        'ldap_user_data': ldap_user_data,
+        'user_photo_base64': user_photo_base64,
+        'user_groups': user_groups,
+        'family': family,
+        'is_admin': is_ldap_admin(request.user),
+        'gemeinde_families': gemeinde_families,
+        'gemeinde_singles': gemeinde_singles,
+    })
+
+
+@login_required
+def family_manage(request):
+    """Familienansicht: Oberhaupt kann bearbeiten, Mitglieder können ansehen"""
+    family = get_family_context(request.user.username)
+
+    if not family['is_head'] and not family['is_child']:
+        messages.info(request, 'Sie sind keiner Familie zugeordnet.')
+        return redirect('user_dashboard')
+
+    return render(request, 'dashboard/family_manage.html', {
+        'family': family,
+    })
+
+
+@login_required
+def family_member_edit(request, cn):
+    """Familienoberhaupt bearbeitet ein Familienmitglied"""
+    family = get_family_context(request.user.username)
+
+    # Nur Familienoberhäupter dürfen bearbeiten
+    if not family['is_head']:
+        messages.error(request, 'Sie haben keine Berechtigung, Familienmitglieder zu bearbeiten.')
+        return redirect('user_dashboard')
+
+    # Prüfe ob das Kind zur Familie gehört
+    child_cns = [c['cn'] for c in family['children']]
+    if cn not in child_cns:
+        messages.error(request, 'Dieses Familienmitglied gehört nicht zu Ihrer Familie.')
+        return redirect('family_manage')
+
+    try:
+        with LDAPManager() as ldap_conn:
+            child = ldap_conn.get_user(cn, parent_cn=request.user.username)
+            if not child:
+                messages.error(request, 'Familienmitglied nicht gefunden.')
+                return redirect('family_manage')
+
+            attrs = child['attributes']
+            def _dec(a):
+                v = attrs.get(a, '')
+                if isinstance(v, list):
+                    v = v[0] if v else ''
+                if isinstance(v, bytes):
+                    v = v.decode('utf-8')
+                return v or ''
+
+            birth_raw = _dec('birthDate')
+            birth_iso = ''
+            if birth_raw:
+                try:
+                    from datetime import datetime
+                    birth_iso = datetime.strptime(str(birth_raw)[:8], '%Y%m%d').strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    pass
+
+            member_data = {
+                'cn': cn,
+                'givenName': _dec('givenName'),
+                'sn': _dec('sn'),
+                'mail': _dec('mail'),
+                'telephoneNumber': _dec('telephoneNumber'),
+                'mobile': _dec('mobile'),
+                'postalAddress': _dec('postalAddress'),
+                'birthDateISO': birth_iso,
+                'familyRole': _dec('familyRole'),
+                'photo_base64': ldap_conn.get_photo_as_base64(cn),
+            }
+
+            if request.method == 'POST':
+                update_attrs = {
+                    'givenName': request.POST.get('givenName', '').strip(),
+                    'sn': request.POST.get('sn', '').strip(),
+                }
+                update_attrs['displayName'] = f"{update_attrs['givenName']} {update_attrs['sn']}"
+
+                for field in ('telephoneNumber', 'mobile', 'postalAddress'):
+                    val = request.POST.get(field, '').strip()
+                    if val:
+                        update_attrs[field] = val
+
+                birth_date = request.POST.get('birthDate', '').strip()
+                if birth_date:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.strptime(birth_date, '%Y-%m-%d')
+                        update_attrs['birthDate'] = dt.strftime('%Y%m%d000000Z')
+                    except ValueError:
+                        pass
+
+                # Familienrolle
+                family_role = request.POST.get('familyRole', '').strip()
+                if family_role:
+                    update_attrs['familyRole'] = family_role
+
+                photo_file = request.FILES.get('jpegPhoto')
+                if photo_file:
+                    try:
+                        photo_bytes = ldap_conn.process_photo(photo_file)
+                        update_attrs['jpegPhoto'] = photo_bytes
+                    except LDAPValidationError as e:
+                        messages.error(request, f'Foto-Fehler: {str(e)}')
+                        return render(request, 'dashboard/family_member_edit.html', {'member': member_data})
+
+                ldap_conn.update_user(cn, update_attrs, parent_cn=request.user.username)
+                messages.success(request, f'{update_attrs["givenName"]} wurde aktualisiert!')
+                return redirect('family_manage')
+
+    except LDAPOperationError as e:
+        messages.error(request, f'LDAP-Fehler: {str(e)}')
+    except Exception as e:
+        messages.error(request, f'Fehler: {str(e)}')
+
+    return render(request, 'dashboard/family_member_edit.html', {'member': member_data})
+
 
 def ldap_login(request):
     """LDAP Login View die direkt im LDAP sucht und authentifiziert"""
@@ -610,7 +1040,14 @@ def ldap_login(request):
                     )
 
                     messages.success(request, f'Willkommen zurück, {user.get_full_name() or user.username}!')
-                    return redirect('ldap_dashboard')
+                    next_url = request.GET.get('next') or request.POST.get('next')
+                    # Nur weiterleiten wenn next nicht auf eine Admin-Seite zeigt
+                    # die der User nicht sehen darf
+                    if next_url and not (next_url.startswith('/ldap') and not is_ldap_admin(user)):
+                        return redirect(next_url)
+                    if is_ldap_admin(user):
+                        return redirect('ldap_dashboard')
+                    return redirect('user_dashboard')
                 else:
                     messages.error(request, 'Ungültiger Benutzername oder Passwort.')
             except DBIntegrityError as e:
@@ -667,7 +1104,12 @@ def ldap_login(request):
                             )
 
                             messages.success(request, f'Willkommen zurück, {existing_user.get_full_name() or existing_user.username}!')
-                            return redirect('ldap_dashboard')
+                            next_url = request.GET.get('next') or request.POST.get('next')
+                            if next_url and not (next_url.startswith('/ldap') and not is_ldap_admin(existing_user)):
+                                return redirect(next_url)
+                            if is_ldap_admin(existing_user):
+                                return redirect('ldap_dashboard')
+                            return redirect('user_dashboard')
 
                         except ldap.INVALID_CREDENTIALS:
                             print(f"DEBUG: LDAP Bind fehlgeschlagen - ungültige Credentials")
@@ -782,20 +1224,49 @@ def profile(request):
                 if isinstance(postal_address, list):
                     postal_address = postal_address[0] if postal_address else ''
 
-                birth_date = attrs.get('birthDate', '')
-                if isinstance(birth_date, list):
-                    birth_date = birth_date[0] if birth_date else ''
+                birth_date_raw = attrs.get('birthDate', '')
+                if isinstance(birth_date_raw, list):
+                    birth_date_raw = birth_date_raw[0] if birth_date_raw else ''
+                # LDAP-Datum (z.B. "19690324220000Z") in lesbares Format umwandeln
+                birth_date_display = ''
+                birth_date_iso = ''
+                if birth_date_raw:
+                    try:
+                        from datetime import datetime
+                        # Versuche LDAP generalizedTime Format
+                        dt = datetime.strptime(str(birth_date_raw)[:8], '%Y%m%d')
+                        birth_date_display = dt.strftime('%d.%m.%Y')
+                        birth_date_iso = dt.strftime('%Y-%m-%d')
+                    except (ValueError, TypeError):
+                        birth_date_display = str(birth_date_raw)
+                        birth_date_iso = ''
+
+                # Externe mailRoutingAddress-Liste (nicht @example-church.de)
+                notification_emails = []
+                routing_addrs = attrs.get('mailRoutingAddress', [])
+                for addr in routing_addrs:
+                    if isinstance(addr, list):
+                        addr = addr[0] if addr else ''
+                    if isinstance(addr, bytes):
+                        addr = addr.decode('utf-8')
+                    addr = addr.strip()
+                    if addr and not addr.lower().endswith('@example-church.de'):
+                        notification_emails.append(addr)
+                notification_email = notification_emails[0] if notification_emails else ''
 
                 ldap_user_data = {
                     'cn': cn,
                     'givenName': given_name,
                     'sn': sn,
                     'mail': mail,
+                    'notification_email': notification_email,
+                    'notification_emails': notification_emails,
                     'title': title,
                     'telephoneNumber': telephone,
                     'mobile': mobile,
                     'postalAddress': postal_address,
-                    'birthDate': birth_date,
+                    'birthDate': birth_date_display,
+                    'birthDateISO': birth_date_iso,
                     'dn': user_data['dn'],
                 }
                 user_photo_base64 = ldap.get_photo_as_base64(request.user.username)
@@ -819,8 +1290,51 @@ def profile(request):
 
     # Verarbeite POST-Requests
     if request.method == 'POST':
+        # Profildaten ändern
+        if 'profile_update' in request.POST and is_ldap_user:
+            try:
+                update_attrs = {
+                    'givenName': request.POST.get('givenName', '').strip(),
+                    'sn': request.POST.get('sn', '').strip(),
+                }
+                update_attrs['displayName'] = f"{update_attrs['givenName']} {update_attrs['sn']}"
+
+                # Optionale Felder
+                title = request.POST.get('title', '').strip()
+                if title:
+                    update_attrs['title'] = title
+
+                telephone = request.POST.get('telephoneNumber', '').strip()
+                if telephone:
+                    update_attrs['telephoneNumber'] = telephone
+
+                mobile = request.POST.get('mobile', '').strip()
+                if mobile:
+                    update_attrs['mobile'] = mobile
+
+                postal_address = request.POST.get('postalAddress', '').strip()
+                if postal_address:
+                    update_attrs['postalAddress'] = postal_address
+
+                birth_date = request.POST.get('birthDate', '').strip()
+                if birth_date:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.strptime(birth_date, '%Y-%m-%d')
+                        update_attrs['birthDate'] = dt.strftime('%Y%m%d000000Z')
+                    except ValueError:
+                        pass
+
+                with LDAPManager() as ldap_conn:
+                    ldap_conn.update_user(request.user.username, update_attrs)
+
+                messages.success(request, 'Ihre Profildaten wurden erfolgreich aktualisiert!')
+                return redirect('profile')
+            except Exception as e:
+                messages.error(request, f'Fehler beim Speichern: {str(e)}')
+
         # Foto-Upload
-        if 'jpegPhoto' in request.FILES:
+        elif 'jpegPhoto' in request.FILES:
             photo_file = request.FILES.get('jpegPhoto')
             if photo_file and is_ldap_user:
                 try:
@@ -833,6 +1347,31 @@ def profile(request):
                     messages.error(request, f'Foto-Fehler: {str(e)}')
                 except Exception as e:
                     messages.error(request, f'Fehler beim Hochladen des Fotos: {str(e)}')
+
+        # Benachrichtigungs-E-Mails ändern (CRUD-Liste)
+        elif 'notification_emails' in request.POST:
+            raw = request.POST.get('notification_emails', '').strip()
+            if is_ldap_user:
+                try:
+                    new_external = [a.strip() for a in raw.splitlines() if a.strip()] if raw else []
+                    with LDAPManager() as ldap_conn:
+                        user_data_fresh = ldap_conn.get_user(request.user.username)
+                        if user_data_fresh:
+                            attrs = user_data_fresh['attributes']
+                            # Interne Adressen behalten
+                            internal = []
+                            for addr in attrs.get('mailRoutingAddress', []):
+                                if isinstance(addr, bytes):
+                                    addr = addr.decode('utf-8')
+                                addr = addr.strip()
+                                if addr and addr.lower().endswith('@example-church.de'):
+                                    internal.append(addr)
+                            new_addrs = new_external + internal
+                            ldap_conn.update_user(request.user.username, {'mailRoutingAddress': new_addrs})
+                            messages.success(request, 'Ihre Benachrichtigungs-E-Mails wurden aktualisiert!')
+                            return redirect('profile')
+                except Exception as e:
+                    messages.error(request, f'Fehler beim Ändern der E-Mails: {str(e)}')
 
         # Passwort-Änderung
         elif 'current_password' in request.POST:
@@ -882,90 +1421,122 @@ def family_tree(request):
         messages.error(request, 'Sie haben keine Berechtigung, die Gemeindeliste anzusehen.')
         return redirect('home')
     families = []
+    singles = []
     total_members = 0
     largest_family = {'member_count': 0}
 
     try:
         with LDAPManager() as ldap:
-            # Hole alle Root-Benutzer (ohne Parent)
+            # Hole alle Root-Benutzer (Top-Level, ohne Parent)
             all_users = ldap.list_users()
 
-            # Finde alle Benutzer die Kinder haben (= Familienoberhäupter)
             for user in all_users:
                 user_dn = user['dn']
+
+                # Ueberspringe nested User (Kinder/Ehepartner)
+                if ',cn=' in user_dn:
+                    continue
+
                 cn = user['attributes'].get('cn', [b''])[0]
                 if isinstance(cn, bytes):
                     cn = cn.decode('utf-8')
 
-                # Hole Kinder dieses Benutzers
+                given_name = user['attributes'].get('givenName', [b''])[0]
+                sn = user['attributes'].get('sn', [b''])[0]
+                mail = user['attributes'].get('mail', [b''])[0]
+
+                if isinstance(given_name, bytes):
+                    given_name = given_name.decode('utf-8')
+                if isinstance(sn, bytes):
+                    sn = sn.decode('utf-8')
+                if isinstance(mail, bytes):
+                    mail = mail.decode('utf-8')
+
+                # Hole Kinder/Ehepartner dieses Users
                 children = ldap.list_users(parent_dn=user_dn)
 
-                if children:  # Nur wenn Kinder existieren
-                    # Dekodiere Attribute
-                    given_name = user['attributes'].get('givenName', [b''])[0]
-                    sn = user['attributes'].get('sn', [b''])[0]
-                    mail = user['attributes'].get('mail', [b''])[0]
+                family_name = sn or cn
+                member_count = len(children) + 1
+                total_members += member_count
 
-                    if isinstance(given_name, bytes):
-                        given_name = given_name.decode('utf-8')
-                    if isinstance(sn, bytes):
-                        sn = sn.decode('utf-8')
-                    if isinstance(mail, bytes):
-                        mail = mail.decode('utf-8')
+                if not children:
+                    # Einzelmitglied (keine Familie)
+                    singles.append({
+                        'cn': cn,
+                        'name': f"{given_name} {sn}",
+                        'email': mail,
+                        'photo_base64': ldap.get_photo_as_base64(cn),
+                    })
+                    continue
 
-                    family_name = sn or cn
-                    member_count = len(children) + 1  # +1 für Elternteil
-                    total_members += member_count
+                # Baue Kinder-Liste und erkenne Ehepartner
+                children_list = []
+                spouse = None
+                for child in children:
+                    child_attrs = child['attributes']
+                    child_cn = child_attrs.get('cn', [b''])[0]
+                    child_given_name = child_attrs.get('givenName', [b''])[0]
+                    child_sn = child_attrs.get('sn', [b''])[0]
+                    child_mail = child_attrs.get('mail', [b''])[0]
 
-                    # Baue Kinder-Liste
-                    children_list = []
-                    for child in children:
-                        child_cn = child['attributes'].get('cn', [b''])[0]
-                        child_given_name = child['attributes'].get('givenName', [b''])[0]
-                        child_sn = child['attributes'].get('sn', [b''])[0]
-                        child_mail = child['attributes'].get('mail', [b''])[0]
+                    if isinstance(child_cn, bytes):
+                        child_cn = child_cn.decode('utf-8')
+                    if isinstance(child_given_name, bytes):
+                        child_given_name = child_given_name.decode('utf-8')
+                    if isinstance(child_sn, bytes):
+                        child_sn = child_sn.decode('utf-8')
+                    if isinstance(child_mail, bytes):
+                        child_mail = child_mail.decode('utf-8')
 
-                        if isinstance(child_cn, bytes):
-                            child_cn = child_cn.decode('utf-8')
-                        if isinstance(child_given_name, bytes):
-                            child_given_name = child_given_name.decode('utf-8')
-                        if isinstance(child_sn, bytes):
-                            child_sn = child_sn.decode('utf-8')
-                        if isinstance(child_mail, bytes):
-                            child_mail = child_mail.decode('utf-8')
+                    # Ehepartner erkennen via familyRole LDAP-Attribut
+                    family_role = child_attrs.get('familyRole', [b''])[0]
+                    if isinstance(family_role, bytes):
+                        family_role = family_role.decode('utf-8')
+                    is_spouse = family_role.lower() == 'spouse'
 
-                        children_list.append({
-                            'cn': child_cn,
-                            'name': f"{child_given_name} {child_sn}",
-                            'email': child_mail,
-                        })
-
-                    family = {
-                        'head_cn': cn,
-                        'name': family_name,
-                        'head_name': f"{given_name} {sn}",
-                        'head_email': mail,
-                        'member_count': member_count,
-                        'children': children_list,
+                    entry = {
+                        'cn': child_cn,
+                        'name': f"{child_given_name} {child_sn}",
+                        'email': child_mail,
+                        'is_spouse': is_spouse,
                     }
 
-                    families.append(family)
+                    if is_spouse and not spouse:
+                        spouse = entry
+                    else:
+                        children_list.append(entry)
 
-                    # Track größte Familie
-                    if member_count > largest_family['member_count']:
-                        largest_family = {'name': family_name, 'member_count': member_count}
+                family = {
+                    'head_cn': cn,
+                    'name': family_name,
+                    'head_name': f"{given_name} {sn}",
+                    'head_email': mail,
+                    'spouse': spouse,
+                    'member_count': member_count,
+                    'children': children_list,
+                }
+
+                families.append(family)
+
+                # Track groesste Familie
+                if member_count > largest_family['member_count']:
+                    largest_family = {'name': family_name, 'member_count': member_count}
 
     except LDAPConnectionError as e:
+        logger.error(f"Family-Tree LDAP-Verbindungsfehler: {e}")
         messages.error(request, f"LDAP-Verbindungsfehler: {str(e)}")
     except Exception as e:
+        logger.error(f"Family-Tree Fehler: {e}", exc_info=True)
         messages.error(request, f"Fehler beim Laden der Familien: {str(e)}")
 
     context = {
-        'families': families,
+        'families': sorted(families, key=lambda f: f['name']),
+        'singles': sorted(singles, key=lambda s: s['name']),
         'total_members': total_members,
+        'total_families': len(families),
+        'total_singles': len(singles),
         'largest_family': largest_family,
     }
-
     return render(request, 'ldap/family_tree.html', context)
 
 
@@ -1107,33 +1678,115 @@ def user_edit(request, cn):
         messages.error(request, 'Sie haben keine Berechtigung, Benutzer zu bearbeiten.')
         return redirect('family_tree')
     ldap_user = None
+    is_mail_admin = has_permission(request.user, 'manage_mail') or request.user.is_superuser
 
     try:
         with LDAPManager() as ldap:
+            # Suche User direkt oder als Kind
             user = ldap.get_user(cn)
+            if not user:
+                # Suche als nested User unter allen Eltern
+                all_users = ldap.list_users()
+                for u in all_users:
+                    u_cn = u['attributes'].get('cn', [''])[0]
+                    if isinstance(u_cn, bytes):
+                        u_cn = u_cn.decode('utf-8')
+                    if u_cn == cn:
+                        user = u
+                        break
             if not user:
                 messages.error(request, 'Benutzer nicht gefunden.')
                 return redirect('family_tree')
 
             # Dekodiere Attribute
             attributes = user['attributes']
+            def _decode_attr(attrs, name, default=''):
+                val = attrs.get(name, [b''])[0]
+                return val.decode('utf-8') if isinstance(val, bytes) else (val or default)
+
+            def _decode_attr_list(attrs, name):
+                """Dekodiert multi-value LDAP-Attribute als Liste"""
+                values = attrs.get(name, [])
+                result = []
+                for val in values:
+                    if isinstance(val, bytes):
+                        val = val.decode('utf-8')
+                    val = val.strip()
+                    if val:
+                        result.append(val)
+                return result
+
             ldap_user = {
                 'cn': cn,
-                'givenName': attributes.get('givenName', [b''])[0].decode('utf-8') if isinstance(attributes.get('givenName', [b''])[0], bytes) else attributes.get('givenName', [''])[0],
-                'sn': attributes.get('sn', [b''])[0].decode('utf-8') if isinstance(attributes.get('sn', [b''])[0], bytes) else attributes.get('sn', [''])[0],
-                'mail': attributes.get('mail', [b''])[0].decode('utf-8') if isinstance(attributes.get('mail', [b''])[0], bytes) else attributes.get('mail', [''])[0],
-                'displayName': attributes.get('displayName', [b''])[0].decode('utf-8') if isinstance(attributes.get('displayName', [b''])[0], bytes) else attributes.get('displayName', [''])[0],
+                'givenName': _decode_attr(attributes, 'givenName'),
+                'sn': _decode_attr(attributes, 'sn'),
+                'mail': _decode_attr(attributes, 'mail'),
+                'mail_list': _decode_attr_list(attributes, 'mail'),
+                'mailRoutingAddress': _decode_attr(attributes, 'mailRoutingAddress'),
+                'mailRoutingAddress_list': _decode_attr_list(attributes, 'mailRoutingAddress'),
+                'mailAliasAddress_list': _decode_attr_list(attributes, 'mailAliasAddress'),
+                'mailAliasEnabled': _decode_attr(attributes, 'mailAliasEnabled'),
+                'mailRoutingEnabled': _decode_attr(attributes, 'mailRoutingEnabled'),
+                'mailQuota': _decode_attr(attributes, 'mailQuota'),
+                'displayName': _decode_attr(attributes, 'displayName'),
                 'photo_base64': ldap.get_photo_as_base64(cn),
             }
+
+            # Geburtsdatum aus LDAP-Format parsen
+            birth_date_raw = _decode_attr(attributes, 'birthDate')
+            if birth_date_raw:
+                try:
+                    from datetime import datetime
+                    dt = datetime.strptime(str(birth_date_raw)[:8], '%Y%m%d')
+                    ldap_user['birthDate'] = dt.strftime('%d.%m.%Y')
+                    ldap_user['birthDateISO'] = dt.strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    ldap_user['birthDate'] = birth_date_raw
+                    ldap_user['birthDateISO'] = ''
+            else:
+                ldap_user['birthDate'] = ''
+                ldap_user['birthDateISO'] = ''
+
+            # is_mail_admin bereits oben gesetzt
 
             if request.method == 'POST':
                 # Update Attribute
                 new_attributes = {
                     'givenName': request.POST.get('givenName'),
                     'sn': request.POST.get('sn'),
-                    'mail': request.POST.get('mail', ''),
                     'displayName': f"{request.POST.get('givenName')} {request.POST.get('sn')}",
                 }
+
+                # Private E-Mail (mailRoutingAddress) - editierbar
+                private_mail = request.POST.get('mailRoutingAddress', '')
+                if private_mail:
+                    new_attributes['mailRoutingAddress'] = private_mail
+
+                # Admin-Mail-Attribute (nur mit manage_mail Berechtigung)
+                if has_permission(request.user, 'manage_mail') or request.user.is_superuser:
+                    # Multi-value Felder: Zeilenweise getrennt
+                    mail_values = request.POST.get('mail_list', '').strip()
+                    if mail_values:
+                        new_attributes['mail'] = [v.strip() for v in mail_values.splitlines() if v.strip()]
+
+                    routing_values = request.POST.get('mailRoutingAddress_list', '').strip()
+                    if routing_values:
+                        new_attributes['mailRoutingAddress'] = [v.strip() for v in routing_values.splitlines() if v.strip()]
+
+                    alias_values = request.POST.get('mailAliasAddress_list', '').strip()
+                    if alias_values:
+                        new_attributes['mailAliasAddress'] = [v.strip() for v in alias_values.splitlines() if v.strip()]
+
+                    # Mail-Flags nur setzen wenn User mailExtension hat
+                    user_oc = attributes.get('objectClass', [])
+                    user_oc_str = [o.decode('utf-8') if isinstance(o, bytes) else o for o in user_oc]
+                    if 'mailExtension' in user_oc_str:
+                        new_attributes['mailAliasEnabled'] = 'TRUE' if request.POST.get('mailAliasEnabled') else 'FALSE'
+                        new_attributes['mailRoutingEnabled'] = 'TRUE' if request.POST.get('mailRoutingEnabled') else 'FALSE'
+
+                        mail_quota = request.POST.get('mailQuota', '').strip()
+                        if mail_quota:
+                            new_attributes['mailQuota'] = mail_quota
 
                 # Optional: Weitere Felder
                 title = request.POST.get('title', '')
@@ -1154,7 +1807,18 @@ def user_edit(request, cn):
 
                 birth_date = request.POST.get('birthDate', '')
                 if birth_date:
-                    new_attributes['birthDate'] = birth_date
+                    # ISO-Datum (YYYY-MM-DD) ins LDAP generalizedTime-Format konvertieren
+                    try:
+                        from datetime import datetime
+                        dt = datetime.strptime(birth_date, '%Y-%m-%d')
+                        new_attributes['birthDate'] = dt.strftime('%Y%m%d000000Z')
+                    except ValueError:
+                        new_attributes['birthDate'] = birth_date
+
+                # Familienrolle
+                family_role = request.POST.get('familyRole', '').strip()
+                if family_role:
+                    new_attributes['familyRole'] = family_role
 
                 # Optional: Passwort ändern mit Validierung
                 new_password = request.POST.get('password')
@@ -1165,13 +1829,13 @@ def user_edit(request, cn):
                         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                             from django.http import JsonResponse
                             return JsonResponse({'success': False, 'error': 'Passwörter stimmen nicht überein'}, status=400)
-                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user})
+                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user, 'is_mail_admin': is_mail_admin})
                     if len(new_password) < 8:
                         messages.error(request, 'Das Passwort muss mindestens 8 Zeichen lang sein.')
                         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                             from django.http import JsonResponse
                             return JsonResponse({'success': False, 'error': 'Passwort zu kurz'}, status=400)
-                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user})
+                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user, 'is_mail_admin': is_mail_admin})
                     new_attributes['userPassword'] = new_password
 
                 # Optional: Foto hochladen
@@ -1185,11 +1849,61 @@ def user_edit(request, cn):
                         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                             from django.http import JsonResponse
                             return JsonResponse({'success': False, 'error': str(e)}, status=400)
-                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user})
+                        return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user, 'is_mail_admin': is_mail_admin})
 
-                ldap.update_user(cn, new_attributes)
+                # Parent-CN aus DN extrahieren
+                user_dn = user['dn']
+                old_parent_cn = None
+                if ',cn=' in user_dn:
+                    parts = user_dn.split(',')
+                    if len(parts) >= 2 and parts[1].startswith('cn='):
+                        old_parent_cn = parts[1][3:]
 
-                messages.success(request, 'Benutzer erfolgreich aktualisiert!')
+                new_parent_cn = request.POST.get('parent_cn', '').strip() or None
+
+                # Heirats-Logik: familyRole=spouse + parent_cn gesetzt
+                # => automatisch zum Partner verschieben
+                if family_role == 'spouse' and new_parent_cn and new_parent_cn != old_parent_cn:
+                    # Nachname ändert sich vermutlich bei Heirat
+                    new_sn = new_attributes.get('sn', '')
+                    new_given = new_attributes.get('givenName', '')
+                    old_sn = user['attributes'].get('sn', [''])[0]
+                    if isinstance(old_sn, bytes):
+                        old_sn = old_sn.decode('utf-8')
+
+                    # Neuen CN generieren wenn Nachname sich geaendert hat
+                    new_cn = f"{new_given}.{new_sn}" if new_sn != old_sn else cn
+
+                    # Attribute updaten (noch am alten Ort)
+                    ldap.update_user(cn, new_attributes, parent_cn=old_parent_cn)
+
+                    # User zum Partner verschieben
+                    ldap.move_user(cn, old_parent_cn=old_parent_cn, new_parent_cn=new_parent_cn)
+
+                    # CN umbenennen wenn Nachname geaendert
+                    if new_cn != cn:
+                        old_dn_after_move = ldap.build_dn(cn, ldap.build_dn(new_parent_cn))
+                        new_rdn = f"cn={new_cn}"
+                        ldap.conn.rename_s(old_dn_after_move, new_rdn)
+                        # Auch uid, homeDirectory, mail etc. anpassen
+                        update_after_rename = {
+                            'uid': new_cn,
+                            'homeDirectory': f'/home/example-church.de/{new_cn}',
+                            'displayName': f"{new_given} {new_sn}",
+                        }
+                        ldap.update_user(new_cn, update_after_rename, parent_cn=new_parent_cn)
+                        messages.success(request, f'{new_given} {old_sn} hat geheiratet und heisst jetzt {new_given} {new_sn}! Verschoben zu Familie {new_parent_cn}.')
+                    else:
+                        messages.success(request, f'{new_given} wurde als Ehepartner zu {new_parent_cn} verschoben!')
+
+                elif new_parent_cn != old_parent_cn:
+                    # Normales Verschieben (kein Heirat)
+                    ldap.update_user(cn, new_attributes, parent_cn=old_parent_cn)
+                    ldap.move_user(cn, old_parent_cn=old_parent_cn, new_parent_cn=new_parent_cn)
+                    messages.success(request, f'Benutzer aktualisiert und {"zu " + new_parent_cn + " verschoben" if new_parent_cn else "auf Top-Level verschoben"}!')
+                else:
+                    ldap.update_user(cn, new_attributes, parent_cn=old_parent_cn)
+                    messages.success(request, 'Benutzer erfolgreich aktualisiert!')
 
                 # Bei AJAX-Request JSON zurückgeben
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1209,7 +1923,7 @@ def user_edit(request, cn):
             from django.http import JsonResponse
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-    return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user})
+    return render(request, 'ldap/user_edit.html', {'ldap_user': ldap_user, 'is_mail_admin': is_mail_admin})
 
 
 @login_required
@@ -1473,15 +2187,24 @@ def group_list(request):
     except Exception as e:
         messages.error(request, f"LDAP Suchfehler: {str(e)}")
 
-    # Pagination: 10 Gruppen pro Seite
+    # Pagination mit waehlbarer Seitengroesse
     from django.core.paginator import Paginator
-    paginator = Paginator(groups, 10)  # 10 Einträge pro Seite
+    per_page_options = [10, 20, 50, 100]
+    try:
+        per_page = int(request.GET.get('per_page', 50))
+        if per_page not in per_page_options:
+            per_page = 50
+    except (ValueError, TypeError):
+        per_page = 50
+    paginator = Paginator(groups, per_page)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'ldap/group_list.html', {
-        'groups': page_obj,  # Paginierte Gruppen
-        'page_obj': page_obj,  # Für Pagination-Controls
+        'groups': page_obj,
+        'page_obj': page_obj,
+        'per_page': per_page,
+        'per_page_options': per_page_options,
         'search_query': search_query,
     })
 
@@ -1906,3 +2629,200 @@ def member_add_existing(request):
             messages.error(request, f'Fehler: {str(e)}')
 
     return redirect('member_add')
+
+
+# ==================== BACKUP VIEWS ====================
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def backup_dashboard(request):
+    """
+    Backup-Dashboard mit Historie und Steuerung
+    """
+    from .models import LDAPBackup
+    from django.core.management import call_command
+    from io import StringIO
+
+    # Hole alle Backups (neueste zuerst)
+    backups = LDAPBackup.objects.all().order_by('-created_at')
+
+    # Statistiken
+    stats = {
+        'total_backups': backups.count(),
+        'completed': backups.filter(status='completed').count(),
+        'failed': backups.filter(status='failed').count(),
+        'running': backups.filter(status='running').count(),
+    }
+
+    # Berechne Gesamtgröße
+    total_size = sum([b.file_size for b in backups.filter(status='completed')])
+    stats['total_size_mb'] = round(total_size / (1024 * 1024), 2)
+
+    # Neustes erfolgreiches Backup
+    last_successful = backups.filter(status='completed').first()
+    stats['last_successful'] = last_successful
+
+    # Handle Backup-Erstellung
+    if request.method == 'POST':
+        backup_type = request.POST.get('backup_type', 'full')
+
+        try:
+            out = StringIO()
+            call_command(
+                'backup_ldap',
+                '--type=' + backup_type,
+                '--username=' + request.user.username,
+                '--notes=' + request.POST.get('notes', ''),
+                stdout=out
+            )
+            messages.success(request, f'Backup "{backup_type}" wurde erfolgreich erstellt!')
+        except Exception as e:
+            messages.error(request, f'Backup fehlgeschlagen: {str(e)}')
+
+        return redirect('backup_dashboard')
+
+    context = {
+        'backups': backups[:20],  # Nur die letzten 20 anzeigen
+        'stats': stats,
+        'backup_types': [
+            ('full', 'Vollständig (alle Daten)'),
+            ('users', 'Nur Benutzer'),
+            ('groups', 'Nur Gruppen'),
+            ('domains', 'Nur Mail-Domains'),
+        ]
+    }
+
+    return render(request, 'backup/dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def backup_download(request, backup_id):
+    """
+    Download eines Backups
+    """
+    from .models import LDAPBackup
+    from django.http import FileResponse, Http404
+    import os
+
+    try:
+        backup = LDAPBackup.objects.get(id=backup_id)
+
+        if backup.status != 'completed':
+            messages.error(request, 'Nur abgeschlossene Backups können heruntergeladen werden.')
+            return redirect('backup_dashboard')
+
+        if not os.path.exists(backup.file_path):
+            messages.error(request, 'Backup-Datei nicht gefunden.')
+            return redirect('backup_dashboard')
+
+        response = FileResponse(open(backup.file_path, 'rb'))
+        response['Content-Disposition'] = f'attachment; filename="{backup.filename}"'
+        return response
+
+    except LDAPBackup.DoesNotExist:
+        raise Http404("Backup nicht gefunden")
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def backup_delete(request, backup_id):
+    """
+    Lösche ein Backup (Datei + DB-Eintrag)
+    """
+    from .models import LDAPBackup
+
+    try:
+        backup = LDAPBackup.objects.get(id=backup_id)
+
+        if request.method == 'POST':
+            # Lösche Datei
+            if backup.delete_file():
+                messages.success(request, f'Backup-Datei "{backup.filename}" wurde gelöscht.')
+            else:
+                messages.warning(request, 'Backup-Datei konnte nicht gelöscht werden (existiert möglicherweise nicht).')
+
+            # Lösche DB-Eintrag
+            backup.delete()
+            messages.success(request, 'Backup-Eintrag wurde aus der Datenbank entfernt.')
+
+            return redirect('backup_dashboard')
+
+        context = {
+            'backup': backup
+        }
+        return render(request, 'backup/confirm_delete.html', context)
+
+    except LDAPBackup.DoesNotExist:
+        messages.error(request, 'Backup nicht gefunden.')
+        return redirect('backup_dashboard')
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def backup_cleanup(request):
+    """
+    Lösche alte Backups, behalte nur die neuesten n
+    """
+    from .models import LDAPBackup
+
+    if request.method == 'POST':
+        keep_count = int(request.POST.get('keep_count', 10))
+
+        deleted = LDAPBackup.cleanup_old_backups(keep_count)
+        messages.success(request, f'{deleted} alte Backup(s) wurden gelöscht. Die neuesten {keep_count} wurden behalten.')
+
+        return redirect('backup_dashboard')
+
+    context = {
+        'total_backups': LDAPBackup.objects.filter(status='completed').count()
+    }
+    return render(request, 'backup/cleanup.html', context)
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def backup_restore(request, backup_id):
+    """
+    Restore eines LDAP-Backups
+    """
+    from .models import LDAPBackup
+    from django.core.management import call_command
+    from io import StringIO
+    import os
+
+    try:
+        backup = LDAPBackup.objects.get(id=backup_id)
+
+        if backup.status != 'completed':
+            messages.error(request, 'Nur abgeschlossene Backups koennen wiederhergestellt werden.')
+            return redirect('backup_dashboard')
+
+        if not os.path.exists(backup.file_path):
+            messages.error(request, 'Backup-Datei nicht gefunden.')
+            return redirect('backup_dashboard')
+
+        if request.method == 'POST':
+            confirm = request.POST.get('confirm', '')
+            if confirm != 'RESTORE':
+                messages.error(request, 'Bitte geben Sie RESTORE ein um die Wiederherstellung zu bestaetigen.')
+                return render(request, 'backup/confirm_restore.html', {'backup': backup})
+
+            try:
+                out = StringIO()
+                call_command(
+                    'restore_ldap',
+                    backup.file_path,
+                    stdout=out
+                )
+                messages.success(request, f'Backup "{backup.filename}" wurde erfolgreich wiederhergestellt!')
+            except Exception as e:
+                messages.error(request, f'Restore fehlgeschlagen: {str(e)}')
+
+            return redirect('backup_dashboard')
+
+        return render(request, 'backup/confirm_restore.html', {'backup': backup})
+
+    except LDAPBackup.DoesNotExist:
+        messages.error(request, 'Backup nicht gefunden.')
+        return redirect('backup_dashboard')

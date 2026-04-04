@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}LDAP Backup - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="church-title">
+                <i class="bi bi-shield-check"></i> LDAP Backup & Restore
+            </h1>
+            <p class="text-muted">Automatische LDIF-Exporte mit Historie und Wiederherstellung</p>
+        </div>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card church-card">
+                <div class="card-body text-center">
+                    <h3 class="church-gold">{{ stats.total_backups }}</h3>
+                    <p class="mb-0">Backups gesamt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card church-card">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ stats.completed }}</h3>
+                    <p class="mb-0">Erfolgreich</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card church-card">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ stats.failed }}</h3>
+                    <p class="mb-0">Fehlgeschlagen</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card church-card">
+                <div class="card-body text-center">
+                    <h3 class="church-navy">{{ stats.total_size_mb }} MB</h3>
+                    <p class="mb-0">Gesamtgröße</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Neues Backup erstellen -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card church-card">
+                <div class="card-header church-card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Neues Backup erstellen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-4">
+                            <label for="backup_type" class="form-label">Backup-Typ</label>
+                            <select name="backup_type" id="backup_type" class="form-select" required>
+                                {% for type_value, type_label in backup_types %}
+                                    <option value="{{ type_value }}">{{ type_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="notes" class="form-label">Notizen (optional)</label>
+                            <input type="text" name="notes" id="notes" class="form-control" placeholder="z.B. Vor Schema-Update">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-church-primary w-100">
+                                <i class="bi bi-save"></i> Backup starten
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Letzes erfolgreiches Backup -->
+    {% if stats.last_successful %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i>
+                <strong>Letztes erfolgreiches Backup:</strong>
+                {{ stats.last_successful.created_at|date:"d.m.Y H:i" }} Uhr
+                ({{ stats.last_successful.get_backup_type_display }} - {{ stats.last_successful.get_file_size_mb }} MB)
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Backup-Historie -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card church-card">
+                <div class="card-header church-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Backup-Historie
+                    </h5>
+                    <a href="{% url 'backup_cleanup' %}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-trash"></i> Aufräumen
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Erstellt am</th>
+                                    <th>Typ</th>
+                                    <th>Status</th>
+                                    <th>Einträge</th>
+                                    <th>Größe</th>
+                                    <th>Dauer</th>
+                                    <th>Erstellt von</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in backups %}
+                                <tr>
+                                    <td>{{ backup.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ backup.get_backup_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if backup.status == 'completed' %}
+                                            <span class="badge bg-success">✓ Erfolgreich</span>
+                                        {% elif backup.status == 'failed' %}
+                                            <span class="badge bg-danger">✗ Fehlgeschlagen</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">⏳ Läuft...</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if backup.status == 'completed' %}
+                                            {{ backup.entry_count }}
+                                            <small class="text-muted">({{ backup.user_count }}U / {{ backup.group_count }}G)</small>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if backup.status == 'completed' %}
+                                            {{ backup.get_file_size_mb }} MB
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if backup.get_duration %}
+                                            {% with duration=backup.get_duration %}
+                                                {% if duration < 60 %}
+                                                    {{ duration|floatformat:1 }}s
+                                                {% else %}
+                                                    {% widthratio duration 60 1 %}m
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ backup.created_by|default:"-" }}</td>
+                                    <td>
+                                        {% if backup.status == 'completed' %}
+                                            <a href="{% url 'backup_download' backup.id %}" class="btn btn-sm btn-outline-primary" title="Herunterladen">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            <a href="{% url 'backup_restore' backup.id %}" class="btn btn-sm btn-outline-warning" title="Wiederherstellen">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'backup_delete' backup.id %}" class="btn btn-sm btn-outline-danger" title="Löschen">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        Noch keine Backups vorhanden. Erstellen Sie Ihr erstes Backup!
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -686,3 +686,168 @@ class EmailTemplate(models.Model):
             body = body.replace(placeholder, str(value))
 
         return subject, body
+
+
+# ==================== BACKUP SYSTEM ====================
+
+class LDAPBackup(models.Model):
+    """
+    Historie aller LDAP-Backups (LDIF-Exporte)
+    Ermöglicht Tracking, Download und Restore
+    """
+    STATUS_CHOICES = [
+        ('running', 'Läuft'),
+        ('completed', 'Erfolgreich'),
+        ('failed', 'Fehlgeschlagen'),
+    ]
+
+    BACKUP_TYPE_CHOICES = [
+        ('full', 'Vollständig'),
+        ('users', 'Nur Benutzer'),
+        ('groups', 'Nur Gruppen'),
+        ('domains', 'Nur Mail-Domains'),
+    ]
+
+    # Backup Metadaten
+    backup_type = models.CharField(
+        max_length=20,
+        choices=BACKUP_TYPE_CHOICES,
+        default='full',
+        verbose_name="Backup-Typ"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='running',
+        verbose_name="Status"
+    )
+
+    # Datei-Informationen
+    filename = models.CharField(
+        max_length=255,
+        verbose_name="Dateiname",
+        help_text="LDIF-Dateiname"
+    )
+    file_path = models.CharField(
+        max_length=500,
+        verbose_name="Dateipfad",
+        help_text="Vollständiger Pfad zur Backup-Datei"
+    )
+    file_size = models.BigIntegerField(
+        default=0,
+        verbose_name="Dateigröße (Bytes)"
+    )
+
+    # Statistiken
+    entry_count = models.IntegerField(
+        default=0,
+        verbose_name="Anzahl Einträge",
+        help_text="Anzahl exportierter LDAP-Einträge"
+    )
+    user_count = models.IntegerField(
+        default=0,
+        verbose_name="Anzahl Benutzer"
+    )
+    group_count = models.IntegerField(
+        default=0,
+        verbose_name="Anzahl Gruppen"
+    )
+    domain_count = models.IntegerField(
+        default=0,
+        verbose_name="Anzahl Mail-Domains"
+    )
+
+    # Zeitstempel
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Erstellt am"
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Abgeschlossen am"
+    )
+
+    # Benutzer der das Backup erstellt hat
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Erstellt von"
+    )
+
+    # Fehler-Informationen (bei failed)
+    error_message = models.TextField(
+        blank=True,
+        verbose_name="Fehlermeldung"
+    )
+
+    # Notizen
+    notes = models.TextField(
+        blank=True,
+        verbose_name="Notizen",
+        help_text="Optionale Notizen zum Backup"
+    )
+
+    class Meta:
+        verbose_name = "LDAP Backup"
+        verbose_name_plural = "LDAP Backups"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['status']),
+            models.Index(fields=['backup_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_backup_type_display()} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+    def get_file_size_mb(self):
+        """Dateigröße in MB zurückgeben"""
+        return round(self.file_size / (1024 * 1024), 2)
+
+    def get_duration(self):
+        """Backup-Dauer berechnen"""
+        if self.completed_at and self.created_at:
+            duration = self.completed_at - self.created_at
+            return duration.total_seconds()
+        return None
+
+    def delete_file(self):
+        """LDIF-Datei vom Dateisystem löschen"""
+        import os
+        if os.path.exists(self.file_path):
+            try:
+                os.remove(self.file_path)
+                return True
+            except Exception as e:
+                return False
+        return False
+
+    @classmethod
+    def cleanup_old_backups(cls, keep_count=10):
+        """
+        Alte Backups löschen, nur die neuesten n behalten
+
+        Args:
+            keep_count (int): Anzahl der zu behaltenden Backups
+
+        Returns:
+            int: Anzahl gelöschter Backups
+        """
+        # Hole alle Backups sortiert nach Erstelldatum (neueste zuerst)
+        all_backups = cls.objects.filter(status='completed').order_by('-created_at')
+
+        # Finde Backups die gelöscht werden sollen
+        backups_to_delete = all_backups[keep_count:]
+
+        deleted_count = 0
+        for backup in backups_to_delete:
+            # Lösche Datei
+            backup.delete_file()
+            # Lösche DB-Eintrag
+            backup.delete()
+            deleted_count += 1
+
+        return deleted_count

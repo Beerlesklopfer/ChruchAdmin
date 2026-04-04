@@ -4,3 +4,4 @@ python-ldap==3.4.5
 django-bootstrap-v5==1.0.11
 reportlab==4.0.7
 vobject==0.9.6.1
+django-simple-captcha==0.6.3

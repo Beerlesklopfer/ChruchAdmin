@@ -31,7 +31,7 @@ SECRET_KEY = 'REDACTED'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'verwaltung.example-church.de']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'wir.example-church.de']
 
 # Trusted origins für CSRF und CORS
 CSRF_TRUSTED_ORIGINS = [
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bootstrap5',
+    'captcha',
     'authapp',
 ]
 
@@ -80,6 +81,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'authapp.context_processors.user_permissions',
             ],
         },
     },
@@ -135,7 +137,8 @@ STATICFILES_FINDERS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Default primary key field type
@@ -211,6 +214,12 @@ AUTHENTICATION_BACKENDS = [
     'django_auth_ldap.backend.LDAPBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# CAPTCHA Einstellungen
+CAPTCHA_LENGTH = 6
+CAPTCHA_FONT_SIZE = 28
+CAPTCHA_IMAGE_SIZE = (160, 50)
+CAPTCHA_LETTER_ROTATION = (-20, 20)
 
 EMAIL_HOST = 'example-church.de'  # für Postfix
 EMAIL_PORT = 25  # Standard SMTP Port
