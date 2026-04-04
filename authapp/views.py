@@ -406,6 +406,8 @@ def ldap_user_search(request):
                         relationship = 'Ehepartner'
                     elif family_role == 'child' or (parent_cn and not family_role):
                         relationship = 'Kind'
+                    elif family_role == 'dependent':
+                        relationship = 'Angehöriger'
                     else:
                         relationship = 'Mitglied'
 
@@ -2226,6 +2228,35 @@ def user_edit(request, cn):
                 family_role = request.POST.get('familyRole', '').strip()
                 if family_role:
                     new_attributes['familyRole'] = family_role
+
+                # Status (Gruppenmitgliedschaft aendern)
+                new_status = request.POST.get('status', '').strip()
+                if new_status:
+                    status_group_map = {
+                        'Mitglied': 'Mitglieder',
+                        'Besucher': 'Besucher',
+                        'Gast': 'Gäste',
+                    }
+                    # Aus allen Status-Gruppen entfernen
+                    user_dn_full = user['dn']
+                    for group_cn in status_group_map.values():
+                        try:
+                            group_dn = f"cn={group_cn},ou=Groups,dc=example-church,dc=de"
+                            group_data = ldap.get_group(group_dn)
+                            if group_data:
+                                members = group_data['attributes'].get('member', [])
+                                if user_dn_full in members:
+                                    ldap.remove_member(group_dn, user_dn_full)
+                        except Exception:
+                            pass
+                    # In die neue Status-Gruppe hinzufuegen
+                    target_group = status_group_map.get(new_status)
+                    if target_group:
+                        try:
+                            group_dn = f"cn={target_group},ou=Groups,dc=example-church,dc=de"
+                            ldap.add_member(group_dn, user_dn_full)
+                        except Exception as e:
+                            logger.warning(f"Konnte {cn} nicht zu Gruppe {target_group} hinzufuegen: {e}")
 
                 # Account deaktivieren/aktivieren
                 # Nur setzen wenn das Schema-Attribut existiert (User hat postModernalPerson)

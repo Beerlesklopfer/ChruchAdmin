@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'bootstrap5',
     'captcha',
     'authapp',
+    'mailing',
 ]
 
 MIDDLEWARE = [

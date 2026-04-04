@@ -129,19 +129,10 @@ def permissions_matrix(request):
     Matrix-Ansicht: Zeigt alle Berechtigungen vs. alle Gruppen
     Ermöglicht Admins die Bearbeitung der Zuordnungen
     """
-    permissions = {
-        'manage_users': 'Benutzer verwalten',
-        'manage_groups': 'Gruppen verwalten',
-        'manage_families': 'Familien verwalten',
-        'manage_mail': 'Mail-Verwaltung',
-        'manage_mail_domains': 'Mail-Domains verwalten',
-        'view_members': 'Gemeindeliste ansehen',
-        'edit_members': 'Gemeindeliste bearbeiten',
-        'export_members': 'Gemeindeliste exportieren',
-    }
+    from authapp.models import PermissionMapping
+    permissions = dict(PermissionMapping.PERMISSION_CHOICES)
 
     # Berechtigungs-Mapping aus Datenbank laden
-    from authapp.models import PermissionMapping
     permission_groups = {}
     for perm_key in permissions.keys():
         permission_groups[perm_key] = PermissionMapping.get_groups_for_permission(perm_key)
@@ -225,16 +216,22 @@ def my_permissions(request):
     """
     user_permissions = []
 
-    permissions_config = {
-        'manage_users': {'name': 'Benutzer verwalten', 'icon': 'people'},
-        'manage_groups': {'name': 'Gruppen verwalten', 'icon': 'diagram-2'},
-        'manage_families': {'name': 'Familien verwalten', 'icon': 'diagram-3'},
-        'manage_mail': {'name': 'Mail-Verwaltung', 'icon': 'envelope'},
-        'manage_mail_domains': {'name': 'Mail-Domains verwalten', 'icon': 'globe'},
-        'view_members': {'name': 'Gemeindeliste ansehen', 'icon': 'eye'},
-        'edit_members': {'name': 'Gemeindeliste bearbeiten', 'icon': 'pencil'},
-        'export_members': {'name': 'Gemeindeliste exportieren', 'icon': 'download'},
+    from authapp.models import PermissionMapping
+    perm_icons = {
+        'manage_users': 'people',
+        'manage_groups': 'diagram-2',
+        'manage_families': 'diagram-3',
+        'manage_mail': 'envelope',
+        'manage_mail_domains': 'globe',
+        'send_massmail': 'megaphone',
+        'manage_registrations': 'person-plus',
+        'view_members': 'eye',
+        'edit_members': 'pencil',
+        'export_members': 'download',
     }
+    permissions_config = {}
+    for key, name in PermissionMapping.PERMISSION_CHOICES:
+        permissions_config[key] = {'name': name, 'icon': perm_icons.get(key, 'key')}
 
     for perm_key, perm_config in permissions_config.items():
         has_perm = has_permission(request.user, perm_key)
@@ -292,8 +289,8 @@ def permissions_matrix_edit(request):
         enabled = data.get('enabled', False)
 
         # Validierung
-        valid_permissions = ['manage_users', 'manage_groups', 'manage_families',
-                           'manage_mail', 'manage_mail_domains', 'view_members', 'edit_members', 'export_members']
+        from authapp.models import PermissionMapping
+        valid_permissions = [key for key, _ in PermissionMapping.PERMISSION_CHOICES]
 
         if permission_key not in valid_permissions:
             return JsonResponse({'success': False, 'error': 'Ungültige Berechtigung'}, status=400)

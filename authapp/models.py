@@ -387,6 +387,7 @@ class PermissionMapping(models.Model):
         ('manage_families', 'Familien verwalten'),
         ('manage_mail', 'Mail-Verwaltung'),
         ('manage_mail_domains', 'Mail-Domains verwalten'),
+        ('send_massmail', 'Massen-E-Mail versenden'),
         ('manage_registrations', 'Registrierungsanfragen bearbeiten'),
         ('view_members', 'Gemeindeliste ansehen'),
         ('edit_members', 'Gemeindeliste bearbeiten'),

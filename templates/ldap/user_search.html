@@ -613,6 +613,19 @@
                         </div>
                     </div>
 
+                    <!-- Status -->
+                    <div class="mb-3">
+                        <label for="modal-status" class="form-label">
+                            <i class="bi bi-tag me-1"></i>Status
+                        </label>
+                        <select name="status" class="form-select" id="modal-status">
+                            <option value="">Nicht zugeordnet</option>
+                            <option value="Mitglied">Mitglied</option>
+                            <option value="Besucher">Besucher</option>
+                            <option value="Gast">Gast</option>
+                        </select>
+                    </div>
+
                     <!-- Familienrolle -->
                     <div class="mb-3">
                         <label for="modal-familyRole" class="form-label">
@@ -623,6 +636,7 @@
                             <option value="head">Familienoberhaupt</option>
                             <option value="spouse">Ehepartner</option>
                             <option value="child">Kind</option>
+                            <option value="dependent">Angehoeriger</option>
                         </select>
                     </div>
 
@@ -964,6 +978,7 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('modal-mobile').value = mobile || '';
     document.getElementById('modal-postalAddress').value = postalAddress || '';
     document.getElementById('modal-birthDate').value = birthDate || '';
+    document.getElementById('modal-status').value = button.getAttribute('data-status') || '';
     document.getElementById('modal-familyRole').value = button.getAttribute('data-familyrole') || '';
     document.getElementById('modal-accountDisabled').checked = button.getAttribute('data-accountdisabled') === 'TRUE';
 

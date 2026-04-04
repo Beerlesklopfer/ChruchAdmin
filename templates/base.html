@@ -96,6 +96,27 @@
                         </li>
                         {% endif %}
 
+                        <!-- Tools -->
+                        {% if show_tools_menu %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" data-bs-toggle="dropdown">
+                                <i class="bi bi-tools me-1"></i>Tools
+                            </a>
+                            <ul class="dropdown-menu">
+                                {% if can_send_massmail %}
+                                <li><a class="dropdown-item" href="{% url 'mailing:campaign_list' %}">
+                                    <i class="bi bi-megaphone me-2"></i>Massen-E-Mail
+                                </a></li>
+                                {% endif %}
+                                {% if can_export_members %}
+                                <li><a class="dropdown-item" href="{% url 'member_list_export' %}">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>Gemeindeliste Export
+                                </a></li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        {% endif %}
+
                         <!-- User Menu -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
@@ -198,7 +219,11 @@
                 </div>
                 <div class="col-md-6 text-md-end">
                     <p class="mb-0">
-                        <small class="text-church-gold">Church Administration System</small>
+                        <small class="text-church-gold">
+                            <a href="mailto:admin@example.de" class="text-church-gold text-decoration-none">
+                                <i class="bi bi-envelope me-1"></i>ChurchAdmin
+                            </a>
+                        </small>
                     </p>
                 </div>
             </div>

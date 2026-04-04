@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{% if template %}Vorlage bearbeiten{% else %}Neue Vorlage{% endif %} - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-file-earmark-text me-2"></i>{% if template %}Vorlage bearbeiten{% else %}Neue Vorlage{% endif %}
+        </h2>
+        <a href="{% url 'mailing:template_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-file-earmark-text me-2"></i>Vorlage
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ template.name|default:'' }}" required
+                                   placeholder="z.B. Gemeindebrief Standard">
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Betreff <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="subject" name="subject"
+                                   value="{{ template.subject|default:'' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschreibung</label>
+                            <input type="text" class="form-control" id="description" name="description"
+                                   value="{{ template.description|default:'' }}"
+                                   placeholder="Kurze Beschreibung der Vorlage">
+                        </div>
+                        <div class="mb-3">
+                            <label for="body_html" class="form-label">Inhalt (HTML) <span class="text-danger">*</span></label>
+                            <textarea class="form-control font-monospace" id="body_html" name="body_html"
+                                      rows="15" required>{{ template.body_html|default:'' }}</textarea>
+                            <small class="text-muted">
+                                Platzhalter: <code>[[vorname]]</code>, <code>[[nachname]]</code>, <code>[[name]]</code>
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'mailing:template_list' %}" class="btn btn-secondary">Abbrechen</a>
+                            <button type="submit" class="btn btn-church-primary">
+                                <i class="bi bi-check-circle me-1"></i>Speichern
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

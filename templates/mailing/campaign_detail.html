@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Kampagne: {{ campaign.subject }} - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-megaphone me-2"></i>{{ campaign.subject }}
+        </h2>
+        <div>
+            <form method="post" action="{% url 'mailing:campaign_duplicate' pk=campaign.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="bi bi-copy me-1"></i>Duplizieren
+                </button>
+            </form>
+            <a href="{% url 'mailing:campaign_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Zurueck
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Uebersicht -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-info-circle me-2"></i>Details
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tr>
+                            <td class="text-muted">Status:</td>
+                            <td>
+                                {% if campaign.status == 'draft' %}
+                                    <span class="badge bg-secondary">Entwurf</span>
+                                {% elif campaign.status == 'sending' %}
+                                    <span class="badge bg-warning text-dark">Wird versendet</span>
+                                {% elif campaign.status == 'sent' %}
+                                    <span class="badge bg-success">Versendet</span>
+                                {% elif campaign.status == 'failed' %}
+                                    <span class="badge bg-danger">Fehlgeschlagen</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Empfaenger:</td>
+                            <td>{{ campaign.get_recipient_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Erstellt:</td>
+                            <td>{{ campaign.created_at|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% if campaign.sent_at %}
+                        <tr>
+                            <td class="text-muted">Versendet:</td>
+                            <td>{{ campaign.sent_at|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Erstellt von:</td>
+                            <td>{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            {% if campaign.total_recipients > 0 %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-bar-chart me-2"></i>Statistik
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3 style="color: var(--church-navy);">{{ campaign.total_recipients }}</h3>
+                            <small class="text-muted">Gesamt</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-success">{{ campaign.successful_count }}</h3>
+                            <small class="text-muted">Zugestellt</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-danger">{{ campaign.failed_count }}</h3>
+                            <small class="text-muted">Fehler</small>
+                        </div>
+                    </div>
+                    {% if campaign.total_recipients > 0 %}
+                    <div class="progress mt-3" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: {% widthratio campaign.successful_count campaign.total_recipients 100 %}%"></div>
+                        <div class="progress-bar bg-danger" style="width: {% widthratio campaign.failed_count campaign.total_recipients 100 %}%"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Mail-Inhalt & Protokoll -->
+        <div class="col-lg-8">
+            <!-- Inhalt -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-envelope me-2"></i>Inhalt
+                </div>
+                <div class="card-body" style="background: #f8f9fa;">
+                    <div class="bg-white border rounded p-4">
+                        {{ campaign.body_html|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Versandprotokoll -->
+            {% if logs %}
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <i class="bi bi-journal-text me-2"></i>Versandprotokoll ({{ logs.count }})
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="px-3">Status</th>
+                                <th>Empfaenger</th>
+                                <th>Name</th>
+                                <th>Zeitpunkt</th>
+                                <th>Fehler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr class="{% if log.status == 'failed' %}table-danger{% endif %}">
+                                <td class="px-3">
+                                    {% if log.status == 'sent' %}
+                                        <i class="bi bi-check-circle text-success"></i>
+                                    {% elif log.status == 'failed' %}
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                    {% else %}
+                                        <i class="bi bi-clock text-muted"></i>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ log.recipient_email }}</small></td>
+                                <td><small>{{ log.recipient_name|default:"-" }}</small></td>
+                                <td><small>{{ log.sent_at|date:"d.m.Y H:i:s" }}</small></td>
+                                <td><small class="text-danger">{{ log.error_message|default:"" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

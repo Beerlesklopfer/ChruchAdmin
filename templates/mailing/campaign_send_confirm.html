@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Versand bestaetigen - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: var(--church-navy); color: white;">
+                    <h5 class="mb-0"><i class="bi bi-send me-2"></i>Versand bestaetigen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <strong>Achtung:</strong> Sie sind dabei, eine Massen-E-Mail zu versenden!
+                    </div>
+
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="text-muted">Betreff:</td>
+                            <td><strong>{{ campaign.subject }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Empfaenger:</td>
+                            <td><strong>{{ recipient_count }}</strong> Personen ({{ campaign.get_recipient_type_display }})</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Absender:</td>
+                            <td>{{ campaign.from_name }}</td>
+                        </tr>
+                    </table>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'mailing:campaign_preview' pk=campaign.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Zurueck
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-send me-1"></i>Jetzt an {{ recipient_count }} Empfaenger senden
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

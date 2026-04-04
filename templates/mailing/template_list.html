@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Mail-Vorlagen - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-file-earmark-text me-2"></i>Mail-Vorlagen
+        </h2>
+        <div>
+            <a href="{% url 'mailing:campaign_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i>Kampagnen
+            </a>
+            <a href="{% url 'mailing:template_create' %}" class="btn btn-church-primary">
+                <i class="bi bi-plus-circle me-1"></i>Neue Vorlage
+            </a>
+        </div>
+    </div>
+
+    {% if templates %}
+    <div class="row">
+        {% for t in templates %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background: var(--church-beige);">
+                    <strong style="color: var(--church-navy);">{{ t.name }}</strong>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-1"><small>Betreff: {{ t.subject }}</small></p>
+                    {% if t.description %}
+                    <p class="text-muted mb-0"><small>{{ t.description }}</small></p>
+                    {% endif %}
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <small class="text-muted align-self-center">{{ t.updated_at|date:"d.m.Y" }}</small>
+                    <div>
+                        <a href="{% url 'mailing:template_edit' pk=t.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="post" action="{% url 'mailing:template_delete' pk=t.pk %}" class="d-inline"
+                              onsubmit="return confirm('Vorlage loeschen?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: var(--church-gold);"></i>
+            <h4 class="mt-3" style="color: var(--church-navy);">Noch keine Vorlagen</h4>
+            <p class="text-muted">Erstellen Sie wiederverwendbare E-Mail-Vorlagen.</p>
+            <a href="{% url 'mailing:template_create' %}" class="btn btn-church-primary">
+                <i class="bi bi-plus-circle me-1"></i>Neue Vorlage
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if campaign %}Kampagne bearbeiten{% else %}Neue Kampagne{% endif %} - ChurchAdmin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .placeholder-btn { background: #e8f4fd; border: 1px solid #0dcaf0; color: #0a6ebd; font-size: 0.85rem; padding: 4px 10px; border-radius: 4px; cursor: pointer; margin: 0 2px; }
+    .placeholder-btn:hover { background: #0dcaf0; color: white; }
+    .tox-tinymce { border-radius: 8px !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-pencil-square me-2"></i>{% if campaign %}Kampagne bearbeiten{% else %}Neue Kampagne{% endif %}
+        </h2>
+        <a href="{% url 'mailing:campaign_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck
+        </a>
+    </div>
+
+    <form method="post" id="campaignForm">
+        {% csrf_token %}
+
+        <div class="row">
+            <!-- Linke Spalte: Inhalt -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header" style="background: var(--church-navy); color: white;">
+                        <i class="bi bi-envelope me-2"></i>Inhalt
+                    </div>
+                    <div class="card-body">
+                        <!-- Vorlage laden -->
+                        {% if templates %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">
+                                <i class="bi bi-file-earmark-text me-1"></i>Vorlage laden
+                            </label>
+                            <div class="input-group">
+                                <select class="form-select" id="template-select">
+                                    <option value="">-- Vorlage auswaehlen --</option>
+                                    {% for t in templates %}
+                                    <option value="{{ t.pk }}">{{ t.name }}{% if t.description %} — {{ t.description }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" onclick="loadTemplate()">
+                                    <i class="bi bi-download me-1"></i>Laden
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Betreff -->
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">
+                                <i class="bi bi-chat-left-text me-1"></i>Betreff <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="subject" name="subject"
+                                   value="{{ campaign.subject|default:'' }}" required
+                                   placeholder="z.B. Gemeindebrief April 2026">
+                        </div>
+
+                        <!-- WYSIWYG Editor -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-file-richtext me-1"></i>Inhalt <span class="text-danger">*</span>
+                            </label>
+                            <div class="mb-2">
+                                <span class="text-muted me-2">Platzhalter:</span>
+                                <button type="button" class="placeholder-btn" onclick="insertPlaceholder('[[vorname]]')">Vorname</button>
+                                <button type="button" class="placeholder-btn" onclick="insertPlaceholder('[[nachname]]')">Nachname</button>
+                                <button type="button" class="placeholder-btn" onclick="insertPlaceholder('[[name]]')">Voller Name</button>
+                            </div>
+                            <textarea id="body_html" name="body_html">{{ campaign.body_html|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rechte Spalte: Einstellungen -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header" style="background: var(--church-navy); color: white;">
+                        <i class="bi bi-people me-2"></i>Empfaenger
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Empfaenger</label>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-members"
+                                       value="members" onchange="toggleRecipientFields()"
+                                       {% if not campaign or 'members' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-members">
+                                    <i class="bi bi-person-check me-1"></i>Mitglieder
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-visitors"
+                                       value="visitors" onchange="toggleRecipientFields()"
+                                       {% if campaign and 'visitors' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-visitors">
+                                    <i class="bi bi-person-walking me-1"></i>Besucher
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-family"
+                                       value="family" onchange="toggleRecipientFields()"
+                                       {% if campaign and 'family' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-family">
+                                    <i class="bi bi-people-fill me-1"></i>Angehoerige
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-guests"
+                                       value="guests" onchange="toggleRecipientFields()"
+                                       {% if campaign and 'guests' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-guests">
+                                    <i class="bi bi-person-dash me-1"></i>Gaeste
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-groups"
+                                       value="groups" onchange="toggleRecipientFields()"
+                                       {% if campaign and 'groups' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-groups">
+                                    <i class="bi bi-diagram-3 me-1"></i>Bestimmte Gruppen
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input recipient-check" type="checkbox" id="rt-manual"
+                                       value="manual" onchange="toggleRecipientFields()"
+                                       {% if campaign and 'manual' in campaign.recipient_type %}checked{% endif %}>
+                                <label class="form-check-label" for="rt-manual">
+                                    <i class="bi bi-envelope-at me-1"></i>Manuelle Adressen
+                                </label>
+                            </div>
+                            <input type="hidden" name="recipient_type" id="recipient_type_hidden" value="{{ campaign.recipient_type|default:'members' }}">
+                        </div>
+
+                        <!-- Gruppen-Auswahl -->
+                        <div class="mb-3" id="groups-field" style="display: none;">
+                            <label class="form-label">Gruppen auswaehlen</label>
+                            {% for g in groups %}
+                            <div class="form-check">
+                                <input class="form-check-input group-check" type="checkbox"
+                                       value="{{ g }}" id="group-{{ forloop.counter }}"
+                                       {% if g in campaign.recipient_groups %}checked{% endif %}>
+                                <label class="form-check-label" for="group-{{ forloop.counter }}">{{ g }}</label>
+                            </div>
+                            {% endfor %}
+                            <input type="hidden" name="recipient_groups" id="recipient_groups"
+                                   value="{{ campaign.recipient_groups|default:'' }}">
+                        </div>
+
+                        <!-- Manuelle E-Mails -->
+                        <div class="mb-3" id="manual-field" style="display: none;">
+                            <label for="recipient_emails_manual" class="form-label">E-Mail-Adressen</label>
+                            <textarea class="form-control" id="recipient_emails_manual" name="recipient_emails_manual"
+                                      rows="5" placeholder="eine@email.de&#10;zwei@email.de">{{ campaign.recipient_emails_manual|default:'' }}</textarea>
+                            <small class="text-muted">Eine Adresse pro Zeile</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header" style="background: var(--church-navy); color: white;">
+                        <i class="bi bi-gear me-2"></i>Absender
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="from_name" class="form-label">Absender-Name</label>
+                            <input type="text" class="form-control" id="from_name" name="from_name"
+                                   value="{{ campaign.from_name|default:'Beispielgemeinde' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="reply_to" class="form-label">Antwort-an (optional)</label>
+                            <input type="email" class="form-control" id="reply_to" name="reply_to"
+                                   value="{{ campaign.reply_to|default:'' }}"
+                                   placeholder="pastor@example-church.de">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header" style="background: var(--church-navy); color: white;">
+                        <i class="bi bi-card-text me-2"></i>Footer
+                    </div>
+                    <div class="card-body">
+                        <textarea id="footer_html" name="footer_html">{{ footer_default|safe }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Aktionen -->
+                <div class="d-grid gap-2">
+                    <button type="submit" name="action" value="save" class="btn btn-secondary">
+                        <i class="bi bi-save me-1"></i>Entwurf speichern
+                    </button>
+                    <button type="submit" name="action" value="preview" class="btn btn-info text-white">
+                        <i class="bi bi-eye me-1"></i>Vorschau & Empfaenger pruefen
+                    </button>
+                    <button type="submit" name="action" value="send" class="btn btn-church-primary"
+                            onclick="return confirm('Kampagne jetzt versenden?');">
+                        <i class="bi bi-send me-1"></i>Versenden
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/tinymce/js/tinymce/tinymce.min.js' %}"></script>
+<script>
+tinymce.init({
+    selector: '#body_html',
+    language: 'de',
+    height: 500,
+    menubar: false,
+    branding: false,
+    promotion: false,
+    license_key: 'gpl',
+    plugins: 'lists link image table code fullscreen preview',
+    toolbar: 'styles | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image table | hr | code fullscreen',
+    style_formats: [
+        { title: 'Absatz', block: 'p' },
+        { title: 'Ueberschrift 1', block: 'h1' },
+        { title: 'Ueberschrift 2', block: 'h2' },
+        { title: 'Ueberschrift 3', block: 'h3' },
+        { title: 'Zitat', block: 'blockquote' },
+    ],
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; }',
+    convert_urls: false,
+    relative_urls: false,
+});
+
+tinymce.init({
+    selector: '#footer_html',
+    language: 'de',
+    height: 200,
+    menubar: false,
+    branding: false,
+    promotion: false,
+    license_key: 'gpl',
+    plugins: 'lists link code',
+    toolbar: 'bold italic underline | forecolor | alignleft aligncenter alignright | link | code',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #666; }',
+    convert_urls: false,
+    relative_urls: false,
+});
+
+function insertPlaceholder(text) {
+    tinymce.get('body_html').execCommand('mceInsertContent', false, text);
+}
+
+function toggleRecipientFields() {
+    const checked = Array.from(document.querySelectorAll('.recipient-check:checked')).map(c => c.value);
+    document.getElementById('recipient_type_hidden').value = checked.join(',');
+    document.getElementById('groups-field').style.display = checked.includes('groups') ? 'block' : 'none';
+    document.getElementById('manual-field').style.display = checked.includes('manual') ? 'block' : 'none';
+}
+
+function syncGroups() {
+    const checks = document.querySelectorAll('.group-check:checked');
+    const groups = Array.from(checks).map(c => c.value).join(',');
+    document.getElementById('recipient_groups').value = groups;
+}
+
+document.querySelectorAll('.group-check').forEach(c => c.addEventListener('change', syncGroups));
+
+function loadTemplate() {
+    const sel = document.getElementById('template-select');
+    const pk = sel.value;
+    if (!pk) return;
+    fetch(`/ldap/mailing/templates/${pk}/load/`, {
+        credentials: 'same-origin',
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            document.getElementById('subject').value = data.subject;
+            tinymce.get('body_html').setContent(data.body_html);
+        })
+        .catch(err => alert('Fehler beim Laden: ' + err.message));
+}
+
+document.getElementById('campaignForm').addEventListener('submit', syncGroups);
+toggleRecipientFields();
+</script>
+{% endblock %}

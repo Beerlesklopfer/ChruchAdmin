@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Massen-E-Mail - ChurchAdmin{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--church-navy);">
+            <i class="bi bi-megaphone me-2"></i>Massen-E-Mail
+        </h2>
+        <div>
+            <a href="{% url 'mailing:template_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-file-earmark-text me-1"></i>Vorlagen
+            </a>
+            <a href="{% url 'mailing:campaign_compose' %}" class="btn btn-church-primary">
+                <i class="bi bi-plus-circle me-1"></i>Neue Kampagne
+            </a>
+        </div>
+    </div>
+
+    {% if campaigns %}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: #1c2647 !important;">
+                    <tr>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Betreff</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Empfaenger</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Status</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Erstellt</th>
+                        <th style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Versendet</th>
+                        <th class="text-end" style="background-color: #1c2647 !important; color: white !important; border: none; padding: 1rem;">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in campaigns %}
+                    <tr>
+                        <td class="align-middle">
+                            <a href="{% if c.status == 'draft' %}{% url 'mailing:campaign_edit' pk=c.pk %}{% else %}{% url 'mailing:campaign_detail' pk=c.pk %}{% endif %}"
+                               class="text-decoration-none" style="color: var(--church-navy);">
+                                <strong>{{ c.subject }}</strong>
+                            </a>
+                            {% if c.created_by %}
+                            <br><small class="text-muted">von {{ c.created_by.get_full_name|default:c.created_by.username }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge bg-light text-dark">
+                                {{ c.get_recipient_type_display }}
+                            </span>
+                            {% if c.total_recipients %}
+                            <br><small class="text-muted">{{ c.total_recipients }} Empfaenger</small>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            {% if c.status == 'draft' %}
+                                <span class="badge bg-secondary"><i class="bi bi-pencil me-1"></i>Entwurf</span>
+                            {% elif c.status == 'sending' %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Wird versendet</span>
+                            {% elif c.status == 'sent' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Versendet</span>
+                                {% if c.failed_count > 0 %}
+                                <br><small class="text-danger">{{ c.failed_count }} fehlgeschlagen</small>
+                                {% endif %}
+                            {% elif c.status == 'failed' %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Fehlgeschlagen</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <small>{{ c.created_at|date:"d.m.Y H:i" }}</small>
+                        </td>
+                        <td class="align-middle">
+                            {% if c.sent_at %}
+                            <small>{{ c.sent_at|date:"d.m.Y H:i" }}</small>
+                            {% else %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle text-end">
+                            {% if c.status == 'draft' %}
+                                <a href="{% url 'mailing:campaign_edit' pk=c.pk %}" class="btn btn-sm btn-outline-primary" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'mailing:campaign_preview' pk=c.pk %}" class="btn btn-sm btn-outline-info" title="Vorschau">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'mailing:campaign_detail' pk=c.pk %}" class="btn btn-sm btn-outline-info" title="Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            {% endif %}
+                            <form method="post" action="{% url 'mailing:campaign_duplicate' pk=c.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Duplizieren">
+                                    <i class="bi bi-copy"></i>
+                                </button>
+                            </form>
+                            {% if c.status == 'draft' %}
+                            <form method="post" action="{% url 'mailing:campaign_delete' pk=c.pk %}" class="d-inline"
+                                  onsubmit="return confirm('Kampagne wirklich loeschen?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Loeschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-megaphone" style="font-size: 3rem; color: var(--church-gold);"></i>
+            <h4 class="mt-3" style="color: var(--church-navy);">Noch keine Kampagnen</h4>
+            <p class="text-muted">Erstellen Sie Ihre erste Massen-E-Mail-Kampagne.</p>
+            <a href="{% url 'mailing:campaign_compose' %}" class="btn btn-church-primary">
+                <i class="bi bi-plus-circle me-1"></i>Neue Kampagne erstellen
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
