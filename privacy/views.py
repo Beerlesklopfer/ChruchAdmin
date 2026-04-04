@@ -101,15 +101,70 @@ def my_data(request):
     # Einwilligungen
     consents = ConsentLog.objects.filter(user=user)
 
+    # Aktueller Consent-Status (Opt-out: Standard = erteilt)
+    consent_status = {}
+    for ctype, clabel in ConsentLog.CONSENT_TYPES:
+        latest = ConsentLog.objects.filter(user=user, consent_type=ctype).order_by('-timestamp').first()
+        # Opt-out: Wenn kein Eintrag existiert, gilt als erteilt
+        consent_status[ctype] = {
+            'label': clabel,
+            'granted': latest.granted if latest else True,
+        }
+
     # Loeschantraege
     deletion_requests = DeletionRequest.objects.filter(user=user)
+
+    # Familienmitglieder laden (fuer Familienoberhaupt)
+    family_members = []
+    family_consent_status = {}
+    try:
+        with LDAPManager() as ldap_mgr:
+            user_data_fam = ldap_mgr.get_user(user.username)
+            if user_data_fam:
+                fam_role = user_data_fam['attributes'].get('familyRole', [''])[0]
+                if isinstance(fam_role, bytes):
+                    fam_role = fam_role.decode('utf-8')
+                if fam_role == 'head':
+                    children = ldap_mgr.list_users(parent_dn=user_data_fam['dn'])
+                    from django.contrib.auth.models import User as DjangoUser
+                    for child in children:
+                        c_cn = child['attributes'].get('cn', [''])[0]
+                        if isinstance(c_cn, bytes):
+                            c_cn = c_cn.decode('utf-8')
+                        c_given = child['attributes'].get('givenName', [''])[0]
+                        if isinstance(c_given, bytes):
+                            c_given = c_given.decode('utf-8')
+                        c_sn = child['attributes'].get('sn', [''])[0]
+                        if isinstance(c_sn, bytes):
+                            c_sn = c_sn.decode('utf-8')
+
+                        # Consent-Status des Familienmitglieds
+                        member_user = DjangoUser.objects.filter(username__iexact=c_cn).first()
+                        member_consents = {}
+                        for ctype, clabel in ConsentLog.CONSENT_TYPES:
+                            if member_user:
+                                latest = ConsentLog.objects.filter(user=member_user, consent_type=ctype).order_by('-timestamp').first()
+                                member_consents[ctype] = latest.granted if latest else True
+                            else:
+                                member_consents[ctype] = True  # Opt-out default
+
+                        family_members.append({
+                            'cn': c_cn,
+                            'name': f'{c_given} {c_sn}'.strip(),
+                            'consents': member_consents,
+                            'user_id': member_user.pk if member_user else None,
+                        })
+    except Exception:
+        pass
 
     return render(request, 'privacy/my_data.html', {
         'ldap_data': ldap_data,
         'ldap_groups': ldap_groups,
         'django_data': django_data,
         'consents': consents,
+        'consent_status': consent_status,
         'deletion_requests': deletion_requests,
+        'family_members': family_members,
     })
 
 
@@ -236,21 +291,33 @@ def request_deletion(request):
 
 @login_required
 def consent_update(request):
-    """Einwilligung erteilen oder widerrufen"""
+    """Einwilligung erteilen oder widerrufen (auch fuer Familienmitglieder)"""
     if request.method == 'POST':
         consent_type = request.POST.get('consent_type')
         granted = request.POST.get('granted') == 'true'
+        target_user_id = request.POST.get('target_user_id')
+
+        # Fuer Familienmitglied oder sich selbst?
+        from django.contrib.auth.models import User as DjangoUser
+        if target_user_id:
+            target_user = DjangoUser.objects.filter(pk=target_user_id).first()
+            if not target_user:
+                messages.error(request, 'Benutzer nicht gefunden.')
+                return redirect('privacy:my_data')
+        else:
+            target_user = request.user
 
         policy = PrivacyPolicy.get_active()
         ConsentLog.objects.create(
-            user=request.user,
+            user=target_user,
             consent_type=consent_type,
             granted=granted,
             policy_version=policy.version if policy else '',
             ip_address=request.META.get('REMOTE_ADDR'),
         )
 
+        name = target_user.get_full_name() or target_user.username
         action = 'erteilt' if granted else 'widerrufen'
-        messages.success(request, f'Einwilligung {action}.')
+        messages.success(request, f'Einwilligung fuer {name} {action}.')
 
     return redirect('privacy:my_data')

@@ -100,43 +100,75 @@
                     {% endif %}
 
                     <hr>
-                    <h6>Einwilligungen verwalten</h6>
+                    <h6>Meine Einwilligungen verwalten</h6>
+                    <p class="text-muted mb-2"><small>Opt-out: Alle Einwilligungen gelten als erteilt, bis Sie widersprechen.</small></p>
 
-                    <p class="text-muted mb-2"><small><i class="bi bi-envelope me-1"></i>E-Mail-Kommunikation</small></p>
-                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="consent_type" value="email_communication">
-                        <input type="hidden" name="granted" value="true">
-                        <button type="submit" class="btn btn-sm btn-outline-success me-1">
-                            <i class="bi bi-check me-1"></i>Erlauben
-                        </button>
-                    </form>
-                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="consent_type" value="email_communication">
-                        <input type="hidden" name="granted" value="false">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-x me-1"></i>Widerrufen
-                        </button>
-                    </form>
+                    {% for ctype, cinfo in consent_status.items %}
+                    <div class="d-flex align-items-center justify-content-between mb-2 p-2 rounded" style="background: var(--church-beige);">
+                        <span>
+                            {% if cinfo.granted %}<i class="bi bi-check-circle-fill text-success me-1"></i>
+                            {% else %}<i class="bi bi-x-circle-fill text-danger me-1"></i>{% endif %}
+                            {{ cinfo.label }}
+                        </span>
+                        <span>
+                            {% if cinfo.granted %}
+                            <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                <input type="hidden" name="granted" value="false">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x me-1"></i>Widerrufen</button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                <input type="hidden" name="granted" value="true">
+                                <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check me-1"></i>Erlauben</button>
+                            </form>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
 
-                    <p class="text-muted mb-2 mt-3"><small><i class="bi bi-list-ul me-1"></i>Gemeindeliste (Name, Kontaktdaten sichtbar fuer Mitglieder)</small></p>
-                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="consent_type" value="member_list">
-                        <input type="hidden" name="granted" value="true">
-                        <button type="submit" class="btn btn-sm btn-outline-success me-1">
-                            <i class="bi bi-check me-1"></i>Erlauben
-                        </button>
-                    </form>
-                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="consent_type" value="member_list">
-                        <input type="hidden" name="granted" value="false">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-x me-1"></i>Widerrufen
-                        </button>
-                    </form>
+                    {% if family_members %}
+                    <hr>
+                    <h6><i class="bi bi-people me-1"></i>Einwilligungen fuer meine Familie</h6>
+                    {% for member in family_members %}
+                    <div class="card mb-2">
+                        <div class="card-body p-2">
+                            <strong>{{ member.name }}</strong> <small class="text-muted">({{ member.cn }})</small>
+                            {% for ctype, granted in member.consents.items %}
+                            <div class="d-flex align-items-center justify-content-between mt-1 p-1 rounded" style="background: #f8f9fa;">
+                                <small>
+                                    {% if granted %}<i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    {% else %}<i class="bi bi-x-circle-fill text-danger me-1"></i>{% endif %}
+                                    {{ ctype }}
+                                </small>
+                                <span>
+                                    {% if granted %}
+                                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                        <input type="hidden" name="granted" value="false">
+                                        {% if member.user_id %}<input type="hidden" name="target_user_id" value="{{ member.user_id }}">{% endif %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-x"></i></button>
+                                    </form>
+                                    {% else %}
+                                    <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="consent_type" value="{{ ctype }}">
+                                        <input type="hidden" name="granted" value="true">
+                                        {% if member.user_id %}<input type="hidden" name="target_user_id" value="{{ member.user_id }}">{% endif %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success py-0 px-1"><i class="bi bi-check"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
