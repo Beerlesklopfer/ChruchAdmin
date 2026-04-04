@@ -161,6 +161,9 @@
                     <div class="card mb-2">
                         <div class="card-body p-2">
                             <strong>{{ member.name }}</strong> <small class="text-muted">({{ member.cn }})</small>
+                            {% if not member.is_minor %}
+                            <span class="badge bg-info ms-1">ab 16 — verwaltet sich selbst</span>
+                            {% endif %}
                             {% for ctype, granted in member.consents.items %}
                             <div class="d-flex align-items-center justify-content-between mt-1 p-1 rounded" style="background: #f8f9fa;">
                                 <small>
@@ -169,6 +172,7 @@
                                     {{ ctype }}
                                 </small>
                                 <span>
+                                    {% if member.is_minor %}
                                     {% if granted %}
                                     <form method="post" action="{% url 'privacy:consent_update' %}" class="d-inline">
                                         {% csrf_token %}
@@ -185,6 +189,7 @@
                                         {% if member.user_id %}<input type="hidden" name="target_user_id" value="{{ member.user_id }}">{% endif %}
                                         <button type="submit" class="btn btn-sm btn-outline-success py-0 px-1"><i class="bi bi-check"></i></button>
                                     </form>
+                                    {% endif %}
                                     {% endif %}
                                 </span>
                             </div>

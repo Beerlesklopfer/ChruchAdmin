@@ -984,10 +984,24 @@ def family_member_edit(request, cn):
         else:
             member_consents[ctype] = {'label': clabel, 'granted': True}
 
+    # Alter pruefen: ab 16 verwaltet sich selbst
+    is_minor = True
+    birth_iso = member_data.get('birthDateISO', '')
+    if birth_iso:
+        try:
+            from datetime import datetime, date
+            bd = datetime.strptime(birth_iso, '%Y-%m-%d').date()
+            today = date.today()
+            age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+            is_minor = age < 16
+        except (ValueError, TypeError):
+            pass
+
     return render(request, 'dashboard/family_member_edit.html', {
         'member': member_data,
-        'member_consents': member_consents,
+        'member_consents': member_consents if is_minor else {},
         'member_user_id': member_user.pk if member_user else None,
+        'is_minor': is_minor,
     })
 
 

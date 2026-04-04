@@ -140,6 +140,21 @@ def my_data(request):
                         if isinstance(c_sn, bytes):
                             c_sn = c_sn.decode('utf-8')
 
+                        # Alter berechnen
+                        c_birth = child['attributes'].get('birthDate', [''])[0]
+                        if isinstance(c_birth, bytes):
+                            c_birth = c_birth.decode('utf-8')
+                        is_minor = True  # Default: minderjaehrig (darf verwaltet werden)
+                        if c_birth:
+                            try:
+                                from datetime import datetime, date
+                                bd = datetime.strptime(str(c_birth)[:8], '%Y%m%d').date()
+                                today = date.today()
+                                age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+                                is_minor = age < 16
+                            except (ValueError, TypeError):
+                                pass
+
                         # Consent-Status des Familienmitglieds
                         member_user = DjangoUser.objects.filter(username__iexact=c_cn).first()
                         member_consents = {}
@@ -155,6 +170,7 @@ def my_data(request):
                             'name': f'{c_given} {c_sn}'.strip(),
                             'consents': member_consents,
                             'user_id': member_user.pk if member_user else None,
+                            'is_minor': is_minor,
                         })
     except Exception:
         pass
