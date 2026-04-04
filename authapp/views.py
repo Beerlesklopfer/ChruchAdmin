@@ -999,7 +999,7 @@ def family_member_edit(request, cn):
 
     return render(request, 'dashboard/family_member_edit.html', {
         'member': member_data,
-        'member_consents': member_consents if is_minor else {},
+        'member_consents': member_consents,
         'member_user_id': member_user.pk if member_user else None,
         'is_minor': is_minor,
     })
