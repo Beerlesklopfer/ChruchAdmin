@@ -1054,17 +1054,17 @@ function renderConsents(consentStr, cn) {
     const container = document.getElementById('consent-toggles');
     container.innerHTML = '';
     if (!consentStr) { container.innerHTML = '<small class="text-muted">Keine Daten</small>'; return; }
-    consentStr.split(',').forEach(function(item) {
+    consentStr.split(',').forEach(function(item, idx) {
         const [ctype, granted] = item.split(':');
         const label = consentLabels[ctype] || ctype;
         const isGranted = granted === 'true';
-        const icon = isGranted ? '<i class="bi bi-check-circle-fill text-success me-1"></i>' : '<i class="bi bi-x-circle-fill text-danger me-1"></i>';
-        const btnClass = isGranted ? 'btn-outline-danger' : 'btn-outline-success';
-        const btnText = isGranted ? '<i class="bi bi-x"></i>' : '<i class="bi bi-check"></i>';
         const newVal = isGranted ? 'false' : 'true';
-        container.innerHTML += `<div class="d-flex align-items-center justify-content-between mb-1 p-1 rounded" style="background: var(--church-beige);">
-            <small>${icon} ${label}</small>
-            <button type="button" class="btn btn-sm ${btnClass} py-0 px-1" onclick="toggleConsent('${ctype}', '${newVal}', '${cn}')">${btnText}</button>
+        const switchId = 'consent-switch-' + idx;
+        container.innerHTML += `<div class="form-check form-switch mb-1">
+            <input class="form-check-input" type="checkbox" role="switch" id="${switchId}"
+                   ${isGranted ? 'checked' : ''}
+                   onchange="toggleConsent('${ctype}', '${newVal}', '${cn}')">
+            <label class="form-check-label" for="${switchId}"><small>${label}</small></label>
         </div>`;
     });
 }

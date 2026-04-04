@@ -299,8 +299,7 @@ def ldap_admin(request):
     
     return render(request, 'ldap/admin.html', {'stats': stats})
 
-@login_required
-@user_passes_test(is_ldap_admin)
+
 def _get_user_consents(cn):
     """Hole aktuellen Consent-Status eines Benutzers als komma-getrennte Strings"""
     try:
@@ -323,6 +322,8 @@ def _get_user_consents(cn):
         return ''
 
 
+@login_required
+@user_passes_test(is_ldap_admin)
 def ldap_user_search(request):
     """LDAP Benutzer Suche mit LDAPManager"""
     users = []
