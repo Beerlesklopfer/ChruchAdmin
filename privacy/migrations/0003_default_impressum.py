@@ -2,8 +2,8 @@ from django.db import migrations
 
 IMPRESSUM_HTML = '''<h3>Angaben gemaess &sect; 5 TMG</h3>
 <p><strong>Beispielgemeinde</strong><br>
-Lagesche Str. 40<br>
-32657 Lemgo</p>
+Gasstr. 4<br>
+32791 Lage</p>
 
 <h3>Vertreten durch</h3>
 <p>Die Gemeindeleitung der Beispielgemeinde</p>

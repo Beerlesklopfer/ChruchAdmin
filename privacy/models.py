@@ -62,6 +62,7 @@ class ConsentLog(models.Model):
         ('privacy_policy', 'Datenschutzerklaerung'),
         ('data_processing', 'Datenverarbeitung'),
         ('email_communication', 'E-Mail-Kommunikation'),
+        ('member_list', 'Gemeindeliste (Name, Kontaktdaten sichtbar fuer Mitglieder)'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE,
