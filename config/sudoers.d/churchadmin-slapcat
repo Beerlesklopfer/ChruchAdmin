@@ -1,0 +1,2 @@
+# ChurchAdmin: Erlaubt www-data slapcat fuer Schema-Backup
+www-data ALL=(root) NOPASSWD: /usr/sbin/slapcat

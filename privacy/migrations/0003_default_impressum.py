@@ -1,20 +1,28 @@
 from django.db import migrations
 
 IMPRESSUM_HTML = '''<h3>Angaben gemaess &sect; 5 TMG</h3>
-<p><strong>Beispielgemeinde</strong><br>
-Gasstr. 4<br>
+<p><strong>Beispielgemeinde e.V.</strong><br>
+Gasstrasse 4<br>
 32791 Lage</p>
 
 <h3>Vertreten durch</h3>
-<p>Die Gemeindeleitung der Beispielgemeinde</p>
+<p>Peter Dridiger (Gemeindeleitung)</p>
 
 <h3>Kontakt</h3>
-<p>Telefon: +49 5261 808 6 494<br>
-E-Mail: <a href="mailto:info@example-church.de">info@example-church.de</a></p>
+<p>E-Mail: <a href="mailto:pastor-beispiel@example-church.de">pastor-beispiel@example-church.de</a><br>
+Technik: <a href="mailto:technik@example-church.de">technik@example-church.de</a></p>
+
+<h3>Registereintrag</h3>
+<p>Registergericht: Amtsgericht Lemgo<br>
+Registernummer: VR 1671</p>
+
+<h3>Steuernummer</h3>
+<p>313/5902/6868 (Finanzamt Detmold)</p>
 
 <h3>Verantwortlich fuer den Inhalt nach &sect; 55 Abs. 2 RStV</h3>
-<p>Die Gemeindeleitung der Beispielgemeinde<br>
-Anschrift wie oben</p>
+<p>Peter Dridiger<br>
+Beispielgemeinde e.V.<br>
+Gasstrasse 4, 32791 Lage</p>
 
 <h3>Haftungsausschluss</h3>
 

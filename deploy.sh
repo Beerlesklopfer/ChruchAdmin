@@ -101,9 +101,11 @@ defaults = {
     'church_name': ('Beispielgemeinde', 'general', 'Name der Gemeinde'),
     'church_domain': ('example-church.de', 'general', 'Domain der Gemeinde'),
     'church_address': ('Gasstr. 4, 32791 Lage', 'general', 'Anschrift der Gemeinde'),
-    'church_phone': ('+49 5261 808 6 494', 'general', 'Telefonnummer'),
-    'church_email': ('info@example-church.de', 'general', 'Kontakt-E-Mail'),
-    'church_contact_person': ('Die Gemeindeleitung', 'general', 'Ansprechperson'),
+    'church_phone': ('', 'general', 'Telefonnummer'),
+    'church_email': ('pastor-beispiel@example-church.de', 'general', 'Kontakt-E-Mail'),
+    'church_contact_person': ('Peter Dridiger', 'general', 'Ansprechperson / Verantwortlicher'),
+    'church_register': ('VR 1671, Amtsgericht Lemgo', 'general', 'Vereinsregister'),
+    'church_tax_id': ('313/5902/6868, Finanzamt Detmold', 'general', 'Steuernummer'),
     'privacy_contact_person': ('Die Gemeindeleitung', 'general', 'Datenschutz-Ansprechperson'),
 }
 for key, (val, cat, desc) in defaults.items():
@@ -111,6 +113,13 @@ for key, (val, cat, desc) in defaults.items():
     if created:
         print(f'  {key} angelegt')
 "
+
+# sudoers fuer slapcat (Schema-Backup)
+if [[ -f "${DEPLOY_DIR}/config/sudoers.d/churchadmin-slapcat" ]]; then
+    sudo cp "${DEPLOY_DIR}/config/sudoers.d/churchadmin-slapcat" /etc/sudoers.d/churchadmin-slapcat
+    sudo chmod 440 /etc/sudoers.d/churchadmin-slapcat
+    log "sudoers fuer slapcat installiert"
+fi
 
 log "Sammle statische Dateien ..."
 sudo -u www-data ${MANAGE} collectstatic --noinput

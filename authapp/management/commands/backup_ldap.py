@@ -10,6 +10,8 @@ from django.conf import settings
 from main.ldap_manager import LDAPManager, LDAPConnectionError
 from authapp.models import LDAPBackup
 import os
+import shutil
+import subprocess
 from datetime import datetime
 
 
@@ -21,8 +23,8 @@ class Command(BaseCommand):
             '--type',
             type=str,
             default='full',
-            choices=['full', 'users', 'groups', 'domains'],
-            help='Backup-Typ: full, users, groups oder domains'
+            choices=['full', 'users', 'groups', 'domains', 'schema'],
+            help='Backup-Typ: full, users, groups, domains oder schema'
         )
         parser.add_argument(
             '--output-dir',
@@ -88,6 +90,20 @@ class Command(BaseCommand):
         self.stdout.write(f"Ausgabe: {output_path}")
 
         try:
+            # Schema-Backup (bei full oder schema)
+            if backup_type in ('full', 'schema'):
+                self._backup_schema(output_dir, timestamp)
+
+            if backup_type == 'schema':
+                # Nur Schema — kein Daten-Export noetig
+                backup.status = 'completed'
+                backup.completed_at = timezone.now()
+                backup.file_size = 0
+                backup.entry_count = 0
+                backup.save()
+                self.stdout.write(self.style.SUCCESS('Schema-Backup abgeschlossen.'))
+                return
+
             # LDAP-Manager initialisieren
             ldap_mgr = LDAPManager()
             ldap_mgr.connect()
@@ -161,3 +177,37 @@ class Command(BaseCommand):
             backup.save()
 
             raise CommandError(f"Fehler beim Backup: {str(e)}")
+
+    def _backup_schema(self, output_dir, timestamp):
+        """Sichert das LDAP-Schema (cn=config) und lokale Schema-Dateien"""
+        schema_dir = os.path.join(output_dir, f'schema_{timestamp}')
+        os.makedirs(schema_dir, exist_ok=True)
+
+        # 1. slapcat -n0 fuer cn=config (Schema-Datenbank)
+        schema_ldif = os.path.join(schema_dir, 'schema_config.ldif')
+        try:
+            result = subprocess.run(
+                ['sudo', 'slapcat', '-n', '0'],
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0 and result.stdout:
+                with open(schema_ldif, 'w') as f:
+                    f.write(result.stdout)
+                self.stdout.write(self.style.SUCCESS(
+                    f'  Schema (cn=config) gesichert: {schema_ldif}'))
+            else:
+                self.stdout.write(self.style.WARNING(
+                    f'  slapcat -n0 fehlgeschlagen (sudo noetig?): {result.stderr[:200]}'))
+        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+            self.stdout.write(self.style.WARNING(f'  slapcat nicht verfuegbar: {e}'))
+
+        # 2. Lokale Schema-LDIF-Dateien kopieren
+        ldap_schema_dir = os.path.join(settings.BASE_DIR, 'ldap')
+        if os.path.isdir(ldap_schema_dir):
+            for f in os.listdir(ldap_schema_dir):
+                if f.endswith('.ldif'):
+                    src = os.path.join(ldap_schema_dir, f)
+                    dst = os.path.join(schema_dir, f)
+                    shutil.copy2(src, dst)
+            self.stdout.write(self.style.SUCCESS(
+                f'  Lokale Schema-Dateien kopiert nach {schema_dir}'))
