@@ -326,6 +326,27 @@ def consent_update(request):
         elif target_user_cn:
             target_user = DjangoUser.objects.filter(username__iexact=target_user_cn).first()
             if not target_user:
+                # Django-User existiert nicht (z.B. Kind, nie eingeloggt) -> anlegen
+                try:
+                    from main.ldap_manager import LDAPManager
+                    with LDAPManager() as ldap_mgr:
+                        ldap_data = ldap_mgr.get_user(target_user_cn)
+                        if ldap_data:
+                            attrs = ldap_data['attributes']
+                            gn = attrs.get('givenName', [''])[0] if isinstance(attrs.get('givenName', ['']), list) else attrs.get('givenName', '')
+                            sn = attrs.get('sn', [''])[0] if isinstance(attrs.get('sn', ['']), list) else attrs.get('sn', '')
+                            mail = attrs.get('mail', [''])[0] if isinstance(attrs.get('mail', ['']), list) else attrs.get('mail', '')
+                            target_user = DjangoUser.objects.create(
+                                username=target_user_cn,
+                                first_name=gn,
+                                last_name=sn,
+                                email=mail,
+                            )
+                            target_user.set_unusable_password()
+                            target_user.save()
+                except Exception:
+                    pass
+            if not target_user:
                 messages.error(request, f'Benutzer {target_user_cn} nicht gefunden.')
                 return redirect('ldap_user_search')
         else:
