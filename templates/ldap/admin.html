@@ -3,48 +3,110 @@
 {% block title %}LDAP Administration{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
+<div class="container-fluid">
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3>LDAP Administration</h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="card text-white bg-primary">
-                                <div class="card-body">
-                                    <h4>{{ stats.total_users }}</h4>
-                                    <p>LDAP Benutzer</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card text-white bg-success">
-                                <div class="card-body">
-                                    <h4>{{ stats.total_groups }}</h4>
-                                    <p>LDAP Gruppen</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <h1 class="text-church-navy">
+                <i class="bi bi-speedometer2 me-2"></i>LDAP Administration
+            </h1>
+            <p class="text-church-gray">Uebersicht und Schnellzugriff auf alle Verwaltungsfunktionen</p>
+        </div>
+    </div>
 
-                    <div class="mt-4">
-                        <h5>Administration Tools</h5>
-                        <div class="list-group">
-                            <a href="{% url 'ldap_user_search' %}" class="list-group-item list-group-item-action">
-                                <i class="fas fa-search"></i> Benutzer suchen
-                            </a>
-                            <a href="/admin/" class="list-group-item list-group-item-action">
-                                <i class="fas fa-cog"></i> Django Administration
-                            </a>
-                        </div>
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="{% url 'ldap_user_search' %}" class="text-decoration-none">
+                <div class="card text-white" style="background: var(--church-navy); border-radius: 12px; transition: transform 0.15s;">
+                    <div class="card-body">
+                        <h2 class="mb-1">{{ stats.total_users }}</h2>
+                        <p class="mb-0"><i class="bi bi-people-fill me-2"></i>LDAP Benutzer</p>
                     </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'group_list' %}" class="text-decoration-none">
+                <div class="card text-white" style="background: var(--church-gold); color: var(--church-navy) !important; border-radius: 12px; transition: transform 0.15s;">
+                    <div class="card-body">
+                        <h2 class="mb-1" style="color: var(--church-navy);">{{ stats.total_groups }}</h2>
+                        <p class="mb-0" style="color: var(--church-navy);"><i class="bi bi-diagram-3-fill me-2"></i>LDAP Gruppen</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'family_tree' %}" class="text-decoration-none">
+                <div class="card text-white" style="background: #28a745; border-radius: 12px; transition: transform 0.15s;">
+                    <div class="card-body">
+                        <h2 class="mb-1"><i class="bi bi-tree"></i></h2>
+                        <p class="mb-0"><i class="bi bi-people me-2"></i>Familien</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'permissions_overview' %}" class="text-decoration-none">
+                <div class="card text-white" style="background: #6f42c1; border-radius: 12px; transition: transform 0.15s;">
+                    <div class="card-body">
+                        <h2 class="mb-1"><i class="bi bi-shield-lock"></i></h2>
+                        <p class="mb-0"><i class="bi bi-key me-2"></i>Berechtigungen</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-lightning me-2"></i>Schnellzugriff
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'group_list' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-diagram-3 me-2 text-church-navy"></i>Gruppenverwaltung
+                    </a>
+                    <a href="{% url 'family_tree' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-tree me-2 text-church-navy"></i>Familienbaum
+                    </a>
+                    <a href="{% url 'member_list_export' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-file-earmark-pdf me-2 text-church-navy"></i>Gemeindeliste / Export
+                    </a>
+                    <a href="{% url 'registration_requests' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person-plus me-2 text-church-navy"></i>Registrierungsanfragen
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-gear me-2"></i>Administration
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'permissions_matrix' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-grid me-2 text-church-navy"></i>Berechtigungsmatrix
+                    </a>
+                    <a href="{% url 'backup_dashboard' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-cloud-download me-2 text-church-navy"></i>Backup & Recovery
+                    </a>
+                    <a href="/admin/" class="list-group-item list-group-item-action">
+                        <i class="bi bi-sliders me-2 text-church-navy"></i>Django Administration
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
+{% block extra_css %}
+<style>
+    .col-md-3 a .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+{% endblock %}

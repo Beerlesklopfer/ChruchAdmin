@@ -3,6 +3,7 @@ Gemeindelisten-Export Views
 PDF und vCard/CardDAV Export
 """
 
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages

@@ -283,14 +283,17 @@ Vollstaendige Verwaltung von LDAP-Gruppen mit Mitglieder-Management, Berechtigun
 
 ## Offene Features
 
-### Phase 5: Gruppenverwaltung (Teilweise)
+### Phase 5: Gruppenverwaltung ✅
 - [x] Gruppen-Liste mit hierarchischer Einrueckung
-- [x] Mitglieder hinzufuegen/entfernen
-- [ ] Gruppen-Detail-Ansicht mit Mitgliedern
-- [ ] Gruppe erstellen (mit Parent-Gruppe)
-- [ ] Gruppe bearbeiten
-- [ ] Gruppe loeschen
-- [ ] Gruppen-Baum Visualisierung
+- [x] Mitglieder hinzufuegen/entfernen (durchsuchbares Modal)
+- [x] Gruppen-Detail-Ansicht mit Mitgliedern
+- [x] Gruppe erstellen (mit Parent-Gruppe, Umlaut-Support)
+- [x] Gruppe bearbeiten (Popup-Modal)
+- [x] Gruppe loeschen (mit Gruppenname-Bestaetigung)
+- [x] Gruppen-Baum Visualisierung (Toggle Tabelle/Baum, Expand/Collapse)
+- [x] Superuser/Admin-Toggle im Benutzer-Editor
+- [x] Nextcloud-Zugang (nextCloudEnabled) lesen/speichern
+- [x] LDAP Admin Dashboard mit korrekten Statistiken
 
 ### Phase 6: Mail-Verwaltung (Teilweise)
 - [x] Benutzer-Mail-Attribute editierbar (mail, mailRouting, mailAlias, Quota)

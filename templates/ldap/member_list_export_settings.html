@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Export-Einstellungen{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'member_list_export' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>Gemeindeliste
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+                        Export-Einstellungen
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="text-church-navy">
+                <i class="bi bi-gear me-2"></i>Export-Einstellungen
+            </h1>
+            <p class="text-church-gray">Verwalten Sie Export-Konfigurationen fuer die Gemeindeliste</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Bestehende Konfigurationen -->
+        <div class="col-md-7">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-list-ul me-2"></i>Vorhandene Konfigurationen ({{ all_settings|length }})
+                </div>
+                <div class="card-body p-0">
+                    {% if all_settings %}
+                    <div class="table-responsive">
+                        <table class="table table-church table-church-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Filter</th>
+                                    <th>Felder</th>
+                                    <th>Oeffentlich</th>
+                                    <th class="text-end">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in all_settings %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-church-navy">{{ s.name }}</strong>
+                                        {% if s.description %}
+                                        <br><small class="text-muted">{{ s.description }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ s.get_user_filter_display }}</span></td>
+                                    <td>
+                                        {% if s.include_name %}<i class="bi bi-person text-church-navy" title="Name"></i>{% endif %}
+                                        {% if s.include_email %}<i class="bi bi-envelope text-church-navy" title="E-Mail"></i>{% endif %}
+                                        {% if s.include_phone %}<i class="bi bi-telephone text-church-navy" title="Telefon"></i>{% endif %}
+                                        {% if s.include_address %}<i class="bi bi-house text-church-navy" title="Adresse"></i>{% endif %}
+                                        {% if s.include_birthday %}<i class="bi bi-calendar text-church-navy" title="Geburtstag"></i>{% endif %}
+                                        {% if s.include_groups %}<i class="bi bi-diagram-3 text-church-navy" title="Gruppen"></i>{% endif %}
+                                        {% if s.include_family %}<i class="bi bi-people text-church-navy" title="Familie"></i>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if s.is_public %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                        {% else %}
+                                        <i class="bi bi-x-circle text-muted"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="settings_id" value="{{ s.pk }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                    onclick="return confirm('Konfiguration {{ s.name }} loeschen?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-gear text-church-gray" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Noch keine Export-Konfigurationen vorhanden</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Neue Konfiguration -->
+        <div class="col-md-5">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-plus-circle me-2"></i>Neue Konfiguration
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name *</label>
+                            <input type="text" class="form-control" name="name" id="name" required
+                                   placeholder="z.B. Standard-Export">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Beschreibung</label>
+                            <input type="text" class="form-control" name="description" id="description"
+                                   placeholder="Optional">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Felder</label>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_name" id="inc_name" checked><label class="form-check-label" for="inc_name">Name</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_email" id="inc_email" checked><label class="form-check-label" for="inc_email">E-Mail</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_phone" id="inc_phone"><label class="form-check-label" for="inc_phone">Telefon</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_address" id="inc_addr"><label class="form-check-label" for="inc_addr">Adresse</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_birthday" id="inc_bday"><label class="form-check-label" for="inc_bday">Geburtstag</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_groups" id="inc_grp" checked><label class="form-check-label" for="inc_grp">Gruppen</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="include_family" id="inc_fam" checked><label class="form-check-label" for="inc_fam">Familie</label></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user_filter" class="form-label">Filter</label>
+                            <select class="form-select" name="user_filter" id="user_filter">
+                                <option value="all">Alle Benutzer</option>
+                                <option value="members">Nur Mitglieder</option>
+                                <option value="visitors">Nur Besucher</option>
+                                <option value="family_heads">Nur Familienoberhaeupter</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="sort_by" class="form-label">Sortierung</label>
+                            <select class="form-select" name="sort_by" id="sort_by">
+                                <option value="sn">Nach Nachname</option>
+                                <option value="givenName">Nach Vorname</option>
+                                <option value="mail">Nach E-Mail</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="is_public" id="is_public" checked>
+                            <label class="form-check-label" for="is_public">Fuer alle Benutzer verfuegbar</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-church-primary w-100">
+                            <i class="bi bi-plus-circle me-2"></i>Konfiguration erstellen
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
