@@ -11,7 +11,18 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 import ldap
+
+# .env laden (falls vorhanden)
+_env_path = Path(__file__).resolve().parent.parent / '.env'
+if _env_path.exists():
+    with open(_env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, _, value = line.partition('=')
+                os.environ.setdefault(key.strip(), value.strip())
 from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 
 # Admin Konfiguration
@@ -26,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'REDACTED'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -157,9 +168,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Für Produktion sollte ein gültiges SSL-Zertifikat verwendet werden
 ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
-AUTH_LDAP_SERVER_URI = 'ldaps://ldap.example-church.de'
-AUTH_LDAP_BIND_DN = "cn=admin,dc=example-church,dc=de"
-AUTH_LDAP_BIND_PASSWORD = "REDACTED"
+AUTH_LDAP_SERVER_URI = os.environ.get('LDAP_SERVER_URI', 'ldaps://ldap.example-church.de')
+AUTH_LDAP_BIND_DN = os.environ.get('LDAP_BIND_DN', 'cn=admin,dc=example-church,dc=de')
+AUTH_LDAP_BIND_PASSWORD = os.environ.get('LDAP_BIND_PASSWORD', '')
 
 AUTH_LDAP_USER_SEARCH = LDAPSearch(
     "ou=Users,dc=example-church,dc=de",
