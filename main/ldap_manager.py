@@ -795,11 +795,16 @@ class LDAPManager:
             # Erstelle Modlist
             mod_attrs = []
             for key, value in attributes.items():
-                encoded_value = self.encode_attribute(value)
-                if key in old_attrs:
-                    mod_attrs.append((ldap.MOD_REPLACE, key, encoded_value))
+                if value is None:
+                    # Attribut entfernen
+                    if key in old_attrs:
+                        mod_attrs.append((ldap.MOD_DELETE, key, None))
                 else:
-                    mod_attrs.append((ldap.MOD_ADD, key, encoded_value))
+                    encoded_value = self.encode_attribute(value)
+                    if key in old_attrs:
+                        mod_attrs.append((ldap.MOD_REPLACE, key, encoded_value))
+                    else:
+                        mod_attrs.append((ldap.MOD_ADD, key, encoded_value))
 
             if mod_attrs:
                 self.conn.modify_s(group_dn, mod_attrs)

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.cn }} bearbeiten - Gruppendetails{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'ldap_admin' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'group_list' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-diagram-3 me-1"></i>Gruppenverwaltung
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'group_detail' group_cn=group.cn %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-info-circle me-1"></i>{{ group.cn }}
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+                        <i class="bi bi-pencil me-1"></i>Bearbeiten
+                    </li>
+                </ol>
+            </nav>
+
+            <h1 class="text-church-navy">
+                <i class="bi bi-pencil me-2"></i>{{ group.cn }} bearbeiten
+            </h1>
+            <p class="text-church-gray">Bearbeiten Sie die Eigenschaften dieser Gruppe</p>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-pencil me-2"></i>Gruppen-Eigenschaften
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="group_cn" class="form-label">
+                                <i class="bi bi-tag me-1"></i>Gruppenname
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="group_cn"
+                                   value="{{ group.cn }}"
+                                   readonly
+                                   style="background-color: #f8f9fa;">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Der Gruppenname kann nicht geändert werden
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="group_description" class="form-label">
+                                <i class="bi bi-info-circle me-1"></i>Beschreibung
+                            </label>
+                            <textarea class="form-control"
+                                      id="group_description"
+                                      name="description"
+                                      rows="3"
+                                      placeholder="Beschreibung der Gruppe...">{{ group.description|default:"" }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-diagram-2 me-1"></i>Gruppen-Typ
+                            </label>
+                            <div class="form-control-plaintext">
+                                {% if group.is_nested %}
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-arrow-return-right me-1"></i>Untergruppe von: {{ group.parent_cn }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-diagram-3 me-1"></i>Hauptgruppe
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Der Gruppen-Typ kann nicht geändert werden
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-church-primary">
+                                <i class="bi bi-check-circle me-2"></i>Änderungen speichern
+                            </button>
+                            <a href="{% url 'group_detail' group_cn=group.cn %}" class="btn btn-church-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Zurück zur Detailansicht
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Group Info -->
+            <div class="card card-church">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>Gruppen-Info
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Mitglieder:</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge badge-church-navy">
+                                <i class="bi bi-people-fill me-1"></i>{{ members|length }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">DN:</dt>
+                        <dd class="col-sm-7">
+                            <code style="font-size: 0.75rem;">{{ group.dn }}</code>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="card border-danger mt-3">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Gefahrenzone
+                </div>
+                <div class="card-body">
+                    <p class="text-danger mb-3">
+                        <strong>Vorsicht!</strong> Das Loeschen einer Gruppe ist endgueltig und kann nicht rueckgaengig gemacht werden.
+                    </p>
+                    <button type="button" class="btn btn-danger w-100" data-bs-toggle="collapse" data-bs-target="#deleteConfirmSection">
+                        <i class="bi bi-trash me-2"></i>Gruppe loeschen
+                    </button>
+                    <div class="collapse mt-3" id="deleteConfirmSection">
+                        <div class="alert alert-danger">
+                            <p class="mb-2">Geben Sie den Gruppennamen <strong>{{ group.cn }}</strong> zur Bestaetigung ein:</p>
+                            <input type="text" class="form-control mb-2" id="edit-delete-confirm"
+                                   placeholder="Gruppenname eingeben..." autocomplete="off">
+                            <form method="post" action="{% url 'group_delete' group_cn=group.cn %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="confirm_delete" value="DELETE">
+                                <button type="submit" class="btn btn-danger w-100" id="edit-btn-delete" disabled>
+                                    <i class="bi bi-trash me-2"></i>Endgueltig loeschen
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('edit-delete-confirm').addEventListener('input', function() {
+    document.getElementById('edit-btn-delete').disabled = (this.value !== '{{ group.cn }}');
+});
+</script>
+{% endblock %}

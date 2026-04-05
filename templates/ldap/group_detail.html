@@ -38,10 +38,10 @@
         </div>
     </div>
 
-    <!-- Group Info Card -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card card-church">
+    <!-- Group Info + Aktionen -->
+    <div class="row mb-4 align-items-stretch">
+        <div class="col-md-6 d-flex">
+            <div class="card card-church w-100">
                 <div class="card-header">
                     <i class="bi bi-info-circle me-2"></i>Gruppeninformationen
                 </div>
@@ -54,11 +54,11 @@
                         <dd class="col-sm-8">{{ group.description|default:"Keine Beschreibung" }}</dd>
 
                         <dt class="col-sm-4">DN:</dt>
-                        <dd class="col-sm-8"><code style="font-size: 0.85rem;">{{ group.dn }}</code></dd>
+                        <dd class="col-sm-8"><code style="font-size: 0.85rem; word-break: break-all;">{{ group.dn }}</code></dd>
 
                         <dt class="col-sm-4">Mitglieder:</dt>
                         <dd class="col-sm-8">
-                            <span class="badge badge-church-navy">
+                            <span class="badge" style="background-color: var(--church-navy); color: #fff;">
                                 <i class="bi bi-people-fill me-1"></i>{{ members|length }}
                             </span>
                         </dd>
@@ -67,20 +67,42 @@
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card card-church">
+        <div class="col-md-6 d-flex">
+            <div class="card card-church w-100">
                 <div class="card-header">
                     <i class="bi bi-gear me-2"></i>Aktionen
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-church-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                            <i class="bi bi-person-plus me-2"></i>Mitglied hinzufügen
+                <div class="card-body d-flex flex-column">
+                    <div class="d-grid gap-2 flex-grow-1">
+                        <button type="button" class="btn btn-church-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            <i class="bi bi-person-plus me-2"></i>Mitglied hinzufuegen
                         </button>
-                        <a href="{% url 'group_list' %}" class="btn btn-church-secondary">
-                            <i class="bi bi-arrow-left me-2"></i>Zurück zur Gruppenliste
-                        </a>
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editGroupModal">
+                            <i class="bi bi-pencil me-2"></i>Gruppe bearbeiten
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#deleteSection">
+                            <i class="bi bi-trash me-2"></i>Gruppe loeschen
+                        </button>
+                        <div class="collapse" id="deleteSection">
+                            <div class="alert alert-danger mb-0">
+                                <p class="mb-2"><strong>Achtung!</strong> Diese Aktion kann nicht rueckgaengig gemacht werden.</p>
+                                <p class="mb-2">Geben Sie <strong class="text-danger">{{ group.cn }}</strong> zur Bestaetigung ein:</p>
+                                <input type="text" class="form-control mb-2" id="detail-delete-confirm"
+                                       placeholder="Gruppenname eingeben..." autocomplete="off">
+                                <form method="post" action="{% url 'group_delete' group_cn=group.cn %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="confirm_delete" value="DELETE">
+                                    <button type="submit" class="btn btn-danger w-100" id="detail-btn-delete" disabled>
+                                        <i class="bi bi-trash me-2"></i>Endgueltig loeschen
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
+                    <hr class="my-2">
+                    <a href="{% url 'group_list' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-left me-2"></i>Zurueck zur Gruppenliste
+                    </a>
                 </div>
             </div>
         </div>
@@ -146,6 +168,57 @@
     </div>
 </div>
 
+<!-- Edit Group Modal -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--church-navy); color: #fff;">
+                <h5 class="modal-title" id="editGroupModalLabel">
+                    <i class="bi bi-pencil me-2"></i>{{ group.cn }} bearbeiten
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'group_edit' group_cn=group.cn %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-tag me-1"></i>Gruppenname
+                        </label>
+                        <input type="text" class="form-control" value="{{ group.cn }}" readonly
+                               style="background-color: #f8f9fa;">
+                        <div class="form-text">Der Gruppenname kann nicht geaendert werden.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit-description" class="form-label">
+                            <i class="bi bi-info-circle me-1"></i>Beschreibung
+                        </label>
+                        <textarea class="form-control" id="edit-description" name="description"
+                                  rows="3" placeholder="Beschreibung der Gruppe...">{{ group.description|default:"" }}</textarea>
+                    </div>
+
+                    {% if group.is_nested %}
+                    <div class="mb-0">
+                        <span class="badge bg-info">
+                            <i class="bi bi-arrow-return-right me-1"></i>Untergruppe von: {{ group.parent_cn }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-church-primary">
+                        <i class="bi bi-check-circle me-2"></i>Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Add Member Modal -->
 <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -156,41 +229,49 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'group_add_member' group_cn=group.cn %}">
+            <form method="post" action="{% url 'group_add_member' group_cn=group.cn %}" id="addMemberForm">
                 {% csrf_token %}
+                <input type="hidden" name="user_dn" id="selected_user_dn" value="">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="user_select" class="form-label">
-                            <i class="bi bi-person me-1"></i>Benutzer auswählen
-                        </label>
-                        <select class="form-select" id="user_select" name="user_dn" required>
-                            <option value="">-- Benutzer auswählen --</option>
-                            {% for user in all_users %}
-                                {% if user not in members %}
-                                    <option value="{{ user.dn }}">{{ user.displayName }} ({{ user.cn }})</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
-                        <div class="form-text">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Nur Benutzer, die noch nicht in der Gruppe sind, werden angezeigt
-                        </div>
-                    </div>
-
-                    <!-- Search field for filtering -->
                     <div class="mb-3">
                         <label for="user_search" class="form-label">
                             <i class="bi bi-search me-1"></i>Benutzer suchen
                         </label>
-                        <input type="text" class="form-control" id="user_search" placeholder="Name oder Benutzername eingeben...">
+                        <input type="text" class="form-control" id="user_search"
+                               placeholder="Name oder Benutzername eingeben..." autofocus>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Tippen Sie, um Benutzer zu filtern. Nur Benutzer, die noch nicht in der Gruppe sind, werden angezeigt.
+                        </div>
+                    </div>
+
+                    <div id="selected-user-display" class="alert alert-success d-none mb-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>Ausgewaehlt:</strong> <span id="selected-user-name"></span>
+                        <button type="button" class="btn-close float-end" id="clear-selection" aria-label="Auswahl aufheben"></button>
+                    </div>
+
+                    <div id="user-results" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                        {% for user in all_users %}
+                            {% if user.dn not in group.members_dn %}
+                            <button type="button"
+                                    class="list-group-item list-group-item-action user-option"
+                                    data-dn="{{ user.dn }}"
+                                    data-name="{{ user.displayName }} ({{ user.cn }})">
+                                <i class="bi bi-person me-2"></i>
+                                <strong>{{ user.displayName }}</strong>
+                                <small class="text-muted ms-2">{{ user.cn }}</small>
+                            </button>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-2"></i>Abbrechen
                     </button>
-                    <button type="submit" class="btn btn-church-primary">
-                        <i class="bi bi-plus-circle me-2"></i>Hinzufügen
+                    <button type="submit" class="btn btn-church-primary" id="btn-add-member" disabled>
+                        <i class="bi bi-plus-circle me-2"></i>Hinzufuegen
                     </button>
                 </div>
             </form>
@@ -201,20 +282,56 @@
 
 {% block extra_js %}
 <script>
-    // Live-Suche im Benutzer-Dropdown
-    document.getElementById('user_search').addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const select = document.getElementById('user_select');
-        const options = select.options;
+(function() {
+    const searchInput = document.getElementById('user_search');
+    const results = document.getElementById('user-results');
+    const options = results.querySelectorAll('.user-option');
+    const hiddenInput = document.getElementById('selected_user_dn');
+    const selectedDisplay = document.getElementById('selected-user-display');
+    const selectedName = document.getElementById('selected-user-name');
+    const btnAdd = document.getElementById('btn-add-member');
+    const btnClear = document.getElementById('clear-selection');
 
-        for (let i = 1; i < options.length; i++) {  // Skip first option (placeholder)
-            const optionText = options[i].text.toLowerCase();
-            if (optionText.includes(searchTerm)) {
-                options[i].style.display = '';
-            } else {
-                options[i].style.display = 'none';
-            }
-        }
+    // Live-Filter
+    searchInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        options.forEach(function(opt) {
+            const name = opt.getAttribute('data-name').toLowerCase();
+            opt.style.display = name.includes(term) ? '' : 'none';
+        });
     });
+
+    // Benutzer auswaehlen
+    options.forEach(function(opt) {
+        opt.addEventListener('click', function() {
+            hiddenInput.value = this.getAttribute('data-dn');
+            selectedName.textContent = this.getAttribute('data-name');
+            selectedDisplay.classList.remove('d-none');
+            btnAdd.disabled = false;
+
+            // Markierung
+            options.forEach(function(o) { o.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+
+    // Auswahl aufheben
+    btnClear.addEventListener('click', function() {
+        hiddenInput.value = '';
+        selectedDisplay.classList.add('d-none');
+        btnAdd.disabled = true;
+        options.forEach(function(o) { o.classList.remove('active'); });
+    });
+
+    // Autofocus beim Modal-Oeffnen
+    document.getElementById('addMemberModal').addEventListener('shown.bs.modal', function() {
+        searchInput.focus();
+    });
+})();
+
+// Loeschen-Bestaetigung
+document.getElementById('detail-delete-confirm').addEventListener('input', function() {
+    document.getElementById('detail-btn-delete').disabled = (this.value !== '{{ group.cn }}');
+});
 </script>
 {% endblock %}

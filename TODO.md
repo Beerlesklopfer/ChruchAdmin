@@ -17,6 +17,89 @@
 
 ---
 
+## Plan: Gruppenadministration (Phase 14)
+
+### Ziel
+Vollstaendige Verwaltung von LDAP-Gruppen mit Mitglieder-Management, Berechtigungen und Hierarchien.
+
+### Aktuelle Situation
+- Grundlegende Gruppenverwaltung existiert bereits (group_list, group_add, group_delete Views)
+- Gruppen werden in LDAP unter ou=Groups gespeichert
+- Benutzer koennen Gruppen zugewiesen werden (memberOf Attribut)
+- Fehlt: Detaillierte Gruppen-Views, Bulk-Operationen, Gruppen-Hierarchien
+
+### Anforderungen
+1. **Gruppen-CRUD**: Erstellen, Bearbeiten, Loeschen von Gruppen
+2. **Mitglieder-Management**: Benutzer zu/von Gruppen hinzufuegen/entfernen
+3. **Bulk-Operationen**: Mehrere Benutzer gleichzeitig zu Gruppen zuweisen
+4. **Gruppen-Hierarchien**: Verschachtelte Gruppen (z.B. Jugendgruppe -> Untergruppen)
+5. **Berechtigungen**: Gruppenbasierte Zugriffsrechte
+6. **Dashboard**: Uebersicht ueber alle Gruppen und Mitgliederzahlen
+
+### Technische Umsetzung
+
+#### Phase 1: Gruppen-Detail-Views (1-2 Tage)
+- **Modelle**: Erweitere Group Model (falls noetig) um description, parent_group
+- **Views**: group_detail, group_edit, group_members
+- **Templates**: group_detail.html, group_edit.html, group_members.html
+- **URLs**: Neue Routen in authapp/urls.py
+
+#### Phase 2: Mitglieder-Management (2-3 Tage)
+- **Views**: group_add_member, group_remove_member, group_bulk_add
+- **AJAX**: Drag & Drop fuer Mitglieder-Zuweisung
+- **Templates**: Mitglieder-Liste mit Suchfunktion und Bulk-Aktionen
+- **Berechtigungen**: can_manage_groups (getrennt von can_manage_ldap)
+
+#### Phase 3: Mitglieder-Management (2-3 Tage)
+- **Views**: group_add_member, group_remove_member, group_bulk_add
+- **AJAX**: Drag & Drop fuer Mitglieder-Zuweisung
+- **Templates**: Mitglieder-Liste mit Suchfunktion und Bulk-Aktionen
+- **Berechtigungen**: can_manage_groups (getrennt von can_manage_ldap)
+
+#### Phase 4: Berechtigungen & Sicherheit (2-3 Tage)
+- **PermissionMapping**: Neue Rechte (manage_groups, view_group_hierarchy)
+- **Context Processor**: Gruppenbasierte Berechtigungen
+- **Views**: Berechtigung pruefen vor jeder Aktion
+- **Audit-Log**: Aenderungen an Gruppenmitgliedschaften protokollieren
+
+#### Phase 5: Gruppen-Hierarchien (3-4 Tage)
+- **Model**: parent_group Feld fuer verschachtelte Gruppen
+- **Views**: group_hierarchy, group_subgroups
+- **Templates**: Baum-Ansicht mit Expand/Collapse
+- **LDAP**: Unterstuetzung fuer nested Groups (memberOf mit DN-Referenzen)
+
+#### Phase 6: Dashboard & Reporting (1-2 Tage)
+- **Views**: groups_dashboard mit Statistiken
+- **Templates**: Uebersicht ueber alle Gruppen, Mitgliederzahlen, Aktivitaeten
+- **Export**: CSV-Export von Gruppenmitgliedern
+
+### Risiken & Abhaengigkeiten
+- **LDAP-Schema**: Stelle sicher, dass nested Groups unterstuetzt werden
+- **Performance**: Bei grossen Gruppen (>100 Mitglieder) Indizierung optimieren
+- **Berechtigungen**: Teste alle Kombinationen von can_manage_ldap vs can_manage_groups
+
+### Testing
+- Unit Tests fuer alle Views und LDAP-Operationen
+- Integration Tests fuer Gruppen-CRUD und Mitglieder-Management
+- UI-Tests fuer Drag & Drop und Bulk-Operationen
+
+### Deployment
+- Migrationen fuer neue Felder (falls noetig)
+- Update der seed_templates (falls Gruppen-Vorlagen hinzugefuegt)
+- Dokumentation in README.md erweitern
+
+### Zeitplan
+- **Gesamt**: 8-14 Tage Entwicklungszeit
+- **Phase 1**: Tag 1-2
+- **Phase 2**: Tag 3-5
+- **Phase 3**: Tag 6-8
+- **Phase 4**: Tag 9-11
+- **Phase 5**: Tag 12-15
+- **Phase 6**: Tag 16-17
+- **Testing & Deployment**: Tag 18
+
+---
+
 ## Erledigte Aufgaben (2026-04-04)
 
 ### DSGVO-Compliance (Phase 12) ✅

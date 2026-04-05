@@ -65,19 +65,68 @@ body {
     opacity: 0.3;
 }
 
-/* ==================== BUTTONS ==================== */
-.btn-church-primary {
-    background-color: var(--church-gold);
-    border-color: var(--church-gold);
-    color: var(--church-navy);
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
+    .navbar-church .navbar-toggler {
+        border-color: rgba(255,255,255,0.55);
+        z-index: 1050;
+    }
 
-.btn-church-primary:hover {
-    background-color: #d4ae56;
-    border-color: #d4ae56;
-    color: var(--church-navy);
+    .navbar-church .navbar-toggler-icon {
+        filter: invert(1) brightness(2);
+    }
+
+    @media (max-width: 991.98px) {
+        .navbar-church {
+            position: relative;
+            z-index: 1030;
+        }
+
+        .navbar-church .navbar-collapse {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: rgba(28, 38, 71, 0.98);
+            transform: translateY(-100%);
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            padding-top: 5rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .navbar-church .navbar-collapse.show {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .navbar-church .navbar-nav {
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 0;
+            padding: 0 1rem 1rem;
+        }
+
+        .navbar-church .navbar-nav .nav-link,
+        .navbar-church .navbar-nav .dropdown-item {
+            font-size: 1.05rem;
+        }
+
+        .navbar-church .dropdown-menu {
+            position: static;
+            float: none;
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .navbar-church .dropdown-menu .dropdown-item {
+            padding-left: 1.75rem;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(230, 192, 104, 0.3);
 }

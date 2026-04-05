@@ -58,7 +58,10 @@ urlpatterns = [
 
     # Group Management URLs
     path('ldap/groups/', auth_views.group_list, name='group_list'),
+    path('ldap/groups/create/', auth_views.group_create, name='group_create'),
     path('ldap/groups/<str:group_cn>/', auth_views.group_detail, name='group_detail'),
+    path('ldap/groups/<str:group_cn>/edit/', auth_views.group_edit, name='group_edit'),
+    path('ldap/groups/<str:group_cn>/delete/', auth_views.group_delete, name='group_delete'),
     path('ldap/groups/<str:group_cn>/add-member/', auth_views.group_add_member, name='group_add_member'),
     path('ldap/groups/<str:group_cn>/remove-member/', auth_views.group_remove_member, name='group_remove_member'),
 

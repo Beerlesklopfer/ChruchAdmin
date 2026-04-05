@@ -8,6 +8,23 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb" style="background: var(--church-beige); padding: 0.75rem 1rem; border-radius: 8px;">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'ldap_admin' %}" style="color: var(--church-navy); text-decoration: none;">
+                            <i class="bi bi-speedometer2 me-1"></i>LDAP Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--church-gray);">
+                        <i class="bi bi-diagram-3 me-1"></i>Gruppenverwaltung
+                    </li>
+                </ol>
+            </nav>
             <h1 class="text-church-navy">
                 <i class="bi bi-diagram-3-fill me-2"></i>Gruppenverwaltung
             </h1>
@@ -16,28 +33,38 @@
     </div>
 
     <!-- Search and Actions -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <form method="get" class="d-flex">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <form method="get" class="d-flex flex-grow-1" style="min-width: 200px; max-width: 500px;">
+            <div class="input-group">
                 <input type="search"
                        name="q"
-                       class="form-control form-control-church me-2"
+                       class="form-control rounded-start-pill"
                        placeholder="Gruppe suchen..."
                        value="{{ search_query }}"
-                       id="groupSearch">
-                <button type="submit" class="btn btn-church-outline">
-                    <i class="bi bi-search"></i> Suchen
+                       id="groupSearch"
+                       style="border-color: var(--church-navy);">
+                <button type="submit" class="btn rounded-0" style="background: var(--church-navy); color: #fff;">
+                    <i class="bi bi-search"></i>
                 </button>
-                <a href="{% url 'group_list' %}" class="btn btn-church-secondary ms-2" title="Liste aktualisieren">
+                <a href="{% url 'group_list' %}" class="btn rounded-end-pill" style="background: var(--church-navy); color: #fff;" title="Aktualisieren">
                     <i class="bi bi-arrow-clockwise"></i>
                 </a>
-            </form>
+            </div>
+        </form>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn rounded-start-pill active" id="btn-table-view" title="Tabellenansicht"
+                    style="background: var(--church-gold, #c5a55a); color: var(--church-navy); border-color: var(--church-gold, #c5a55a); font-weight: 600;">
+                <i class="bi bi-table"></i>
+            </button>
+            <button type="button" class="btn rounded-end-pill" id="btn-tree-view" title="Baumansicht"
+                    style="background: var(--church-gold, #c5a55a); color: var(--church-navy); border-color: var(--church-gold, #c5a55a); font-weight: 600;">
+                <i class="bi bi-diagram-3"></i>
+            </button>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="#" class="btn btn-church-primary" data-bs-toggle="modal" data-bs-target="#createGroupModal">
-                <i class="bi bi-plus-circle me-2"></i>Neue Gruppe
-            </a>
-        </div>
+        <a href="#" class="btn rounded-pill ms-auto" data-bs-toggle="modal" data-bs-target="#createGroupModal"
+           style="background: var(--church-navy); color: #fff; font-weight: 500;">
+            <i class="bi bi-plus-circle me-1"></i>Neue Gruppe
+        </a>
     </div>
 
     <!-- Groups Table -->
@@ -69,7 +96,9 @@
                                                     <i class="bi bi-arrow-return-right me-1"></i>
                                                 </span>
                                             {% endif %}
-                                            <strong class="text-church-navy">{{ group.cn }}</strong>
+                                            <a href="{% url 'group_detail' group_cn=group.cn %}" style="color: var(--church-navy); text-decoration: none; border-bottom: 1px dotted var(--church-navy);">
+                                                <strong>{{ group.cn }}</strong>
+                                            </a>
                                             {% if group.is_nested %}
                                                 <br>
                                                 <small class="text-muted" style="margin-left: {{ group.level }}rem;">
@@ -81,9 +110,13 @@
                                             <span class="text-church-gray">{{ group.description|default:"Keine Beschreibung" }}</span>
                                         </td>
                                         <td>
-                                            <span class="badge badge-church-navy">
+                                            {% if group.member_count > 0 %}
+                                            <span class="badge" style="background-color: var(--church-navy, #1a2744); color: #fff;">
                                                 <i class="bi bi-people-fill me-1"></i>{{ group.member_count }}
                                             </span>
+                                            {% else %}
+                                            <span class="text-muted small">0</span>
+                                            {% endif %}
                                         </td>
                                         <td class="text-end">
                                             <div class="btn-group btn-group-sm" role="group">
@@ -92,16 +125,17 @@
                                                    title="Details anzeigen">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
-                                                <a href="#"
+                                                <a href="{% url 'group_edit' group_cn=group.cn %}"
                                                    class="btn btn-church-outline btn-sm"
                                                    title="Bearbeiten">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                                <a href="#"
-                                                   class="btn btn-outline-danger btn-sm"
-                                                   title="Löschen">
+                                                <button type="button"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        title="Löschen"
+                                                        onclick="openDeleteModal('{{ group.cn }}', {{ group.member_count }})">
                                                     <i class="bi bi-trash"></i>
-                                                </a>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -181,6 +215,28 @@
         </div>
     </div>
 
+    <!-- Tree View (hidden by default) -->
+    <div class="row" id="tree-view-container" style="display: none;">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-diagram-3 me-2"></i>Gruppen-Baum</span>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-church-outline" id="btn-expand-all">
+                            <i class="bi bi-arrows-expand me-1"></i>Alle aufklappen
+                        </button>
+                        <button type="button" class="btn btn-sm btn-church-outline" id="btn-collapse-all">
+                            <i class="bi bi-arrows-collapse me-1"></i>Alle zuklappen
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="group-tree" class="group-tree"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Info Box -->
     <div class="row mt-4">
         <div class="col-12">
@@ -202,25 +258,180 @@
     </div>
 </div>
 
-<!-- Create Group Modal (Placeholder) -->
-<div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+<!-- Create Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-church-navy text-white">
-                <h5 class="modal-title">
+                <h5 class="modal-title" id="createGroupModalLabel">
                     <i class="bi bi-plus-circle me-2"></i>Neue Gruppe erstellen
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p class="text-muted">Wird in einer späteren Phase implementiert.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
-            </div>
+            <form method="post" action="{% url 'group_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="group_cn" class="form-label">
+                            <i class="bi bi-tag me-1"></i>Gruppenname *
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="group_cn"
+                               name="cn"
+                               required
+                               pattern="[\w\sÄÖÜäöüß-]+"
+                               title="Buchstaben, Zahlen, Bindestriche, Unterstriche und Leerzeichen erlaubt">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Der Gruppenname wird als eindeutiger Bezeichner verwendet
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="group_description" class="form-label">
+                            <i class="bi bi-info-circle me-1"></i>Beschreibung
+                        </label>
+                        <textarea class="form-control"
+                                  id="group_description"
+                                  name="description"
+                                  rows="3"
+                                  placeholder="Optionale Beschreibung der Gruppe..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="parent_group" class="form-label">
+                            <i class="bi bi-diagram-2 me-1"></i>Übergeordnete Gruppe (optional)
+                        </label>
+                        <select class="form-select" id="parent_group" name="parent_cn">
+                            <option value="">-- Keine (Hauptgruppe) --</option>
+                            {% for group in groups %}
+                                {% if not group.is_nested %}
+                                    <option value="{{ group.cn }}">{{ group.cn }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Wählen Sie eine Hauptgruppe aus, um eine Untergruppe zu erstellen
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-church-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Gruppe erstellen
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<!-- Delete Group Modal -->
+<div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteGroupModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Gruppe loeschen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="deleteGroupForm">
+                {% csrf_token %}
+                <input type="hidden" name="confirm_delete" value="DELETE">
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Achtung!</strong> Diese Aktion kann nicht rueckgaengig gemacht werden.
+                    </div>
+
+                    <p>Sie sind dabei, die Gruppe <strong id="delete-group-name-display" class="text-danger"></strong> zu loeschen.</p>
+
+                    <div id="delete-member-warning" class="alert alert-warning d-none">
+                        <i class="bi bi-people-fill me-2"></i>
+                        Diese Gruppe hat noch <strong id="delete-member-count"></strong> Mitglieder.
+                        Alle Mitgliedschaften gehen verloren.
+                    </div>
+
+                    <p class="mb-2">Bitte geben Sie den Gruppennamen <strong id="delete-group-name-hint" class="text-danger"></strong> zur Bestaetigung ein:</p>
+                    <input type="text" class="form-control" id="delete-confirm-input"
+                           placeholder="Gruppenname eingeben..." autocomplete="off">
+                    <div class="form-text text-danger" id="delete-mismatch-hint" style="display: none;">
+                        <i class="bi bi-x-circle me-1"></i>Der eingegebene Name stimmt nicht ueberein.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-danger" id="btn-confirm-delete" disabled>
+                        <i class="bi bi-trash me-2"></i>Endgueltig loeschen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    #btn-table-view.active, #btn-tree-view.active {
+        background: var(--church-navy, #1a2744) !important;
+        color: var(--church-gold, #c5a55a) !important;
+        border-color: var(--church-navy, #1a2744) !important;
+    }
+    .group-tree .tree-node { margin-left: 1.5rem; }
+    .group-tree > .tree-node { margin-left: 0; }
+    .tree-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 2px;
+        cursor: default;
+        transition: background 0.15s;
+    }
+    .tree-item:hover { background: var(--church-beige, #f5f0e8); }
+    .tree-toggle {
+        width: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        color: var(--church-navy, #1a2744);
+        flex-shrink: 0;
+    }
+    .tree-toggle.leaf { visibility: hidden; }
+    .tree-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+    }
+    .tree-icon.parent { background: var(--church-navy, #1a2744); color: #fff; }
+    .tree-icon.child { background: var(--church-gold, #c5a55a); color: #fff; }
+    .tree-icon.leaf-icon { background: #e9ecef; color: #6c757d; }
+    .tree-name { font-weight: 600; color: var(--church-navy, #1a2744); border-bottom: 1px dotted var(--church-navy, #1a2744); }
+    .tree-name:hover { color: var(--church-gold, #c5a55a); border-bottom-color: var(--church-gold, #c5a55a); }
+    .tree-desc { color: #6c757d; font-size: 0.85rem; margin-left: 0.5rem; }
+    .tree-badge { margin-left: auto; flex-shrink: 0; }
+    .tree-actions { margin-left: 0.5rem; flex-shrink: 0; }
+    .tree-children { overflow: hidden; transition: max-height 0.3s ease; }
+    .tree-children.collapsed { max-height: 0 !important; }
+    .tree-line {
+        border-left: 2px solid #dee2e6;
+        margin-left: 0.75rem;
+        padding-left: 0;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -232,6 +443,175 @@
         searchTimeout = setTimeout(function() {
             e.target.form.submit();
         }, 500);
+    });
+
+    // Delete-Modal
+    var deleteGroupName = '';
+
+    function openDeleteModal(cn, memberCount) {
+        deleteGroupName = cn;
+        document.getElementById('delete-group-name-display').textContent = cn;
+        document.getElementById('delete-group-name-hint').textContent = cn;
+        document.getElementById('deleteGroupForm').action = '/ldap/groups/' + encodeURIComponent(cn) + '/delete/';
+        document.getElementById('delete-confirm-input').value = '';
+        document.getElementById('btn-confirm-delete').disabled = true;
+        document.getElementById('delete-mismatch-hint').style.display = 'none';
+
+        var warningEl = document.getElementById('delete-member-warning');
+        if (memberCount > 0) {
+            document.getElementById('delete-member-count').textContent = memberCount;
+            warningEl.classList.remove('d-none');
+        } else {
+            warningEl.classList.add('d-none');
+        }
+
+        new bootstrap.Modal(document.getElementById('deleteGroupModal')).show();
+    }
+
+    document.getElementById('delete-confirm-input').addEventListener('input', function() {
+        var match = this.value === deleteGroupName;
+        document.getElementById('btn-confirm-delete').disabled = !match;
+        document.getElementById('delete-mismatch-hint').style.display =
+            (this.value.length > 0 && !match) ? '' : 'none';
+    });
+
+    // Gruppen-Baum Daten
+    const treeData = {{ tree_json|safe }};
+
+    // Baum rendern
+    function renderTree(nodes, container, depth) {
+        nodes.forEach(function(node) {
+            const hasChildren = node.children && node.children.length > 0;
+            const div = document.createElement('div');
+            div.className = 'tree-node';
+
+            // Item-Zeile
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+
+            // Toggle
+            const toggle = document.createElement('span');
+            toggle.className = 'tree-toggle' + (hasChildren ? '' : ' leaf');
+            toggle.innerHTML = hasChildren ? '<i class="bi bi-chevron-down"></i>' : '';
+            item.appendChild(toggle);
+
+            // Icon
+            const icon = document.createElement('span');
+            icon.className = 'tree-icon ' + (hasChildren ? (depth === 0 ? 'parent' : 'child') : 'leaf-icon');
+            icon.innerHTML = hasChildren ? '<i class="bi bi-folder-fill"></i>' : '<i class="bi bi-people-fill"></i>';
+            item.appendChild(icon);
+
+            // Name
+            const name = document.createElement('a');
+            name.className = 'tree-name text-decoration-none';
+            name.href = '/ldap/groups/' + encodeURIComponent(node.cn) + '/';
+            name.textContent = node.cn;
+            item.appendChild(name);
+
+            // Beschreibung
+            if (node.description && node.description !== 'Keine Beschreibung') {
+                const desc = document.createElement('span');
+                desc.className = 'tree-desc d-none d-md-inline';
+                desc.textContent = '— ' + node.description;
+                item.appendChild(desc);
+            }
+
+            // Badge
+            const badge = document.createElement('span');
+            badge.className = 'tree-badge';
+            if (node.member_count > 0) {
+                badge.innerHTML = '<span class="badge" style="background-color: var(--church-navy, #1a2744); color: #fff;"><i class="bi bi-people-fill me-1"></i>' + node.member_count + '</span>';
+            } else {
+                badge.innerHTML = '<span class="text-muted small">0</span>';
+            }
+            item.appendChild(badge);
+
+            // Aktionen
+            const actions = document.createElement('span');
+            actions.className = 'tree-actions';
+            actions.innerHTML =
+                '<a href="/ldap/groups/' + encodeURIComponent(node.cn) + '/edit/" class="btn btn-church-outline btn-sm ms-1" title="Bearbeiten"><i class="bi bi-pencil"></i></a>';
+            item.appendChild(actions);
+
+            div.appendChild(item);
+
+            // Kinder
+            if (hasChildren) {
+                const childContainer = document.createElement('div');
+                childContainer.className = 'tree-children tree-line';
+                renderTree(node.children, childContainer, depth + 1);
+                div.appendChild(childContainer);
+
+                toggle.addEventListener('click', function() {
+                    const icon = toggle.querySelector('i');
+                    if (childContainer.classList.contains('collapsed')) {
+                        childContainer.classList.remove('collapsed');
+                        childContainer.style.maxHeight = childContainer.scrollHeight + 'px';
+                        icon.className = 'bi bi-chevron-down';
+                    } else {
+                        childContainer.style.maxHeight = childContainer.scrollHeight + 'px';
+                        requestAnimationFrame(function() {
+                            childContainer.classList.add('collapsed');
+                        });
+                        icon.className = 'bi bi-chevron-right';
+                    }
+                });
+
+                // Initial: aufgeklappt
+                childContainer.style.maxHeight = 'none';
+            }
+
+            container.appendChild(div);
+        });
+    }
+
+    const treeContainer = document.getElementById('group-tree');
+    renderTree(treeData, treeContainer, 0);
+
+    // View Toggle
+    const tableView = document.querySelector('.card-church');
+    const tableViewContainer = tableView.closest('.row');
+    const treeViewContainer = document.getElementById('tree-view-container');
+    const btnTable = document.getElementById('btn-table-view');
+    const btnTree = document.getElementById('btn-tree-view');
+
+    btnTree.addEventListener('click', function() {
+        tableViewContainer.style.display = 'none';
+        treeViewContainer.style.display = '';
+        btnTree.classList.add('active');
+        btnTable.classList.remove('active');
+    });
+
+    btnTable.addEventListener('click', function() {
+        tableViewContainer.style.display = '';
+        treeViewContainer.style.display = 'none';
+        btnTable.classList.add('active');
+        btnTree.classList.remove('active');
+    });
+
+    // Alle auf/zuklappen
+    document.getElementById('btn-expand-all').addEventListener('click', function() {
+        document.querySelectorAll('.tree-children').forEach(function(el) {
+            el.classList.remove('collapsed');
+            el.style.maxHeight = 'none';
+        });
+        document.querySelectorAll('.tree-toggle i').forEach(function(i) {
+            if (i.classList.contains('bi-chevron-right')) {
+                i.className = 'bi bi-chevron-down';
+            }
+        });
+    });
+
+    document.getElementById('btn-collapse-all').addEventListener('click', function() {
+        document.querySelectorAll('.tree-children').forEach(function(el) {
+            el.style.maxHeight = el.scrollHeight + 'px';
+            requestAnimationFrame(function() { el.classList.add('collapsed'); });
+        });
+        document.querySelectorAll('.tree-toggle i').forEach(function(i) {
+            if (i.classList.contains('bi-chevron-down')) {
+                i.className = 'bi bi-chevron-right';
+            }
+        });
     });
 </script>
 {% endblock %}

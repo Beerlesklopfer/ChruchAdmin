@@ -270,33 +270,14 @@ def ldap_admin(request):
         'total_users': 0,
         'total_groups': 0,
     }
-    
+
     try:
-        # Einfache LDAP Statistik
-        conn = ldap.initialize("ldap://dein-ldap-server.de")
-        conn.simple_bind_s("cn=admin,dc=deine-domain,dc=de", "dein-passwort")
-        
-        # Benutzer zählen
-        users_result = conn.search_s(
-            "ou=users,dc=deine-domain,dc=de", 
-            ldap.SCOPE_SUBTREE, 
-            "(objectClass=inetOrgPerson)"
-        )
-        stats['total_users'] = len(users_result)
-        
-        # Gruppen zählen
-        groups_result = conn.search_s(
-            "ou=groups,dc=deine-domain,dc=de", 
-            ldap.SCOPE_SUBTREE, 
-            "(objectClass=groupOfNames)"
-        )
-        stats['total_groups'] = len(groups_result)
-        
-        conn.unbind()
-        
+        with LDAPManager() as ldap_mgr:
+            stats['total_users'] = len(ldap_mgr.list_users())
+            stats['total_groups'] = len(ldap_mgr.list_groups())
     except Exception as e:
         messages.error(request, f"LDAP Verbindungsfehler: {str(e)}")
-    
+
     return render(request, 'ldap/admin.html', {'stats': stats})
 
 
@@ -2826,6 +2807,7 @@ def group_list(request):
     Gruppenverwaltung - Liste aller Gruppen mit hierarchischer Struktur
     """
     groups = []
+    tree_json = '[]'
     search_query = request.GET.get('q', '')
 
     try:
@@ -2856,7 +2838,8 @@ def group_list(request):
                     description = description[0] if description else ''
 
                 # Zähle Mitglieder (ohne 'cn=nobody')
-                # members ist jetzt eine Liste von Strings (nicht Bytes)
+                if isinstance(members, str):
+                    members = [members]
                 member_count = len([m for m in members if 'cn=nobody' not in str(m)])
 
                 # Bestimme ob nested (hat ,cn= vor ,ou=)
@@ -2933,10 +2916,34 @@ def group_list(request):
 
             groups = build_hierarchy(all_group_data)
 
+            # Baum-Daten fuer Visualisierung (alle Gruppen, ungepaginiert)
+            import json
+            def build_tree_json(groups_list):
+                top_level = sorted(
+                    [g for g in groups_list if not g['is_nested']],
+                    key=lambda x: x['cn']
+                )
+                def node(group):
+                    children = sorted(
+                        [g for g in groups_list if g['parent_cn'] == group['cn']],
+                        key=lambda x: x['cn']
+                    )
+                    return {
+                        'cn': group['cn'],
+                        'description': group['description'],
+                        'member_count': group['member_count'],
+                        'children': [node(c) for c in children],
+                    }
+                return [node(g) for g in top_level]
+
+            tree_json = json.dumps(build_tree_json(all_group_data))
+
     except LDAPConnectionError as e:
         messages.error(request, f"LDAP Verbindungsfehler: {str(e)}")
+        tree_json = '[]'
     except Exception as e:
         messages.error(request, f"LDAP Suchfehler: {str(e)}")
+        tree_json = '[]'
 
     # Pagination mit waehlbarer Seitengroesse (Cookie-basiert)
     from django.core.paginator import Paginator
@@ -2960,6 +2967,7 @@ def group_list(request):
         'per_page': per_page,
         'per_page_options': per_page_options,
         'search_query': search_query,
+        'tree_json': tree_json,
     })
     response.set_cookie('per_page', per_page, max_age=365*24*60*60)
     return response
@@ -3156,10 +3164,10 @@ def group_create(request):
             messages.error(request, 'Gruppenname ist erforderlich')
             return redirect('group_list')
 
-        # Validiere Gruppenname (nur alphanumerisch, Bindestrich, Unterstrich)
+        # Validiere Gruppenname (Buchstaben inkl. Umlaute, Zahlen, Bindestrich, Unterstrich, Leerzeichen)
         import re
-        if not re.match(r'^[a-zA-Z0-9_-]+$', group_cn):
-            messages.error(request, 'Gruppenname darf nur Buchstaben, Zahlen, Bindestriche und Unterstriche enthalten')
+        if not re.match(r'^[\w\sÄÖÜäöüß-]+$', group_cn):
+            messages.error(request, 'Gruppenname darf nur Buchstaben, Zahlen, Bindestriche, Unterstriche und Leerzeichen enthalten')
             return redirect('group_list')
 
         try:
@@ -3176,24 +3184,11 @@ def group_create(request):
                         return redirect('group_list')
 
                 # Erstelle Gruppe
+                parent_dn = None
                 if parent_cn:
-                    # Nested Gruppe: cn=child,cn=parent,ou=Groups,...
-                    group_dn = f'cn={group_cn},cn={parent_cn},ou=Groups,dc=example-church,dc=de'
-                else:
-                    # Top-Level Gruppe: cn=group,ou=Groups,...
-                    group_dn = f'cn={group_cn},ou=Groups,dc=example-church,dc=de'
+                    parent_dn = f'cn={parent_cn},ou=Groups,{settings.LDAP_BASE_DN}'
 
-                # Attribute für neue Gruppe
-                attrs = {
-                    'objectClass': ['groupOfNames', 'top'],
-                    'cn': group_cn,
-                    'member': 'cn=nobody,ou=Users,dc=example-church,dc=de',  # Erforderlich für groupOfNames
-                }
-
-                if description:
-                    attrs['description'] = description
-
-                ldap_mgr.create_group(group_dn, attrs)
+                ldap_mgr.create_group(group_cn, parent_dn=parent_dn, description=description)
                 messages.success(request, f'Gruppe "{group_cn}" erfolgreich erstellt')
 
                 return redirect('group_detail', group_cn=group_cn)
@@ -3258,34 +3253,31 @@ def group_edit(request, group_cn):
                 return redirect('group_list')
 
             # Hole Mitglieder-Info
+            all_ldap_users = ldap_mgr.list_users()
             for member_dn in group_info['members_dn']:
                 if 'cn=nobody' in str(member_dn):
                     continue
 
-                # Finde User in all_users (vereinfacht)
-                try:
-                    user_info = ldap_mgr.get_user_info(member_dn)
-                    if user_info:
-                        cn = user_info.get('cn', '')
-                        given_name = user_info.get('givenName', '')
-                        sn = user_info.get('sn', '')
-
-                        if isinstance(cn, list):
-                            cn = cn[0] if cn else ''
+                for user in all_ldap_users:
+                    if user['dn'] == member_dn:
+                        attrs = user['attributes']
+                        u_cn = attrs.get('cn', '')
+                        given_name = attrs.get('givenName', '')
+                        sn = attrs.get('sn', '')
+                        if isinstance(u_cn, list):
+                            u_cn = u_cn[0] if u_cn else ''
                         if isinstance(given_name, list):
                             given_name = given_name[0] if given_name else ''
                         if isinstance(sn, list):
                             sn = sn[0] if sn else ''
-
                         members.append({
                             'dn': member_dn,
-                            'cn': cn,
+                            'cn': u_cn,
                             'givenName': given_name,
                             'sn': sn,
                             'displayName': f"{given_name} {sn}",
                         })
-                except:
-                    pass  # User nicht gefunden, überspringen
+                        break
 
     except LDAPConnectionError as e:
         messages.error(request, f"LDAP Verbindungsfehler: {str(e)}")
@@ -3311,7 +3303,7 @@ def group_edit(request, group_cn):
                         updates['description'] = None
 
                 if updates:
-                    ldap_mgr.modify_group(group_info['dn'], updates)
+                    ldap_mgr.update_group(group_info['dn'], updates)
                     messages.success(request, f'Gruppe "{group_cn}" erfolgreich aktualisiert')
                 else:
                     messages.info(request, 'Keine Änderungen vorgenommen')
@@ -3363,8 +3355,8 @@ def group_delete(request, group_cn):
                     return redirect('group_list')
 
                 # Prüfe ob Gruppe Mitglieder hat (außer cn=nobody)
-                group_info = ldap_mgr.get_group_info(group_dn)
-                members = group_info.get('member', [])
+                group_data = ldap_mgr.get_group(group_dn)
+                members = group_data['attributes'].get('member', []) if group_data else []
                 if isinstance(members, str):
                     members = [members]
 
