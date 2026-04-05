@@ -451,6 +451,10 @@ def ldap_user_search(request):
                     if isinstance(account_disabled, list):
                         account_disabled = account_disabled[0] if account_disabled else ''
 
+                    nextcloud_enabled = attrs.get('nextCloudEnabled', '')
+                    if isinstance(nextcloud_enabled, list):
+                        nextcloud_enabled = nextcloud_enabled[0] if nextcloud_enabled else ''
+
                     # Bestimme Verwandtschaftsbeziehung aus familyRole und DN
                     dn = user['dn']
                     parent_name = None
@@ -593,6 +597,8 @@ def ldap_user_search(request):
                             'parent_cn': parent_cn or '',
                             'familyRole': family_role,
                             'accountDisabled': account_disabled,
+                            'nextCloudEnabled': nextcloud_enabled,
+                            'is_superuser': getattr(get_or_create_django_user(cn), 'is_superuser', False),
                             'photo_base64': photo_base64,
                             'status': status,
                             'consents': _get_user_consents(cn),
@@ -2278,6 +2284,33 @@ def user_edit(request, cn):
                 ldap_user['birthDate'] = ''
                 ldap_user['birthDateISO'] = ''
 
+            # Rollen aus Gruppenmitgliedschaften ermitteln
+            user_dn = user['dn']
+            all_groups = ldap.list_groups()
+            role_groups = {
+                'role_pastor': 'Pastor',
+                'role_aeltester': 'Älteste',
+                'role_diakon': 'Diakone',
+                'role_sekretariat': 'Sekretariat'
+            }
+
+            for role_key, group_name in role_groups.items():
+                ldap_user[role_key] = False
+                for group in all_groups:
+                    group_attrs = group['attributes']
+                    group_cn = group_attrs.get('cn', [''])[0]
+                    if isinstance(group_cn, bytes):
+                        group_cn = group_cn.decode('utf-8')
+                    if group_cn == group_name:
+                        members = group_attrs.get('member', [])
+                        if user_dn in members:
+                            ldap_user[role_key] = True
+                            break
+
+            # Superuser-Status aus Django-User ermitteln
+            target_django_user = get_or_create_django_user(cn)
+            ldap_user['is_superuser'] = target_django_user.is_superuser if target_django_user else False
+
             # is_mail_admin bereits oben gesetzt
 
             if request.method == 'POST':
@@ -2380,12 +2413,57 @@ def user_edit(request, cn):
                         except Exception as e:
                             logger.warning(f"Konnte {cn} nicht zu Gruppe {target_group} hinzufuegen: {e}")
 
+                # Rollen (Gemeinde-Funktionen) verarbeiten
+                role_groups = {
+                    'role_pastor': 'Pastor',
+                    'role_aeltester': 'Älteste',
+                    'role_diakon': 'Diakone',
+                    'role_sekretariat': 'Sekretariat'
+                }
+
+                user_dn_full = user['dn']
+                for role_key, group_name in role_groups.items():
+                    is_checked = request.POST.get(role_key) == 'on'
+                    group_dn = f"cn={group_name},ou=Groups,{settings.LDAP_BASE_DN}"
+
+                    try:
+                        group_data = ldap.get_group(group_dn)
+                        if not group_data:
+                            # Gruppe existiert nicht, erstellen
+                            ldap.create_group(group_name, f"Gemeinde-Funktion: {group_name}")
+                            group_data = ldap.get_group(group_dn)
+
+                        if group_data:
+                            members = group_data['attributes'].get('member', [])
+                            is_member = user_dn_full in members
+
+                            if is_checked and not is_member:
+                                # Zu Gruppe hinzufuegen
+                                ldap.add_member(group_dn, user_dn_full)
+                            elif not is_checked and is_member:
+                                # Aus Gruppe entfernen
+                                ldap.remove_member(group_dn, user_dn_full)
+                    except Exception as e:
+                        logger.warning(f"Fehler bei Rollen-Verarbeitung {role_key} ({group_name}): {e}")
+
+                # Superuser-Status setzen
+                is_superuser_checked = request.POST.get('is_superuser') == 'on'
+                target_django_user = get_or_create_django_user(cn)
+                if target_django_user:
+                    target_django_user.is_superuser = is_superuser_checked
+                    target_django_user.is_staff = is_superuser_checked
+                    target_django_user.save()
+
                 # Account deaktivieren/aktivieren
                 # Nur setzen wenn das Schema-Attribut existiert (User hat postModernalPerson)
                 oc = attributes.get('objectClass', [])
                 oc_list = [o.decode('utf-8') if isinstance(o, bytes) else o for o in oc]
                 if 'postModernalPerson' in oc_list:
                     new_attributes['accountDisabled'] = 'TRUE' if request.POST.get('accountDisabled') else 'FALSE'
+
+                # Nextcloud-Zugang aktivieren/deaktivieren
+                if 'nextCloudUser' in oc_list:
+                    new_attributes['nextCloudEnabled'] = 'TRUE' if request.POST.get('nextCloudEnabled') else 'FALSE'
 
                 # Optional: Passwort ändern mit Validierung
                 new_password = request.POST.get('password')
@@ -3061,6 +3139,250 @@ def group_remove_member(request, group_cn):
             messages.error(request, f'Fehler: {str(e)}')
 
     return redirect('group_detail', group_cn=group_cn)
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def group_create(request):
+    """
+    Neue Gruppe erstellen
+    """
+    if request.method == 'POST':
+        group_cn = request.POST.get('cn', '').strip()
+        description = request.POST.get('description', '').strip()
+        parent_cn = request.POST.get('parent_cn', '').strip()
+
+        if not group_cn:
+            messages.error(request, 'Gruppenname ist erforderlich')
+            return redirect('group_list')
+
+        # Validiere Gruppenname (nur alphanumerisch, Bindestrich, Unterstrich)
+        import re
+        if not re.match(r'^[a-zA-Z0-9_-]+$', group_cn):
+            messages.error(request, 'Gruppenname darf nur Buchstaben, Zahlen, Bindestriche und Unterstriche enthalten')
+            return redirect('group_list')
+
+        try:
+            with LDAPManager() as ldap_mgr:
+                # Prüfe ob Gruppe bereits existiert
+                existing_groups = ldap_mgr.list_groups()
+                for group in existing_groups:
+                    attrs = group['attributes']
+                    cn = attrs.get('cn', '')
+                    if isinstance(cn, list):
+                        cn = cn[0] if cn else ''
+                    if cn == group_cn:
+                        messages.error(request, f'Gruppe "{group_cn}" existiert bereits')
+                        return redirect('group_list')
+
+                # Erstelle Gruppe
+                if parent_cn:
+                    # Nested Gruppe: cn=child,cn=parent,ou=Groups,...
+                    group_dn = f'cn={group_cn},cn={parent_cn},ou=Groups,dc=example-church,dc=de'
+                else:
+                    # Top-Level Gruppe: cn=group,ou=Groups,...
+                    group_dn = f'cn={group_cn},ou=Groups,dc=example-church,dc=de'
+
+                # Attribute für neue Gruppe
+                attrs = {
+                    'objectClass': ['groupOfNames', 'top'],
+                    'cn': group_cn,
+                    'member': 'cn=nobody,ou=Users,dc=example-church,dc=de',  # Erforderlich für groupOfNames
+                }
+
+                if description:
+                    attrs['description'] = description
+
+                ldap_mgr.create_group(group_dn, attrs)
+                messages.success(request, f'Gruppe "{group_cn}" erfolgreich erstellt')
+
+                return redirect('group_detail', group_cn=group_cn)
+
+        except LDAPOperationError as e:
+            messages.error(request, f'LDAP-Fehler beim Erstellen der Gruppe: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Fehler beim Erstellen der Gruppe: {str(e)}')
+
+    return redirect('group_list')
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def group_edit(request, group_cn):
+    """
+    Gruppe bearbeiten
+    """
+    group_info = None
+    members = []
+
+    try:
+        with LDAPManager() as ldap_mgr:
+            # Hole Gruppen-Details
+            groups = ldap_mgr.list_groups()
+            for group in groups:
+                attrs = group['attributes']
+                cn = attrs.get('cn', '')
+                if isinstance(cn, list):
+                    cn = cn[0] if cn else ''
+
+                if cn == group_cn:
+                    description = attrs.get('description', '')
+                    if isinstance(description, list):
+                        description = description[0] if description else ''
+
+                    members_dn = attrs.get('member', [])
+                    if not isinstance(members_dn, list):
+                        members_dn = [members_dn] if members_dn else []
+
+                    # Bestimme ob nested
+                    dn = group['dn']
+                    is_nested = ',cn=' in str(dn) and str(dn).index(',cn=') < str(dn).index(',ou=')
+                    parent_cn = None
+                    if is_nested:
+                        parts = str(dn).split(',')
+                        if len(parts) > 1 and parts[1].startswith('cn='):
+                            parent_cn = parts[1][3:]
+
+                    group_info = {
+                        'dn': dn,
+                        'cn': cn,
+                        'description': description,
+                        'members_dn': members_dn,
+                        'is_nested': is_nested,
+                        'parent_cn': parent_cn,
+                    }
+                    break
+
+            if not group_info:
+                messages.error(request, f'Gruppe {group_cn} nicht gefunden')
+                return redirect('group_list')
+
+            # Hole Mitglieder-Info
+            for member_dn in group_info['members_dn']:
+                if 'cn=nobody' in str(member_dn):
+                    continue
+
+                # Finde User in all_users (vereinfacht)
+                try:
+                    user_info = ldap_mgr.get_user_info(member_dn)
+                    if user_info:
+                        cn = user_info.get('cn', '')
+                        given_name = user_info.get('givenName', '')
+                        sn = user_info.get('sn', '')
+
+                        if isinstance(cn, list):
+                            cn = cn[0] if cn else ''
+                        if isinstance(given_name, list):
+                            given_name = given_name[0] if given_name else ''
+                        if isinstance(sn, list):
+                            sn = sn[0] if sn else ''
+
+                        members.append({
+                            'dn': member_dn,
+                            'cn': cn,
+                            'givenName': given_name,
+                            'sn': sn,
+                            'displayName': f"{given_name} {sn}",
+                        })
+                except:
+                    pass  # User nicht gefunden, überspringen
+
+    except LDAPConnectionError as e:
+        messages.error(request, f"LDAP Verbindungsfehler: {str(e)}")
+        return redirect('group_list')
+    except Exception as e:
+        messages.error(request, f"LDAP Fehler: {str(e)}")
+        return redirect('group_list')
+
+    if request.method == 'POST':
+        new_description = request.POST.get('description', '').strip()
+
+        try:
+            with LDAPManager() as ldap_mgr:
+                # Aktualisiere Beschreibung
+                updates = {}
+                current_desc = group_info['description']
+
+                if new_description != current_desc:
+                    if new_description:
+                        updates['description'] = new_description
+                    else:
+                        # Entferne description Attribut
+                        updates['description'] = None
+
+                if updates:
+                    ldap_mgr.modify_group(group_info['dn'], updates)
+                    messages.success(request, f'Gruppe "{group_cn}" erfolgreich aktualisiert')
+                else:
+                    messages.info(request, 'Keine Änderungen vorgenommen')
+
+        except LDAPOperationError as e:
+            messages.error(request, f'LDAP-Fehler beim Bearbeiten der Gruppe: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Fehler beim Bearbeiten der Gruppe: {str(e)}')
+
+        return redirect('group_detail', group_cn=group_cn)
+
+    # GET Request: Zeige Edit-Formular
+    return render(request, 'ldap/group_edit.html', {
+        'group': group_info,
+        'members': members,
+    })
+
+
+@login_required
+@user_passes_test(is_ldap_admin)
+def group_delete(request, group_cn):
+    """
+    Gruppe löschen
+    """
+    if request.method == 'POST':
+        confirm_delete = request.POST.get('confirm_delete', '')
+
+        if confirm_delete != 'DELETE':
+            messages.error(request, 'Löschen nicht bestätigt')
+            return redirect('group_detail', group_cn=group_cn)
+
+        try:
+            with LDAPManager() as ldap_mgr:
+                # Finde Gruppe
+                groups = ldap_mgr.list_groups()
+                group_dn = None
+
+                for group in groups:
+                    attrs = group['attributes']
+                    cn = attrs.get('cn', '')
+                    if isinstance(cn, list):
+                        cn = cn[0] if cn else ''
+                    if cn == group_cn:
+                        group_dn = group['dn']
+                        break
+
+                if not group_dn:
+                    messages.error(request, f'Gruppe {group_cn} nicht gefunden')
+                    return redirect('group_list')
+
+                # Prüfe ob Gruppe Mitglieder hat (außer cn=nobody)
+                group_info = ldap_mgr.get_group_info(group_dn)
+                members = group_info.get('member', [])
+                if isinstance(members, str):
+                    members = [members]
+
+                real_members = [m for m in members if 'cn=nobody' not in str(m)]
+                if real_members:
+                    messages.error(request, f'Gruppe "{group_cn}" kann nicht gelöscht werden, da sie noch {len(real_members)} Mitglieder hat')
+                    return redirect('group_detail', group_cn=group_cn)
+
+                # Lösche Gruppe
+                ldap_mgr.delete_group(group_dn)
+                messages.success(request, f'Gruppe "{group_cn}" erfolgreich gelöscht')
+
+        except LDAPOperationError as e:
+            messages.error(request, f'LDAP-Fehler beim Löschen der Gruppe: {str(e)}')
+        except Exception as e:
+            messages.error(request, f'Fehler beim Löschen der Gruppe: {str(e)}')
+
+    return redirect('group_list')
 
 
 ###############################################################################

@@ -220,6 +220,7 @@
                         data-birthdate="{{ user.birthDate|default:'' }}"
                         data-familyrole="{{ user.familyRole|default:'' }}"
                         data-accountdisabled="{{ user.accountDisabled|default:'' }}"
+                        data-issuperuser="{% if user.is_superuser %}TRUE{% endif %}"
                         data-nextcloudenabled="{{ user.nextCloudEnabled|default:'' }}"
                         data-parent="{{ user.parent_cn|default:'' }}"
                         data-photo="{{ user.photo_base64|default:'' }}"
@@ -579,6 +580,12 @@
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input role-check" type="checkbox" value="Sekretariat" id="role-sekretariat">
                                 <label class="form-check-label" for="role-sekretariat">Sekretariat</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="is_superuser" id="modal-is-superuser">
+                                <label class="form-check-label text-danger" for="modal-is-superuser">
+                                    <i class="bi bi-shield-lock-fill me-1"></i>Admin
+                                </label>
                             </div>
                         </div>
                         <input type="hidden" name="title" id="modal-title">
@@ -1013,6 +1020,7 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('consent-section').style.display = 'block';
     renderConsents(button.getAttribute('data-consents') || '', button.getAttribute('data-cn'));
     document.getElementById('modal-accountDisabled').checked = button.getAttribute('data-accountdisabled') === 'TRUE';
+    document.getElementById('modal-is-superuser').checked = button.getAttribute('data-issuperuser') === 'TRUE';
     document.getElementById('modal-nextCloudEnabled').checked = button.getAttribute('data-nextcloudenabled') === 'TRUE';
 
     // Mail-Admin-Felder befüllen

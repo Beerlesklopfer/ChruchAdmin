@@ -267,6 +267,74 @@
             </div>
         </div>
 
+        <!-- Rollen (Gemeinde-Funktionen) -->
+        <hr class="my-4">
+        <div class="mb-4">
+            <h5 style="color: var(--church-navy);">
+                <i class="bi bi-person-badge me-2"></i>Gemeinde-Funktionen
+            </h5>
+            <p class="text-muted small">Funktionen und Rollen in der Gemeinde</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="role_pastor" id="id_role_pastor"
+                           {% if ldap_user.role_pastor %}checked{% endif %}>
+                    <label class="form-check-label" for="id_role_pastor">
+                        <i class="bi bi-star-fill text-warning me-1"></i>Pastor
+                    </label>
+                    <div class="form-text">Leitender Pastor der Gemeinde</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="role_aeltester" id="id_role_aeltester"
+                           {% if ldap_user.role_aeltester %}checked{% endif %}>
+                    <label class="form-check-label" for="id_role_aeltester">
+                        <i class="bi bi-shield-check text-info me-1"></i>Ältester
+                    </label>
+                    <div class="form-text">Ältestenrat-Mitglied</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="role_diakon" id="id_role_diakon"
+                           {% if ldap_user.role_diakon %}checked{% endif %}>
+                    <label class="form-check-label" for="id_role_diakon">
+                        <i class="bi bi-heart-fill text-danger me-1"></i>Diakon
+                    </label>
+                    <div class="form-text">Diakonale Dienste</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="role_sekretariat" id="id_role_sekretariat"
+                           {% if ldap_user.role_sekretariat %}checked{% endif %}>
+                    <label class="form-check-label" for="id_role_sekretariat">
+                        <i class="bi bi-briefcase-fill text-success me-1"></i>Sekretariat
+                    </label>
+                    <div class="form-text">Verwaltung und Sekretariatsaufgaben</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="is_superuser" id="id_is_superuser"
+                           {% if ldap_user.is_superuser %}checked{% endif %}>
+                    <label class="form-check-label" for="id_is_superuser">
+                        <i class="bi bi-shield-lock-fill text-danger me-1"></i>Administrator (Superuser)
+                    </label>
+                    <div class="form-text">Voller Zugriff auf alle Verwaltungsfunktionen inkl. Django-Admin</div>
+                </div>
+            </div>
+        </div>
+
         {% if is_mail_admin %}
         <!-- Mail-Administration (nur für Admins) -->
         <hr class="my-4">
