@@ -300,6 +300,12 @@ def ldap_admin(request):
     return render(request, 'ldap/admin.html', {'stats': stats})
 
 
+def _church_name():
+    """Gemeindename aus AppSettings fuer E-Mail-Templates"""
+    from authapp.models import AppSettings
+    return AppSettings.get('church_name', 'Gemeinde')
+
+
 def get_or_create_django_user(cn):
     """Hole oder erstelle Django-User fuer einen LDAP-Benutzer"""
     from django.contrib.auth.models import User as DjangoUser
@@ -1100,6 +1106,7 @@ def _send_disabled_login_email(ldap_user_data, username, request):
 
         html_message = render_to_string('emails/disabled_login_attempt.html', {
             'first_name': given_name,
+            'church_name': _church_name(),
             'last_name': sn,
             'username': username,
             'timestamp': timezone.now().strftime('%d.%m.%Y %H:%M:%S'),
@@ -1441,6 +1448,7 @@ def register(request):
                 verify_url = request.build_absolute_uri(f'/register/verify/{token}/')
                 html_message = render_to_string('emails/registration_verify.html', {
                     'first_name': reg.first_name,
+                    'church_name': _church_name(),
                     'verify_url': verify_url,
                 })
                 plain_message = strip_tags(html_message)
@@ -1620,6 +1628,7 @@ def registration_approve(request, pk):
                 login_url = request.build_absolute_uri('/login/')
                 html_message = render_to_string('emails/registration_approved.html', {
                     'first_name': reg.first_name,
+                    'church_name': _church_name(),
                     'username': cn,
                     'password': password,
                     'login_url': login_url,
@@ -1676,6 +1685,7 @@ def registration_reject(request, pk):
 
                 html_message = render_to_string('emails/registration_rejected.html', {
                     'first_name': reg.first_name,
+                    'church_name': _church_name(),
                     'reason': reg.rejection_reason,
                 })
                 plain_message = strip_tags(html_message)
@@ -2694,6 +2704,7 @@ def user_delete(request, cn):
 
                     html_message = render_to_string('emails/account_deleted.html', {
                         'first_name': given_name,
+                        'church_name': _church_name(),
                         'last_name': sn,
                         'username': cn,
                         'deleted_by': request.user.get_full_name() or request.user.username,

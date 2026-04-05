@@ -6,7 +6,7 @@ class PrivacyPolicy(models.Model):
     """Datenschutzerklaerung - versioniert und editierbar im Admin"""
     version = models.CharField('Version', max_length=20)
     title = models.CharField('Titel', max_length=200,
-        default='Datenschutzerklaerung der Beispielgemeinde')
+        default='Datenschutzerklaerung')
     content_html = models.TextField('Inhalt (HTML)')
     is_active = models.BooleanField('Aktiv', default=False,
         help_text='Nur eine Version kann aktiv sein')

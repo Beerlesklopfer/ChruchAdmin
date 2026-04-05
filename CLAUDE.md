@@ -2,7 +2,7 @@
 
 ## Projekt
 
-ChurchAdmin — Webbasiertes Gemeinde-Verwaltungssystem fuer die Beispielgemeinde e.V.
+ChurchAdmin — Webbasiertes Gemeinde-Verwaltungssystem fuer die eine Freikirche
 Django 4.2, OpenLDAP, Bootstrap 5, Python 3.13.
 
 ## Architektur

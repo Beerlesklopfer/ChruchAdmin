@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Willkommen - Beispielgemeinde{% endblock %}
+{% block title %}Willkommen - {{ church_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -257,7 +257,7 @@
         <i class="bi bi-church-fill hero-icon"></i>
         <h1 class="hero-title">Church Administration System</h1>
         <p class="hero-subtitle">
-            Verwaltung für die Beispielgemeinde<br>
+            Verwaltung für die {{ church_name }}<br>
             LDAP • Genealogie • Prozess-Management
         </p>
 

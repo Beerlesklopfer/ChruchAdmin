@@ -49,12 +49,12 @@
     <div class="container">
         <div class="header">
             <h1>Zugang entfernt</h1>
-            <p style="margin: 0;">Beispielgemeinde</p>
+            <p style="margin: 0;">{{ church_name }}</p>
         </div>
         <div class="content">
             <p>Hallo {{ first_name }},</p>
 
-            <p>wir moechten Sie darueber informieren, dass Ihr Zugang zum System der Beispielgemeinde entfernt wurde.</p>
+            <p>wir moechten Sie darueber informieren, dass Ihr Zugang zum System der {{ church_name }} entfernt wurde.</p>
 
             <div class="info-box">
                 <strong>Betroffener Zugang:</strong>
@@ -74,11 +74,11 @@
             </div>
 
             <p>Mit freundlichen Gruessen,<br>
-            Beispielgemeinde</p>
+            {{ church_name }}</p>
         </div>
         <div class="footer">
             <p>Diese E-Mail wurde automatisch generiert.</p>
-            <p>&copy; 2026 Beispielgemeinde</p>
+            <p>&copy; 2026 {{ church_name }}</p>
         </div>
     </div>
 </body>

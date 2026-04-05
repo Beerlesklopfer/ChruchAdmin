@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Anmelden - Beispielgemeinde{% endblock %}
+{% block title %}Anmelden - {{ church_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -155,7 +155,7 @@
         <div class="login-header">
             <i class="bi bi-church-fill"></i>
             <h2>Church Admin</h2>
-            <p>Beispielgemeinde</p>
+            <p>{{ church_name }}</p>
         </div>
 
         <!-- Body -->

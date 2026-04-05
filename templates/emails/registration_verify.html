@@ -53,12 +53,12 @@
     <div class="container">
         <div class="header">
             <h1>E-Mail-Adresse bestaetigen</h1>
-            <p style="margin: 0;">Beispielgemeinde</p>
+            <p style="margin: 0;">{{ church_name }}</p>
         </div>
         <div class="content">
             <p>Hallo {{ first_name }},</p>
 
-            <p>vielen Dank fuer Ihre Registrierungsanfrage bei der Beispielgemeinde.</p>
+            <p>vielen Dank fuer Ihre Registrierungsanfrage bei der {{ church_name }}.</p>
 
             <p>Bitte bestaetigen Sie Ihre E-Mail-Adresse, damit wir Ihre Anfrage bearbeiten koennen:</p>
 
@@ -86,11 +86,11 @@
             </p>
 
             <p>Mit freundlichen Gruessen,<br>
-            Beispielgemeinde</p>
+            {{ church_name }}</p>
         </div>
         <div class="footer">
             <p>Diese E-Mail wurde automatisch generiert.</p>
-            <p>&copy; 2026 Beispielgemeinde</p>
+            <p>&copy; 2026 {{ church_name }}</p>
         </div>
     </div>
 </body>

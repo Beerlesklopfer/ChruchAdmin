@@ -172,7 +172,7 @@
                         <div class="mb-3">
                             <label for="from_name" class="form-label">Absender-Name</label>
                             <input type="text" class="form-control" id="from_name" name="from_name"
-                                   value="{{ campaign.from_name|default:'Beispielgemeinde' }}">
+                                   value="{{ campaign.from_name|default:'{{ church_name }}' }}">
                         </div>
                         <div class="mb-3">
                             <label for="reply_to" class="form-label">Antwort-an (optional)</label>

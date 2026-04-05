@@ -7,7 +7,7 @@
     <div style="max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="background-color: #1c2647; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 24px;">Willkommen!</h1>
-            <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Beispielgemeinde</p>
+            <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">{{ church_name }}</p>
         </div>
         <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
             <p style="font-size: 16px;">Liebe(r) {{ first_name }},</p>
@@ -62,10 +62,10 @@
 
             <p>Herzliche Gruesse,<br>
             <strong>Die Gemeindeleitung</strong><br>
-            Beispielgemeinde</p>
+            {{ church_name }}</p>
         </div>
         <div style="text-align: center; padding: 15px; font-size: 11px; color: #999;">
-            <p>&copy; 2026 Beispielgemeinde</p>
+            <p>&copy; 2026 {{ church_name }}</p>
         </div>
     </div>
 </body>

@@ -36,7 +36,7 @@ class MailCampaign(models.Model):
     footer_html = models.TextField('Footer (HTML)', blank=True, default='')
 
     from_name = models.CharField('Absender-Name', max_length=100,
-        default='Beispielgemeinde')
+        default='Gemeinde')
     reply_to = models.EmailField('Antwort-an', blank=True)
 
     status = models.CharField('Status', max_length=20,
