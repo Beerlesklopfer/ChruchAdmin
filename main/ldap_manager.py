@@ -72,13 +72,13 @@ class LDAPManager:
             self.server_uri = settings.AUTH_LDAP_SERVER_URI
             self.bind_dn = settings.AUTH_LDAP_BIND_DN
             self.bind_password = settings.AUTH_LDAP_BIND_PASSWORD
-            self.user_search_base = "ou=Users,dc=example-church,dc=de"
+            self.user_search_base = f"ou=Users,{settings.LDAP_BASE_DN}"
             self.user_search_filter = "(|(cn=%(user)s)(mail=%(user)s))"
-            self.group_search_base = "ou=Groups,dc=example-church,dc=de"
+            self.group_search_base = f"ou=Groups,{settings.LDAP_BASE_DN}"
             self.config_source = "settings.py (Fallback)"
             logger.warning("Keine aktive LDAP-Konfiguration in Datenbank gefunden - verwende settings.py")
 
-        self.base_dn = "dc=example-church,dc=de"
+        self.base_dn = settings.LDAP_BASE_DN
         self.conn = None
 
     def _load_config(self, config_name=None):
@@ -178,10 +178,10 @@ class LDAPManager:
 
         Beispiele:
             build_dn("Jakob.Derzapf")
-            -> "cn=Jakob.Derzapf,ou=Users,dc=example-church,dc=de"
+            -> "cn=Jakob.Derzapf,ou=Users,dc=bibelgemeinde-lage,dc=de"
 
-            build_dn("Levi.Derzapf", "cn=Jakob.Derzapf,ou=Users,dc=example-church,dc=de")
-            -> "cn=Levi.Derzapf,cn=Jakob.Derzapf,ou=Users,dc=example-church,dc=de"
+            build_dn("Levi.Derzapf", "cn=Jakob.Derzapf,ou=Users,dc=bibelgemeinde-lage,dc=de")
+            -> "cn=Levi.Derzapf,cn=Jakob.Derzapf,ou=Users,dc=bibelgemeinde-lage,dc=de"
         """
         if parent_dn:
             # Verschachtelter Eintrag
@@ -435,7 +435,9 @@ class LDAPManager:
             if 'uid' not in attributes:
                 attributes['uid'] = cn
             if 'homeDirectory' not in attributes:
-                attributes['homeDirectory'] = f'/home/example-church.de/{cn}'
+                from authapp.models import AppSettings
+                domain = AppSettings.get('church_domain', 'example.de')
+                attributes['homeDirectory'] = f'/home/{domain}/{cn}'
             if 'loginShell' not in attributes:
                 attributes['loginShell'] = '/bin/false'
 

@@ -1,28 +1,28 @@
 from django.db import migrations
 
 IMPRESSUM_HTML = '''<h3>Angaben gemaess &sect; 5 TMG</h3>
-<p><strong>Beispielgemeinde e.V.</strong><br>
-Gasstrasse 4<br>
-32791 Lage</p>
+<p><strong>Bibelgemeinde Lage e.V.</strong><br>
+Musterstrasse 1<br>
+12345 Beispielstadt</p>
 
 <h3>Vertreten durch</h3>
-<p>Peter Dridiger (Gemeindeleitung)</p>
+<p>Der Pastor (Gemeindeleitung)</p>
 
 <h3>Kontakt</h3>
-<p>E-Mail: <a href="mailto:pastor-beispiel@example-church.de">pastor-beispiel@example-church.de</a><br>
-Technik: <a href="mailto:technik@example-church.de">technik@example-church.de</a></p>
+<p>E-Mail: <a href="mailto:pastor-beispiel@bibelgemeinde-lage.de">pastor-beispiel@bibelgemeinde-lage.de</a><br>
+Technik: <a href="mailto:technik@bibelgemeinde-lage.de">technik@bibelgemeinde-lage.de</a></p>
 
 <h3>Registereintrag</h3>
-<p>Registergericht: Amtsgericht Lemgo<br>
-Registernummer: VR 1671</p>
+<p>Registergericht: Amtsgericht Beispielstadt<br>
+Registernummer: VR XXXX</p>
 
 <h3>Steuernummer</h3>
-<p>313/5902/6868 (Finanzamt Detmold)</p>
+<p>XXX/XXXX/XXXX (Finanzamt Beispielstadt)</p>
 
 <h3>Verantwortlich fuer den Inhalt nach &sect; 55 Abs. 2 RStV</h3>
-<p>Peter Dridiger<br>
-Beispielgemeinde e.V.<br>
-Gasstrasse 4, 32791 Lage</p>
+<p>Der Pastor<br>
+Bibelgemeinde Lage e.V.<br>
+Musterstrasse 1, 12345 Beispielstadt</p>
 
 <h3>Haftungsausschluss</h3>
 

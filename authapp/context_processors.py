@@ -2,8 +2,8 @@ def church_settings(request):
     """Stellt globale Gemeinde-Einstellungen fuer alle Templates bereit."""
     from authapp.models import AppSettings
     return {
-        'church_name': AppSettings.get('church_name', 'Beispielgemeinde'),
-        'church_domain': AppSettings.get('church_domain', 'example-church.de'),
+        'church_name': AppSettings.get('church_name', 'Bibelgemeinde Lage'),
+        'church_domain': AppSettings.get('church_domain', 'bibelgemeinde-lage.de'),
         'church_address': AppSettings.get('church_address', ''),
         'church_phone': AppSettings.get('church_phone', ''),
         'church_email': AppSettings.get('church_email', ''),

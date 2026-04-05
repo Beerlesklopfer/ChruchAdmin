@@ -1,0 +1,36 @@
+[Unit]
+Description=ChurchAdmin Django Gunicorn Service
+After=network.target nginx.service
+Requires=churchadmin.socket
+Wants=nginx.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/usr/share/python/ChruchAdmin
+
+# Environment aus .env laden
+EnvironmentFile=/usr/share/python/ChruchAdmin/.env
+
+# Virtual Environment
+Environment="VIRTUAL_ENV=/usr/share/python/ChruchAdmin/.venv"
+Environment="PATH=/usr/share/python/ChruchAdmin/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment=PYTHONUNBUFFERED=1
+
+# Gunicorn starten
+ExecStart=/usr/share/python/ChruchAdmin/.venv/bin/python3 -m gunicorn \
+   --access-logfile - \
+   --workers 3 \
+   --bind unix:/run/churchadmin/churchadmin.sock \
+   main.wsgi:application
+
+Restart=on-failure
+RestartSec=5
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

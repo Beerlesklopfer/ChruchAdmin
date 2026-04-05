@@ -159,6 +159,7 @@ ChruchAdmin/
 | [Architektur](docs/architecture.md) | Gesamtuebersicht: ChurchAdmin + LDAP + Postfix + Nextcloud |
 | [Postfix](docs/postfix.md) | E-Mail-Konfiguration mit LDAP-Anbindung |
 | [Nextcloud](docs/nextcloud.md) | Nextcloud LDAP-Integration |
+| [Konfiguration](docs/configuration.md) | .env, AppSettings, LDAP — alles fuer eine neue Gemeinde |
 | [LDAP-Schemas](docs/ldap-schemas.md) | Alle Schemas mit Installationsanleitung |
 | [Troubleshooting](tests/TROUBLESHOOTING.md) | Fehlerbehebung und nuetzliche Befehle |
 
@@ -172,6 +173,6 @@ AGPL-3.0 — Der Quellcode ist frei verfuegbar. Wenn Sie ChurchAdmin weiterentwi
 
 ## Autor
 
-Joerg Bernau — [admin@example.de](mailto:admin@example.de)
+Der Autor — [admin@example.de](mailto:admin@example.de)
 
 Entwickelt mit Unterstuetzung von [Claude Code](https://claude.ai/claude-code) (Anthropic).

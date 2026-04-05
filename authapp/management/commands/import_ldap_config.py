@@ -9,7 +9,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Prüfe ob bereits eine Konfiguration existiert
-        if LDAPConfig.objects.filter(name='Beispielgemeinde LDAP').exists():
+        if LDAPConfig.objects.filter(name='Bibelgemeinde Lage LDAP').exists():
             self.stdout.write(
                 self.style.WARNING('LDAP-Konfiguration existiert bereits. Überspringe Import.')
             )
@@ -26,7 +26,7 @@ class Command(BaseCommand):
             user_search_base = user_search.base_dn
             user_search_filter = user_search.filterstr
         else:
-            user_search_base = "ou=Users,dc=example-church,dc=de"
+            user_search_base = "ou=Users,dc=bibelgemeinde-lage,dc=de"
             user_search_filter = "(|(cn=%(user)s)(mail=%(user)s))"
 
         # Hole GROUP_SEARCH
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         if group_search:
             group_search_base = group_search.base_dn
         else:
-            group_search_base = "ou=Groups,dc=example-church,dc=de"
+            group_search_base = "ou=Groups,dc=bibelgemeinde-lage,dc=de"
 
         # Hole Attribute Mapping
         user_attr_map = getattr(settings, 'AUTH_LDAP_USER_ATTR_MAP', {})
@@ -42,7 +42,7 @@ class Command(BaseCommand):
 
         # Erstelle LDAPConfig
         config = LDAPConfig.objects.create(
-            name='Beispielgemeinde LDAP',
+            name='Bibelgemeinde Lage LDAP',
             server_uri=server_uri,
             bind_dn=bind_dn,
             bind_password=bind_password,

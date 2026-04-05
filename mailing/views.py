@@ -53,7 +53,7 @@ def _get_recipients_from_ldap(campaign):
 
         # Mitglieder-Gruppe laden fuer Status-Bestimmung
         members_group = ldap_mgr.get_group(
-            f"cn=Mitglieder,ou=Groups,dc=example-church,dc=de")
+            f"cn=Mitglieder,ou=Groups,{settings.LDAP_BASE_DN}")
         member_dns = set()
         if members_group:
             for m in members_group['attributes'].get('member', []):
@@ -126,7 +126,7 @@ def _get_recipients_from_ldap(campaign):
             routing_addrs = attrs.get('mailRoutingAddress', [])
             if isinstance(routing_addrs, list):
                 for addr in routing_addrs:
-                    if addr and '@example-church.de' not in addr:
+                    if addr and '@{settings.CHURCH_DOMAIN}' not in addr:
                         email = addr
                         break
             if not email:
@@ -209,7 +209,7 @@ def campaign_compose(request, pk=None):
             return redirect('mailing:campaign_detail', pk=pk)
 
     from authapp.models import AppSettings
-    church = AppSettings.get('church_name', 'Beispielgemeinde')
+    church = AppSettings.get('church_name', 'Bibelgemeinde Lage')
     DEFAULT_FOOTER = (
         '<div style="text-align:center; font-size:11px; color:#999; padding:20px; '
         'border-top:1px solid #ddd; margin-top:20px;">'
@@ -243,7 +243,7 @@ def campaign_compose(request, pk=None):
         recipient_type = request.POST.get('recipient_type', 'members')
         recipient_groups = request.POST.get('recipient_groups', '')
         recipient_emails_manual = request.POST.get('recipient_emails_manual', '')
-        from_name = request.POST.get('from_name', 'Beispielgemeinde').strip()
+        from_name = request.POST.get('from_name', 'Bibelgemeinde Lage').strip()
         reply_to = request.POST.get('reply_to', '').strip()
         footer_html = request.POST.get('footer_html', '').strip()
 
@@ -330,7 +330,7 @@ def campaign_test(request, pk):
                 if user_data:
                     addrs = user_data['attributes'].get('mailRoutingAddress', [])
                     for a in (addrs if isinstance(addrs, list) else [addrs]):
-                        if a and '@example-church.de' not in a:
+                        if a and '@{settings.CHURCH_DOMAIN}' not in a:
                             test_email = a
                             break
         except Exception:
@@ -349,7 +349,7 @@ def campaign_test(request, pk):
         # Opt-out-Link auch in Test-Mail
         from privacy.views import generate_optout_token
         from authapp.models import AppSettings as AS
-        _church = AS.get('church_name', 'Beispielgemeinde')
+        _church = AS.get('church_name', 'Bibelgemeinde Lage')
         token = generate_optout_token(request.user.pk)
         optout_url = request.build_absolute_uri(f'/datenschutz/optout/{token}/')
         dsgvo_url = request.build_absolute_uri('/datenschutz/my-data/')
@@ -431,7 +431,7 @@ def campaign_send(request, pk):
             django_user = DjangoUser.objects.filter(username__iexact=recipient.get('cn', '')).first()
             if django_user:
                 from authapp.models import AppSettings as AS
-                _church = AS.get('church_name', 'Beispielgemeinde')
+                _church = AS.get('church_name', 'Bibelgemeinde Lage')
                 token = generate_optout_token(django_user.pk)
                 optout_url = request.build_absolute_uri(f'/datenschutz/optout/{token}/')
                 dsgvo_url = request.build_absolute_uri('/datenschutz/my-data/')

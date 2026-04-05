@@ -115,6 +115,11 @@
             </h1>
             <p class="text-muted">Suchen und verwalten Sie LDAP-Benutzer</p>
         </div>
+        <div>
+            <a href="?create=1" class="btn btn-church-primary">
+                <i class="bi bi-person-plus me-1"></i>Neuer Benutzer
+            </a>
+        </div>
     </div>
 
     <!-- Search Form -->
@@ -215,6 +220,7 @@
                         data-birthdate="{{ user.birthDate|default:'' }}"
                         data-familyrole="{{ user.familyRole|default:'' }}"
                         data-accountdisabled="{{ user.accountDisabled|default:'' }}"
+                        data-nextcloudenabled="{{ user.nextCloudEnabled|default:'' }}"
                         data-parent="{{ user.parent_cn|default:'' }}"
                         data-photo="{{ user.photo_base64|default:'' }}"
                         data-status="{{ user.status|default:'' }}"
@@ -463,8 +469,9 @@
 
                     <!-- Organisations-E-Mail (read-only Anzeige) -->
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label" data-bs-toggle="tooltip" title="Die offizielle E-Mail-Adresse der Gemeinde (z.B. Vorname.Nachname@gemeinde.de). Wird vom Admin verwaltet.">
                             <i class="bi bi-building me-1"></i>Organisations-E-Mail
+                            <i class="bi bi-question-circle text-muted ms-1" style="font-size: 0.8rem;"></i>
                         </label>
                         <input type="text" class="form-control" id="modal-mail-display" disabled>
                     </div>
@@ -480,8 +487,9 @@
 
                     <!-- Organisations-E-Mail-Adressen -->
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label" data-bs-toggle="tooltip" title="Alle offiziellen E-Mail-Adressen des Benutzers bei der Gemeinde. Unter diesen Adressen ist das Postfach erreichbar.">
                             <i class="bi bi-building me-1"></i>Organisations-E-Mail-Adressen
+                            <i class="bi bi-question-circle text-muted ms-1" style="font-size: 0.8rem;"></i>
                         </label>
                         <div id="mail-list-container" class="mail-list-container"></div>
                         <div class="input-group input-group-sm mt-1">
@@ -495,8 +503,9 @@
 
                     <!-- Mail-Routing-Adressen -->
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label" data-bs-toggle="tooltip" title="Private E-Mail-Adressen, an die eingehende Gemeinde-Mails weitergeleitet werden. Die erste externe Adresse wird auch fuer Passwort-Reset verwendet.">
                             <i class="bi bi-send me-1"></i>Mail-Routing-Adressen
+                            <i class="bi bi-question-circle text-muted ms-1" style="font-size: 0.8rem;"></i>
                         </label>
                         <div id="mailrouting-list-container" class="mail-list-container"></div>
                         <div class="input-group input-group-sm mt-1">
@@ -511,8 +520,9 @@
 
                     <!-- Mail-Alias-Adressen -->
                     <div class="mb-3">
-                        <label class="form-label">
+                        <label class="form-label" data-bs-toggle="tooltip" title="Zusaetzliche E-Mail-Adressen, unter denen der Benutzer erreichbar ist (z.B. Spitzname, Funktionsadresse). Eingehende Mails an diese Adressen landen im gleichen Postfach.">
                             <i class="bi bi-at me-1"></i>Mail-Alias-Adressen
+                            <i class="bi bi-question-circle text-muted ms-1" style="font-size: 0.8rem;"></i>
                         </label>
                         <div id="mailalias-list-container" class="mail-list-container"></div>
                         <div class="input-group input-group-sm mt-1">
@@ -526,21 +536,22 @@
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="modal-mailquota" class="form-label">
+                            <label for="modal-mailquota" class="form-label" data-bs-toggle="tooltip" title="Maximale Postfachgroesse (z.B. 500M, 1G, 5G). Leer = unbegrenzt.">
                                 <i class="bi bi-hdd me-1"></i>Quota
+                                <i class="bi bi-question-circle text-muted ms-1" style="font-size: 0.8rem;"></i>
                             </label>
                             <input type="text" name="mailQuota" class="form-control" id="modal-mailquota" placeholder="z.B. 500M">
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="form-check form-switch mt-4">
                                 <input class="form-check-input" type="checkbox" name="mailAliasEnabled" id="modal-mailalias-enabled">
-                                <label class="form-check-label" for="modal-mailalias-enabled">Alias aktiv</label>
+                                <label class="form-check-label" for="modal-mailalias-enabled" data-bs-toggle="tooltip" title="Wenn aktiv, werden Alias-Adressen fuer diesen Benutzer akzeptiert.">Alias aktiv</label>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="form-check form-switch mt-4">
                                 <input class="form-check-input" type="checkbox" name="mailRoutingEnabled" id="modal-mailrouting-enabled">
-                                <label class="form-check-label" for="modal-mailrouting-enabled">Routing aktiv</label>
+                                <label class="form-check-label" for="modal-mailrouting-enabled" data-bs-toggle="tooltip" title="Wenn aktiv, werden eingehende Mails an die Mail-Routing-Adressen weitergeleitet.">Routing aktiv</label>
                             </div>
                         </div>
                     </div>
@@ -610,7 +621,13 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="accountDisabled" id="modal-accountDisabled">
                             <label class="form-check-label text-danger" for="modal-accountDisabled">
-                                <i class="bi bi-person-x me-1"></i>Account deaktiviert
+                                <i class="bi bi-person-x me-1"></i><span data-bs-toggle="tooltip" title="Deaktivierte Accounts koennen sich nicht anmelden. Admins werden bei Login-Versuchen benachrichtigt.">Account deaktiviert</span>
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" name="nextCloudEnabled" id="modal-nextCloudEnabled">
+                            <label class="form-check-label" for="modal-nextCloudEnabled" style="color: #0082c9;">
+                                <i class="bi bi-cloud me-1"></i><span data-bs-toggle="tooltip" title="Aktiviert den Zugang zur Nextcloud-Dateiverwaltung fuer diesen Benutzer.">Nextcloud-Zugang</span>
                             </label>
                         </div>
                     </div>
@@ -960,6 +977,7 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     const parentCn = button.getAttribute('data-parent');
 
     // Setze Modal-Titel zurück auf Edit-Modus
+    isCreateMode = false;
     document.getElementById('editUserModalLabel').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Benutzer bearbeiten';
 
     // Zeige Benutzerinfo wieder
@@ -995,6 +1013,7 @@ document.getElementById('editUserModal').addEventListener('show.bs.modal', funct
     document.getElementById('consent-section').style.display = 'block';
     renderConsents(button.getAttribute('data-consents') || '', button.getAttribute('data-cn'));
     document.getElementById('modal-accountDisabled').checked = button.getAttribute('data-accountdisabled') === 'TRUE';
+    document.getElementById('modal-nextCloudEnabled').checked = button.getAttribute('data-nextcloudenabled') === 'TRUE';
 
     // Mail-Admin-Felder befüllen
     const mailListEl = document.getElementById('modal-mail-list');
@@ -1170,13 +1189,33 @@ if (searchInput) {
     });
 }
 
+// Auto-generate email from name (nur im Create-Modus)
+var isCreateMode = false;
+function autoGenerateEmail() {
+    if (!isCreateMode) return;
+    var gn = document.getElementById('modal-givenName').value.trim();
+    var sn = document.getElementById('modal-sn').value.trim();
+    if (gn && sn) {
+        var email = gn + '.' + sn + '@{{ church_domain }}';
+        document.getElementById('modal-mail-display').value = email;
+    }
+}
+document.getElementById('modal-givenName').addEventListener('input', autoGenerateEmail);
+document.getElementById('modal-sn').addEventListener('input', autoGenerateEmail);
+
 // Auto-open modal for creating new user
+document.addEventListener('DOMContentLoaded', function() {
+// Bootstrap Tooltips
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+    new bootstrap.Tooltip(el);
+});
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('create') === '1') {
     // Öffne Modal im Create-Modus
     const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
 
     // Setze Modal-Titel und Form-Action für Create-Modus
+    isCreateMode = true;
     document.getElementById('editUserModalLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Neuen Benutzer erstellen';
     document.getElementById('editUserForm').action = '/ldap/user/create/';
     document.getElementById('btn-delete-user').style.display = 'none';
@@ -1205,6 +1244,7 @@ if (urlParams.get('create') === '1') {
     document.getElementById('modal-birthDate').value = '';
     document.getElementById('modal-familyRole').value = '';
     document.getElementById('modal-accountDisabled').checked = false;
+    document.getElementById('modal-nextCloudEnabled').checked = true;
     document.getElementById('consent-section').style.display = 'none';
     setParentValue('');
     document.getElementById('modal-password').value = '';
@@ -1222,6 +1262,9 @@ if (urlParams.get('create') === '1') {
     document.getElementById('modal-password2').required = true;
 
     modal.show();
+    // Parameter aus URL entfernen damit Modal nicht erneut oeffnet
+    window.history.replaceState({}, '', window.location.pathname);
 }
+});
 </script>
 {% endblock %}

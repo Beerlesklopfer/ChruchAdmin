@@ -81,6 +81,10 @@ from authapp.models import PermissionMapping
 defaults = [
     ('view_members', 'Mitglieder'),
     ('export_members', 'Mitglieder'),
+    ('send_massmail', 'Leitung'),
+    ('send_massmail', 'Pastor'),
+    ('send_massmail', 'Admin'),
+    ('send_massmail', 'Admins'),
 ]
 for perm, group in defaults:
     obj, created = PermissionMapping.objects.get_or_create(
@@ -100,12 +104,12 @@ from authapp.models import AppSettings
 defaults = {
     'church_name': ('Beispielgemeinde', 'general', 'Name der Gemeinde'),
     'church_domain': ('example-church.de', 'general', 'Domain der Gemeinde'),
-    'church_address': ('Gasstr. 4, 32791 Lage', 'general', 'Anschrift der Gemeinde'),
+    'church_address': ('Musterstrasse 1, 12345 Beispielstadt', 'general', 'Anschrift der Gemeinde'),
     'church_phone': ('', 'general', 'Telefonnummer'),
     'church_email': ('pastor-beispiel@example-church.de', 'general', 'Kontakt-E-Mail'),
-    'church_contact_person': ('Peter Dridiger', 'general', 'Ansprechperson / Verantwortlicher'),
-    'church_register': ('VR 1671, Amtsgericht Lemgo', 'general', 'Vereinsregister'),
-    'church_tax_id': ('313/5902/6868, Finanzamt Detmold', 'general', 'Steuernummer'),
+    'church_contact_person': ('Der Pastor', 'general', 'Ansprechperson / Verantwortlicher'),
+    'church_register': ('VR XXXX, Amtsgericht Beispielstadt', 'general', 'Vereinsregister'),
+    'church_tax_id': ('XXX/XXXX/XXXX, Finanzamt Beispielstadt', 'general', 'Steuernummer'),
     'privacy_contact_person': ('Die Gemeindeleitung', 'general', 'Datenschutz-Ansprechperson'),
 }
 for key, (val, cat, desc) in defaults.items():
@@ -113,6 +117,13 @@ for key, (val, cat, desc) in defaults.items():
     if created:
         print(f'  {key} angelegt')
 "
+
+# systemd Service aktualisieren
+if [[ -f "${DEPLOY_DIR}/config/systemd/churchadmin.service" ]]; then
+    sudo cp "${DEPLOY_DIR}/config/systemd/churchadmin.service" /usr/lib/systemd/system/churchadmin.service
+    sudo systemctl daemon-reload
+    log "systemd Service aktualisiert"
+fi
 
 # sudoers fuer slapcat (Schema-Backup)
 if [[ -f "${DEPLOY_DIR}/config/sudoers.d/churchadmin-slapcat" ]]; then

@@ -3,7 +3,7 @@ from django.db import migrations
 TEMPLATE_HTML = '''<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; color: #333;">
     <div style="background-color: #1c2647; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
         <h1 style="margin: 0; font-size: 24px;">Willkommen bei ChurchAdmin!</h1>
-        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Ihr digitaler Zugang zur Beispielgemeinde</p>
+        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Ihr digitaler Zugang zur Bibelgemeinde Lage</p>
     </div>
     <div style="background-color: #ffffff; padding: 30px;">
         <p style="font-size: 16px;">Liebe(r) [[vorname]],</p>
@@ -40,20 +40,20 @@ TEMPLATE_HTML = '''<div style="max-width: 600px; margin: 0 auto; font-family: Ar
         <div style="background: #1c2647; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
             <h3 style="color: #e6c068; margin: 0 0 10px;">Jetzt ausprobieren!</h3>
             <p style="margin: 0 0 15px;">Melden Sie sich an und entdecken Sie Ihre Moeglichkeiten.</p>
-            <a href="https://wir.example-church.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
+            <a href="https://wir.bibelgemeinde-lage.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
         </div>
 
         <h2 style="color: #1c2647; font-size: 18px; border-bottom: 2px solid #e6c068; padding-bottom: 8px;">Gut zu wissen</h2>
 
         <ul style="line-height: 1.8;">
-            <li>Ihre <strong>Organisations-E-Mail</strong> (@example-church.de) wird von der Gemeindeleitung verwaltet.</li>
+            <li>Ihre <strong>Organisations-E-Mail</strong> (@bibelgemeinde-lage.de) wird von der Gemeindeleitung verwaltet.</li>
             <li>Ihre <strong>privaten Daten</strong> (Telefon, Anschrift, etc.) koennen nur Sie selbst aendern.</li>
             <li>Alle Daten werden <strong>DSGVO-konform</strong> verarbeitet und nicht an Dritte weitergegeben.</li>
         </ul>
 
         <p>Bei Fragen stehen wir Ihnen gerne zur Verfuegung. Sprechen Sie uns einfach an!</p>
 
-        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Beispielgemeinde</p>
+        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Bibelgemeinde Lage</p>
     </div>
 </div>'''
 
@@ -63,7 +63,7 @@ def create_template(apps, schema_editor):
     if not MailTemplate.objects.filter(name='Willkommen bei ChurchAdmin').exists():
         MailTemplate.objects.create(
             name='Willkommen bei ChurchAdmin',
-            subject='Ihre neuen Moeglichkeiten bei der Beispielgemeinde',
+            subject='Ihre neuen Moeglichkeiten bei der Bibelgemeinde Lage',
             description='Stellt Mitgliedern die Funktionen der App vor',
             body_html=TEMPLATE_HTML,
         )

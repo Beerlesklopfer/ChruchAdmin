@@ -93,7 +93,7 @@ def member_list_export_pdf(request, settings_id=None):
             filtered_users = []
             if export_settings.user_filter == 'members':
                 # Mitglieder + deren Familien (Kinder/Ehepartner)
-                members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,dc=example-church,dc=de")
+                members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,{settings.LDAP_BASE_DN}")
                 if members_group:
                     member_dns = members_group['attributes'].get('member', [])
                     member_dns_set = set()
@@ -122,7 +122,7 @@ def member_list_export_pdf(request, settings_id=None):
                         if user['dn'] in family_dns:
                             filtered_users.append(user)
             elif export_settings.user_filter == 'visitors':
-                visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,dc=example-church,dc=de")
+                visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,{settings.LDAP_BASE_DN}")
                 if visitors_group:
                     visitor_dns = visitors_group['attributes'].get('member', [])
                     for user in all_users:
@@ -234,7 +234,7 @@ def member_list_export_pdf(request, settings_id=None):
         canvas.saveState()
         canvas.setFont('DejaVu-Bold', 12)
         canvas.setFillColor(colors.HexColor('#1c2647'))
-        canvas.drawString(1.5*cm, landscape(A4)[1] - 1*cm, "Gemeindeliste - Beispielgemeinde")
+        canvas.drawString(1.5*cm, landscape(A4)[1] - 1*cm, "Gemeindeliste - Bibelgemeinde Lage")
         canvas.setFont('DejaVu', 8)
         canvas.setFillColor(colors.grey)
         canvas.drawRightString(landscape(A4)[0] - 1.5*cm, landscape(A4)[1] - 1*cm, f"Stand: {dt_now.now().strftime('%d.%m.%Y')}")
@@ -372,14 +372,14 @@ def member_list_export_vcard(request, settings_id=None):
             if export_settings.user_filter == 'all':
                 filtered_users = all_users
             elif export_settings.user_filter == 'members':
-                members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,dc=example-church,dc=de")
+                members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,{settings.LDAP_BASE_DN}")
                 if members_group:
                     member_dns = members_group['attributes'].get('member', [])
                     for user in all_users:
                         if user['dn'].encode('utf-8') in member_dns or user['dn'] in member_dns:
                             filtered_users.append(user)
             elif export_settings.user_filter == 'visitors':
-                visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,dc=example-church,dc=de")
+                visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,{settings.LDAP_BASE_DN}")
                 if visitors_group:
                     visitor_dns = visitors_group['attributes'].get('member', [])
                     for user in all_users:
@@ -431,7 +431,7 @@ def member_list_export_vcard(request, settings_id=None):
                     vcard.tel.type_param = 'CELL'
 
                 vcard.add('org')
-                vcard.org.value = ['Beispielgemeinde']
+                vcard.org.value = ['Bibelgemeinde Lage']
 
                 vcards.append(vcard.serialize())
 

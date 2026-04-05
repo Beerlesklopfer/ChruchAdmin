@@ -39,7 +39,7 @@ def password_reset_request(request):
             # auch wenn kein Benutzer gefunden wurde
             if user:
                 # Private E-Mail aus LDAP holen (erste mailRoutingAddress
-                # die nicht auf @example-church.de endet)
+                # die nicht auf @{settings.CHURCH_DOMAIN} endet)
                 recipient_email = None
                 try:
                     with LDAPManager() as ldap:
@@ -51,7 +51,7 @@ def password_reset_request(request):
                                 if isinstance(addr, bytes):
                                     addr = addr.decode('utf-8')
                                 addr = addr.strip()
-                                if addr and not addr.lower().endswith('@example-church.de'):
+                                if addr and not addr.lower().endswith('@{settings.CHURCH_DOMAIN}'):
                                     recipient_email = addr
                                     break
                 except Exception as e:

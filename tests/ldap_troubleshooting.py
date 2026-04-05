@@ -9,8 +9,8 @@ import ldap
 import sys
 
 # LDAP-Konfiguration
-LDAP_SERVER = 'ldaps://ldap.example-church.de'
-BIND_DN = 'cn=admin,dc=example-church,dc=de'
+LDAP_SERVER = 'ldaps://ldap.bibelgemeinde-lage.de'
+BIND_DN = 'cn=admin,dc=bibelgemeinde-lage,dc=de'
 BIND_PASSWORD = 'REDACTED'
 
 def test_ldap_connection():
@@ -39,7 +39,7 @@ def test_ldap_connection():
 
         # Teste eine einfache Suche
         result = conn.search_s(
-            "dc=example-church,dc=de",
+            "dc=bibelgemeinde-lage,dc=de",
             ldap.SCOPE_BASE,
             "(objectClass=*)"
         )
@@ -106,9 +106,9 @@ def print_recommendations():
    sudo systemctl start openldap
 
 2. Server-Erreichbarkeit prüfen:
-   telnet ldap.example-church.de 636
+   telnet ldap.bibelgemeinde-lage.de 636
    # oder
-   openssl s_client -connect ldap.example-church.de:636
+   openssl s_client -connect ldap.bibelgemeinde-lage.de:636
 
 3. Für Entwicklung: SSL-Validierung deaktivieren
    In main/settings.py nach AUTH_LDAP_SERVER_URI hinzufügen:
@@ -117,7 +117,7 @@ def print_recommendations():
    ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
 4. Auf unverschlüsselten LDAP wechseln (nur Entwicklung!):
-   AUTH_LDAP_SERVER_URI = 'ldap://ldap.example-church.de:389'
+   AUTH_LDAP_SERVER_URI = 'ldap://ldap.bibelgemeinde-lage.de:389'
 
 5. Lokalen LDAP-Server verwenden:
    Installiere OpenLDAP lokal und ändere:

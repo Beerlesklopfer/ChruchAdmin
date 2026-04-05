@@ -10,11 +10,11 @@ from mailing.models import MailTemplate
 TEMPLATES = [
     {
         'name': 'Gemeindebrief Standard',
-        'subject': 'Neuigkeiten aus der Beispielgemeinde',
+        'subject': 'Neuigkeiten aus der Bibelgemeinde Lage',
         'description': 'Standard-Vorlage fuer Gemeindebriefe und Ankuendigungen',
         'body_html': '''<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; color: #333;">
     <div style="background-color: #1c2647; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="margin: 0; font-size: 24px;">Beispielgemeinde</h1>
+        <h1 style="margin: 0; font-size: 24px;">Bibelgemeinde Lage</h1>
         <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Gemeindebrief</p>
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
@@ -37,21 +37,21 @@ TEMPLATES = [
             <p style="margin: 0;">Platz fuer besondere Hinweise.</p>
         </div>
 
-        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Beispielgemeinde</p>
+        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Bibelgemeinde Lage</p>
     </div>
     <div style="text-align: center; padding: 15px; font-size: 12px; color: #666;">
-        <p>&copy; 2026 Beispielgemeinde</p>
+        <p>&copy; 2026 Bibelgemeinde Lage</p>
     </div>
 </div>''',
     },
     {
         'name': 'System-Benachrichtigung',
-        'subject': 'Wichtige Mitteilung - Beispielgemeinde',
+        'subject': 'Wichtige Mitteilung - Bibelgemeinde Lage',
         'description': 'Fuer Sysadmins: Wartung, Aenderungen, technische Hinweise',
         'body_html': '''<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; color: #333;">
     <div style="background-color: #1c2647; color: #ffffff; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
         <h1 style="margin: 0; font-size: 22px;">Systembenachrichtigung</h1>
-        <p style="margin: 5px 0 0; color: #e6c068; font-size: 13px;">Beispielgemeinde - IT</p>
+        <p style="margin: 5px 0 0; color: #e6c068; font-size: 13px;">Bibelgemeinde Lage - IT</p>
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
         <p>Liebe(r) [[vorname]],</p>
@@ -69,25 +69,25 @@ TEMPLATES = [
             <p style="margin: 5px 0 0;">Wenden Sie sich an die IT-Administration.</p>
         </div>
 
-        <p>Mit freundlichen Gruessen,<br><strong>IT-Administration</strong><br>Beispielgemeinde</p>
+        <p>Mit freundlichen Gruessen,<br><strong>IT-Administration</strong><br>Bibelgemeinde Lage</p>
     </div>
     <div style="text-align: center; padding: 15px; font-size: 12px; color: #666;">
-        <p>&copy; 2026 Beispielgemeinde</p>
+        <p>&copy; 2026 Bibelgemeinde Lage</p>
     </div>
 </div>''',
     },
     {
         'name': 'Willkommen (formal - Sie)',
-        'subject': 'Ihre neuen Moeglichkeiten bei der Beispielgemeinde',
+        'subject': 'Ihre neuen Moeglichkeiten bei der Bibelgemeinde Lage',
         'description': 'Formelle Vorlage mit Sie-Anrede fuer Mitglieder',
         'body_html': '''<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; color: #333;">
     <div style="background-color: #1c2647; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
         <h1 style="margin: 0; font-size: 24px;">Willkommen bei ChurchAdmin!</h1>
-        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Ihr digitaler Zugang zur Beispielgemeinde</p>
+        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Ihr digitaler Zugang zur Bibelgemeinde Lage</p>
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
         <p style="font-size: 16px;">Liebe(r) [[vorname]],</p>
-        <p>wir freuen uns, Ihnen die neue Plattform der Beispielgemeinde vorzustellen!</p>
+        <p>wir freuen uns, Ihnen die neue Plattform der Bibelgemeinde Lage vorzustellen!</p>
 
         <h2 style="color: #1c2647; font-size: 18px; border-bottom: 2px solid #e6c068; padding-bottom: 8px;">Was koennen Sie tun?</h2>
 
@@ -111,7 +111,7 @@ TEMPLATES = [
         </div>
         <div style="background: #1c2647; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
             <h3 style="color: #e6c068; margin: 0 0 10px;">Jetzt ausprobieren!</h3>
-            <a href="https://wir.example-church.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
+            <a href="https://wir.bibelgemeinde-lage.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
         </div>
 
         <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0dcaf0;">
@@ -119,22 +119,22 @@ TEMPLATES = [
             <p style="margin: 0;">Ihre Daten werden gemaess der DSGVO verarbeitet und nicht an Dritte weitergegeben. Unter <strong>Mein Profil &rarr; Meine Daten (DSGVO)</strong> koennen Sie jederzeit Ihre Daten einsehen, exportieren, Einwilligungen verwalten oder die Loeschung beantragen.</p>
         </div>
 
-        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Beispielgemeinde</p>
+        <p>Herzliche Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Bibelgemeinde Lage</p>
     </div>
 </div>''',
     },
     {
         'name': 'Willkommen (persoenlich - Du)',
-        'subject': 'Deine neuen Moeglichkeiten bei der Beispielgemeinde',
+        'subject': 'Deine neuen Moeglichkeiten bei der Bibelgemeinde Lage',
         'description': 'Persoenliche Vorlage mit Du-Anrede fuer Mitglieder',
         'body_html': '''<div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; color: #333;">
     <div style="background-color: #1c2647; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
         <h1 style="margin: 0; font-size: 24px;">Willkommen bei ChurchAdmin!</h1>
-        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Dein digitaler Zugang zur Beispielgemeinde</p>
+        <p style="margin: 5px 0 0; color: #e6c068; font-size: 14px;">Dein digitaler Zugang zur Bibelgemeinde Lage</p>
     </div>
     <div style="background-color: #ffffff; padding: 30px; line-height: 1.6;">
         <p style="font-size: 16px;">Hallo [[vorname]]!</p>
-        <p>Schoen, dass Du bei der Beispielgemeinde dabei bist! Mit unserer neuen Plattform kannst Du viele Dinge bequem online erledigen.</p>
+        <p>Schoen, dass Du bei der Bibelgemeinde Lage dabei bist! Mit unserer neuen Plattform kannst Du viele Dinge bequem online erledigen.</p>
 
         <h2 style="color: #1c2647; font-size: 18px; border-bottom: 2px solid #e6c068; padding-bottom: 8px;">Was kannst Du tun?</h2>
 
@@ -158,7 +158,7 @@ TEMPLATES = [
         </div>
         <div style="background: #1c2647; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
             <h3 style="color: #e6c068; margin: 0 0 10px;">Jetzt ausprobieren!</h3>
-            <a href="https://wir.example-church.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
+            <a href="https://wir.bibelgemeinde-lage.de/login/" style="display: inline-block; padding: 12px 24px; background-color: #e6c068; color: #1c2647; text-decoration: none; border-radius: 5px; font-weight: bold;">Zum Login</a>
         </div>
 
         <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0dcaf0;">
@@ -166,7 +166,7 @@ TEMPLATES = [
             <p style="margin: 0;">Deine Daten werden gemaess der DSGVO verarbeitet und nicht an Dritte weitergegeben. Unter <strong>Mein Profil &rarr; Meine Daten (DSGVO)</strong> kannst Du jederzeit Deine Daten einsehen, exportieren, Einwilligungen verwalten oder die Loeschung beantragen.</p>
         </div>
 
-        <p>Liebe Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Beispielgemeinde</p>
+        <p>Liebe Gruesse,<br><strong>Die Gemeindeleitung</strong><br>Bibelgemeinde Lage</p>
     </div>
 </div>''',
     },

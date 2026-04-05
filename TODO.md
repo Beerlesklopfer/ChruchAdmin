@@ -270,4 +270,4 @@
 
 **Stand:** 2026-04-05
 **Version:** 2.0.0
-**Maintainer:** Joerg Bernau
+**Maintainer:** Der Autor

@@ -663,9 +663,9 @@ def ldap_dashboard(request):
             stats['total_users'] = len(all_users)
 
             # Zähle Benutzer nach Gruppen
-            members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,dc=example-church,dc=de")
-            visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,dc=example-church,dc=de")
-            relatives_dn = f"cn=Angehörige,ou=Groups,dc=example-church,dc=de"
+            members_group = ldap.get_group(f"cn=Mitglieder,ou=Groups,{settings.LDAP_BASE_DN}")
+            visitors_group = ldap.get_group(f"cn=Besucher,ou=Groups,{settings.LDAP_BASE_DN}")
+            relatives_dn = f"cn=Angehörige,ou=Groups,{settings.LDAP_BASE_DN}"
 
             if members_group:
                 members = members_group['attributes'].get('member', [])
@@ -1156,7 +1156,7 @@ def ldap_login(request):
 
                             # Suche User mit dieser E-Mail
                             search_filter = f"(mail={username})"
-                            search_base = "ou=Users,dc=example-church,dc=de"
+                            search_base = f"ou=Users,{settings.LDAP_BASE_DN}"
 
                             print(f"DEBUG: Suche mit Filter: {search_filter} in {search_base}")
                             result = ldap_mgr.conn.search_s(search_base, ldap.SCOPE_SUBTREE, search_filter, ['cn'])
@@ -1283,7 +1283,7 @@ def ldap_login(request):
 
                         try:
                             # Versuche LDAP Bind mit User Credentials
-                            user_dn = f"cn={normalized_username},ou=Users,dc=example-church,dc=de"
+                            user_dn = f"cn={normalized_username},ou=Users,{settings.LDAP_BASE_DN}"
                             print(f"DEBUG: Versuche Bind mit DN: {user_dn}")
 
                             # Teste Authentifizierung durch direkten Bind
@@ -1446,7 +1446,7 @@ def register(request):
                 plain_message = strip_tags(html_message)
 
                 msg = EmailMultiAlternatives(
-                    subject='E-Mail-Adresse bestaetigen - Beispielgemeinde',
+                    subject='E-Mail-Adresse bestaetigen - Bibelgemeinde Lage',
                     body=plain_message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[reg.email],
@@ -1600,7 +1600,7 @@ def registration_approve(request, pk):
                     'sn': reg.last_name,
                     'cn': cn,
                     'displayName': f"{reg.first_name} {reg.last_name}",
-                    'mail': f"{cn}@example-church.de",
+                    'mail': f"{cn}@{settings.CHURCH_DOMAIN}",
                     'userPassword': password,
                 }
                 ldap_conn.create_user(attributes=attributes)
@@ -1681,7 +1681,7 @@ def registration_reject(request, pk):
                 plain_message = strip_tags(html_message)
 
                 msg = EmailMultiAlternatives(
-                    subject='Registrierungsanfrage - Beispielgemeinde',
+                    subject='Registrierungsanfrage - Bibelgemeinde Lage',
                     body=plain_message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[reg.email],
@@ -1762,7 +1762,7 @@ def profile(request):
                         birth_date_display = str(birth_date_raw)
                         birth_date_iso = ''
 
-                # Externe mailRoutingAddress-Liste (nicht @example-church.de)
+                # Externe mailRoutingAddress-Liste (nicht @domain)
                 notification_emails = []
                 routing_addrs = attrs.get('mailRoutingAddress', [])
                 for addr in routing_addrs:
@@ -1771,7 +1771,7 @@ def profile(request):
                     if isinstance(addr, bytes):
                         addr = addr.decode('utf-8')
                     addr = addr.strip()
-                    if addr and not addr.lower().endswith('@example-church.de'):
+                    if addr and not addr.lower().endswith("@" + settings.CHURCH_DOMAIN):
                         notification_emails.append(addr)
                 notification_email = notification_emails[0] if notification_emails else ''
 
@@ -1885,7 +1885,7 @@ def profile(request):
                                 if isinstance(addr, bytes):
                                     addr = addr.decode('utf-8')
                                 addr = addr.strip()
-                                if addr and addr.lower().endswith('@example-church.de'):
+                                if addr and addr.lower().endswith("@" + settings.CHURCH_DOMAIN):
                                     internal.append(addr)
                             new_addrs = new_external + internal
                             ldap_conn.update_user(request.user.username, {'mailRoutingAddress': new_addrs})
@@ -2353,7 +2353,7 @@ def user_edit(request, cn):
                     user_dn_full = user['dn']
                     for group_cn in status_group_map.values():
                         try:
-                            group_dn = f"cn={group_cn},ou=Groups,dc=example-church,dc=de"
+                            group_dn = f"cn={group_cn},ou=Groups,{settings.LDAP_BASE_DN}"
                             group_data = ldap.get_group(group_dn)
                             if group_data:
                                 members = group_data['attributes'].get('member', [])
@@ -2365,7 +2365,7 @@ def user_edit(request, cn):
                     target_group = status_group_map.get(new_status)
                     if target_group:
                         try:
-                            group_dn = f"cn={target_group},ou=Groups,dc=example-church,dc=de"
+                            group_dn = f"cn={target_group},ou=Groups,{settings.LDAP_BASE_DN}"
                             ldap.add_member(group_dn, user_dn_full)
                         except Exception as e:
                             logger.warning(f"Konnte {cn} nicht zu Gruppe {target_group} hinzufuegen: {e}")
@@ -2445,7 +2445,7 @@ def user_edit(request, cn):
                         # Auch uid, homeDirectory, mail etc. anpassen
                         update_after_rename = {
                             'uid': new_cn,
-                            'homeDirectory': f'/home/example-church.de/{new_cn}',
+                            'homeDirectory': f'/home/{settings.CHURCH_DOMAIN}/{new_cn}',
                             'displayName': f"{new_given} {new_sn}",
                         }
                         ldap.update_user(new_cn, update_after_rename, parent_cn=new_parent_cn)
@@ -2652,8 +2652,8 @@ def user_delete(request, cn):
                 elif val:
                     mail_addresses.append(val)
 
-            # Filtere externe Adressen (nicht @example-church.de)
-            external_emails = [m for m in mail_addresses if m and '@example-church.de' not in m]
+            # Filtere externe Adressen (nicht @domain)
+            external_emails = [m for m in mail_addresses if m and '@' + settings.CHURCH_DOMAIN not in m]
 
             # Prüfe ob Benutzer Kinder hat
             children = ldap_mgr.list_users(parent_dn=user_dn)
@@ -2701,7 +2701,7 @@ def user_delete(request, cn):
                     plain_message = strip_tags(html_message)
 
                     msg = EmailMultiAlternatives(
-                        subject='Ihr Zugang wurde entfernt - Beispielgemeinde',
+                        subject='Ihr Zugang wurde entfernt - Bibelgemeinde Lage',
                         body=plain_message,
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         to=external_emails,

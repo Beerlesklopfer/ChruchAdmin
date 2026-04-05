@@ -42,17 +42,13 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'wir.example-church.de']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 # Trusted origins für CSRF und CORS
-CSRF_TRUSTED_ORIGINS = [
-    'https://verwaltung.example-church.de',
-]
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://localhost').split(',')
 
-# CORS Einstellungen (falls du API-Endpoints hast)
-CORS_ALLOWED_ORIGINS = [
-    'https://verwaltung.example-church.de',
-]
+# CORS Einstellungen
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'https://localhost').split(',')
 
 # Application definition
 
@@ -168,12 +164,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Für Produktion sollte ein gültiges SSL-Zertifikat verwendet werden
 ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
 
-AUTH_LDAP_SERVER_URI = os.environ.get('LDAP_SERVER_URI', 'ldaps://ldap.example-church.de')
-AUTH_LDAP_BIND_DN = os.environ.get('LDAP_BIND_DN', 'cn=admin,dc=example-church,dc=de')
+AUTH_LDAP_SERVER_URI = os.environ.get('LDAP_SERVER_URI', 'ldaps://localhost')
+LDAP_BASE_DN = os.environ.get('LDAP_BASE_DN', 'dc=example,dc=de')
+CHURCH_DOMAIN = os.environ.get('CHURCH_DOMAIN', 'example.de')
+AUTH_LDAP_BIND_DN = os.environ.get('LDAP_BIND_DN', f'cn=admin,{LDAP_BASE_DN}')
 AUTH_LDAP_BIND_PASSWORD = os.environ.get('LDAP_BIND_PASSWORD', '')
 
 AUTH_LDAP_USER_SEARCH = LDAPSearch(
-    "ou=Users,dc=example-church,dc=de",
+    f"ou=Users,{LDAP_BASE_DN}",
     ldap.SCOPE_SUBTREE,
     "(|(cn=%(user)s)(uid=%(user)s)(mail=%(user)s))"
 )
@@ -199,7 +197,7 @@ AUTH_LDAP_FIND_GROUP_PERMS = True
 
 # Gruppen Suche
 AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
-    "ou=Groups,dc=example-church,dc=de",
+    f"ou=Groups,{LDAP_BASE_DN}",
     ldap.SCOPE_SUBTREE,
     "(objectClass=groupOfNames)"
 )
@@ -207,10 +205,9 @@ AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
 AUTH_LDAP_GROUP_TYPE = GroupOfNamesType()
 
 # Benutzer Flags basierend auf Gruppen
-# WICHTIG: is_active NICHT gesetzt - alle LDAP-Benutzer sind standardmäßig aktiv
 AUTH_LDAP_USER_FLAGS_BY_GROUP = {
-    "is_staff": "cn=Mitglieder,ou=Groups,dc=example-church,dc=de",
-    "is_superuser": "cn=Technik und Infrastruktur,cn=Mitarbeiter,cn=Mitglieder,ou=Groups,dc=example-church,dc=de",
+    "is_staff": f"cn=Mitglieder,ou=Groups,{LDAP_BASE_DN}",
+    "is_superuser": os.environ.get('LDAP_SUPERUSER_GROUP', f"cn=Technik und Infrastruktur,cn=Mitarbeiter,cn=Mitglieder,ou=Groups,{LDAP_BASE_DN}"),
 }
 
 # Gruppen Berechtigungen
@@ -236,8 +233,8 @@ CAPTCHA_FONT_SIZE = 28
 CAPTCHA_IMAGE_SIZE = (160, 50)
 CAPTCHA_LETTER_ROTATION = (-20, 20)
 
-EMAIL_HOST = 'example-church.de'  # für Postfix
-EMAIL_PORT = 25  # Standard SMTP Port
-DEFAULT_FROM_EMAIL = 'webmaster@example-church.de'
-SERVER_EMAIL = 'webmaster@example-church.de'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '25'))
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'webmaster@localhost')
 
