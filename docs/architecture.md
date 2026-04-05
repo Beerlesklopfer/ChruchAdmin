@@ -61,7 +61,7 @@ dc=example-church,dc=de
 ├── ou=Users
 │   ├── cn=Max.Mustermann          (inetOrgPerson, postModernalPerson, mailExtension, nextCloudUser, posixAccount)
 │   │   ├── cn=Kind.Mustermann       (Kind, nested unter Elternteil)
-│   │   └── cn=Ehefrau.Bernau    (familyRole=spouse)
+│   │   └── cn=Erika.Mustermann    (familyRole=spouse)
 │   ├── cn=Pastor.Beispiel
 │   └── ...
 ├── ou=Groups
