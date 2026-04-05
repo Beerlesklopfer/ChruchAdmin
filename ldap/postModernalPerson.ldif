@@ -1,0 +1,21 @@
+dn: cn=postModernalPerson,cn=schema,cn=config
+cn: postModernalPerson
+objectclass: olcSchemaConfig
+olcAttributeTypes: {0}( 1.3.6.1.4.1.99999.1 NAME 'birthDate' DESC 'Date Of Birth' EQUALITY generalizedTimeMatch ORDERING generalizedTimeOrderingMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE )
+olcAttributetypes: {1}( 1.2.840.113556.1.2.464 NAME 'wWWHomePage' DESC 'personal home page' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {2}( 1.3.6.1.4.1.99999.2 NAME 'maidName' DESC 'maid name' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE)
+olcAttributetypes: {3}( 1.3.6.1.4.1.99999.3 NAME 'civilState' DESC 'Family state' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE) 
+olcAttributetypes: {4}( 1.3.6.1.4.1.99999.4 NAME 'sex' DESC 'sex of person (NOT gender ;-)' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE)  
+olcAttributetypes: {5}( 1.3.6.1.4.1.99999.5 NAME 'socialYouTube' DESC 'social media account for YouTube' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {6}( 1.3.6.1.4.1.99999.6 NAME 'socialTikTok' DESC 'social media account for TikTok' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {7}( 1.3.6.1.4.1.99999.7 NAME 'socialMeta' DESC 'social media account for Meta' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {8}( 1.3.6.1.4.1.99999.8 NAME 'socialSnapChat' DESC 'social media account for SnapChat' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {9}( 1.3.6.1.4.1.99999.9 NAME 'socialDiscord' DESC 'social media account for Discord' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {10}( 1.3.6.1.4.1.99999.10 NAME 'socialTwitch' DESC 'social media account for Twitch' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {11}( 1.3.6.1.4.1.99999.11 NAME 'socialPinterest' DESC 'social media account for Pinterest' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {12}( 1.3.6.1.4.1.99999.12 NAME 'socialInstagram' DESC 'social media account for Instagram' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {13}( 1.3.6.1.4.1.99999.13 NAME 'socialX' DESC 'social media account for X (Twitter)' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcAttributetypes: {14}( 1.3.6.1.4.1.99999.14 NAME 'socialFediverse' DESC 'social media account for Fediverse (Mastodon)' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} SINGLE-VALUE)
+olcObjectClasses:  {0}(1.3.6.1.4.1.99990.1 NAME 'postModernalPerson' SUP top AUXILIARY DESC 'Domain that can receive mail' MUST ( cn ) MAY( birthDate $ maidName $ civilState $ sex $ wWWHomePage $ socialYouTube $ socialTikTok $ socialMeta $ socialSnapChat $ socialDiscord $ socialTwitch $ socialPinterest $ socialInstagram $ socialX $ socialFediverse ))
+
+

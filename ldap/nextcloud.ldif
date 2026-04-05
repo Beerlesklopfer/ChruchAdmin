@@ -1,0 +1,17 @@
+dn: cn=nextcloud,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: nextcloud
+olcAttributeTypes: {0}( 1.3.6.1.4.1.49213.1.1.1 NAME 'nextCloudEnabled' DESC '
+ whether user or group should be available in Nextcloud' EQUALITY caseIgnoreMa
+ tch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SIN
+ GLE-VALUE)
+olcAttributeTypes: {1}( 1.3.6.1.4.1.49213.1.1.2 NAME 'nextCloudQuota' DESC 'de
+ fines how much disk space is available for the user' EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE
+ -VALUE)
+olcObjectClasses: {0}( 1.3.6.1.4.1.49213.1.2.1 NAME 'nextCloudUser' DESC 'A Ne
+ xtcloud user' SUP top AUXILIARY MUST ( cn )  MAY ( nextcloudEnabled $ nextclo
+ udQuota ) )
+olcObjectClasses: {1}( 1.3.6.1.4.1.49213.1.2.2 NAME 'nextCloudGroup' DESC 'A N
+ extcloud group' SUP top AUXILIARY MUST ( cn ) MAY ( nextcloudEnabled ) )
+

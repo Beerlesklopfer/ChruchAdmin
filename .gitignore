@@ -56,6 +56,11 @@ htmlcov/
 # Backups
 backups/
 db.sqlite3.backup_*
+claude.ldif
+*.ldif.backup
+
+# Claude Code
+.claude/
 
 # Claude Code
 .claude/

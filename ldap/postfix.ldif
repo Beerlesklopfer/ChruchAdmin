@@ -1,0 +1,15 @@
+dn: cn=postfix,cn=schema,cn=config
+cn: postfix
+objectclass: olcSchemaConfig
+olcattributetypes: {0}(1.3.6.1.4.1.8869.2.3.1 NAME 'mailRoutingEnabled' DESC 'Mailbox Enabled' EQUALITY booleanMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)
+olcattributetypes: {1}(1.3.6.1.4.1.8869.2.3.2 NAME 'mailAliasEnabled' DESC 'Mailbox Enabled' EQUALITY booleanMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 SINGLE-VALUE)                                                                        
+olcattributetypes: {2}(1.3.6.1.4.1.8869.2.3.3 NAME 'mailQuota' DESC 'defines how much mail quota is available for the user' EQUALITY caseIgnoreMatch SUBSTR caseIgnoreSubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 SINGLE-VALUE)
+olcattributetypes: {3}(1.3.6.1.4.1.8869.2.3.4 NAME 'mailAliasAddress' DESC 'RFC1274: RFC822 Mailbox' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256})
+olcAttributeTypes: {4}(1.3.6.1.4.1.8869.2.3.5 NAME 'mailDomainName' DESC 'Domain name for mail delivery' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
+olcAttributeTypes: {5}(1.3.6.1.4.1.8869.3.3.6 NAME 'mailRoutingAddress'  DESC 'Recipient mail address'  EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256} )
+olcAttributeTypes: {6}(1.3.6.1.4.1.8869.3.3.7 NAME 'mailGroup' DESC 'RFC1274: RFC822 Mailbox' EQUALITY caseIgnoreIA5Match SUBSTR caseIgnoreIA5SubstringsMatch  SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{256})
+olcobjectclasses:  {1}(1.3.6.1.4.1.8869.3.4.1 NAME 'mailExtension' DESC 'More Mail Options' SUP top AUXILIARY MUST ( cn  )  MAY ( mailRoutingEnabled $ mailAliasEnabled $ mailQuota $ mailRoutingAddress $ mailAliasAddress ) )
+olcobjectclasses:  {2}(1.3.6.1.4.1.8869.3.4.2 NAME 'groupMail' DESC 'Group mail address' SUP top AUXILIARY MUST ( cn  ) MAY ( mailGroup $ mailQuota$ mailRoutingEnabled $ mailRoutingAddress $ mailAliasAddress ) )
+olcObjectclasses:  {3}(1.3.6.1.4.1.8869.3.4.3 NAME 'mailRecipient' SUP top AUXILIARY DESC 'Entity that can receive mail' MUST ( mail $ mailRoutingAddress ) MAY ( mailAliasAddress $ mailRoutingEnabled $ mailAliasEnabled $ mailQuota ) )
+olcObjectClasses:  {4}(1.3.6.1.4.1.8869.3.4.4 NAME 'mailDomain' SUP top AUXILIARY DESC 'Domain that can receive mail' MUST ( mailDomainName ))
+

@@ -146,10 +146,21 @@ ChruchAdmin/
 ├── tickets/       — Ticket-System und Fehlerberichte
 ├── templates/     — Alle HTML-Vorlagen
 ├── static/        — Design, Schriften, Editoren
-├── ldap/          — LDAP-Schema-Erweiterungen
+├── ldap/          — LDAP-Schema-Erweiterungen (LDIF)
+├── docs/          — Dokumentation (Architektur, Postfix, Nextcloud, Schemas)
 ├── tests/         — Tests und Fehlerbehebung
 └── deploy.sh      — Installations-Script
 ```
+
+## Dokumentation
+
+| Dokument | Beschreibung |
+|----------|-------------|
+| [Architektur](docs/architecture.md) | Gesamtuebersicht: ChurchAdmin + LDAP + Postfix + Nextcloud |
+| [Postfix](docs/postfix.md) | E-Mail-Konfiguration mit LDAP-Anbindung |
+| [Nextcloud](docs/nextcloud.md) | Nextcloud LDAP-Integration |
+| [LDAP-Schemas](docs/ldap-schemas.md) | Alle Schemas mit Installationsanleitung |
+| [Troubleshooting](tests/TROUBLESHOOTING.md) | Fehlerbehebung und nuetzliche Befehle |
 
 ## Screenshots
 
