@@ -111,11 +111,65 @@ defaults = {
     'church_register': ('VR XXXX, Amtsgericht Beispielstadt', 'general', 'Vereinsregister'),
     'church_tax_id': ('XXX/XXXX/XXXX, Finanzamt Beispielstadt', 'general', 'Steuernummer'),
     'privacy_contact_person': ('Die Gemeindeleitung', 'general', 'Datenschutz-Ansprechperson'),
+    'autoconfig_imap_host': ('imap.example-church.de', 'autoconfig', 'IMAP Server Hostname'),
+    'autoconfig_imap_port': ('993', 'autoconfig', 'IMAP Server Port'),
+    'autoconfig_smtp_host': ('smtp.example-church.de', 'autoconfig', 'SMTP Server Hostname'),
+    'autoconfig_smtp_port': ('465', 'autoconfig', 'SMTP Server Port'),
+    'autoconfig_caldav_url': ('https://cloud.example-church.de/', 'autoconfig', 'CalDAV/CardDAV Server URL (Nextcloud)'),
 }
 for key, (val, cat, desc) in defaults.items():
     obj, created = AppSettings.objects.get_or_create(key=key, defaults={'value': val, 'category': cat, 'description': desc})
     if created:
         print(f'  {key} angelegt')
+"
+
+log "Setze Autoconfig-Einstellungen (bestehende werden aktualisiert) ..."
+sudo -u www-data ${MANAGE} shell -c "
+from authapp.models import AppSettings
+autoconfig = {
+    'autoconfig_imap_host': ('imap.bibelgemeinde-lage.de', 'autoconfig', 'IMAP Server Hostname'),
+    'autoconfig_imap_port': ('993', 'autoconfig', 'IMAP Server Port'),
+    'autoconfig_smtp_host': ('smtp.bibelgemeinde-lage.de', 'autoconfig', 'SMTP Server Hostname'),
+    'autoconfig_smtp_port': ('465', 'autoconfig', 'SMTP Server Port'),
+    'autoconfig_caldav_url': ('https://cloud.bibelgemeinde-lage.de/', 'autoconfig', 'CalDAV/CardDAV Server URL (Nextcloud)'),
+}
+for key, (val, cat, desc) in autoconfig.items():
+    obj, created = AppSettings.objects.update_or_create(
+        key=key,
+        defaults={'value': val, 'category': cat, 'description': desc}
+    )
+    status = 'angelegt' if created else 'aktualisiert'
+    print(f'  {key} {status}')
+
+from authapp.models import WiFiNetwork
+obj, created = WiFiNetwork.objects.get_or_create(
+    ssid='Bibelgemeinde-lage',
+    defaults={
+        'name': 'Gemeinde-WLAN',
+        'encryption_type': 'WPA2',
+        'is_active': True,
+        'sort_order': 0,
+    }
+)
+if created:
+    print('  WiFi-Netzwerk Bibelgemeinde-lage angelegt')
+
+from authapp.models import RegistrationResponseTemplate
+reg_templates = [
+    ('approve_default', 'Willkommen', 'Liebe(r) {{vorname}},\n\nherzlich willkommen in der {{gemeinde}}!\n\nIhr Benutzerkonto wurde erstellt. Sie erhalten in Kuerze eine separate E-Mail mit Ihren Zugangsdaten.\n\nBei Fragen stehen wir Ihnen gerne zur Verfuegung.\n\nMit freundlichen Gruessen\n{{gemeinde}}', 0),
+    ('reject_default', 'Ablehnung', 'Liebe(r) {{vorname}},\n\nvielen Dank fuer Ihre Registrierungsanfrage bei der {{gemeinde}}.\n\nLeider koennen wir Ihre Anfrage derzeit nicht genehmigen.\n\nBei Fragen stehen wir Ihnen gerne zur Verfuegung.\n\nMit freundlichen Gruessen\n{{gemeinde}}', 0),
+    ('snippet', 'Konto bereits vorhanden', 'Es existiert bereits ein Benutzerkonto fuer Sie. Bitte nutzen Sie die Passwort-Zuruecksetzen-Funktion auf der Login-Seite, falls Sie Ihre Zugangsdaten vergessen haben.', 1),
+    ('snippet', 'E-Mail lange nicht verifiziert', 'Ihre E-Mail-Adresse wurde ueber einen laengeren Zeitraum nicht bestaetigt. Bitte stellen Sie eine neue Anfrage und bestaetigen Sie die E-Mail zeitnah.', 2),
+    ('snippet', 'Unbekannte Person', 'Wir konnten Sie leider keinem Gemeindemitglied oder Besucher zuordnen. Bitte wenden Sie sich persoenlich an die Gemeindeleitung.', 3),
+    ('snippet', 'Bitte persoenlich vorbeikommen', 'Wir wuerden Sie gerne persoenlich kennenlernen. Bitte besuchen Sie uns im naechsten Gottesdienst, damit wir Ihren Zugang einrichten koennen.', 4),
+]
+for ttype, name, text, order in reg_templates:
+    obj, created = RegistrationResponseTemplate.objects.get_or_create(
+        template_type=ttype, name=name,
+        defaults={'text': text, 'sort_order': order, 'is_active': True}
+    )
+    if created:
+        print(f'  Antwortvorlage {name} angelegt')
 "
 
 # systemd Service aktualisieren

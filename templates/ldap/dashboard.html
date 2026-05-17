@@ -47,13 +47,14 @@
 
         <!-- Mail Routing -->
         <div class="col-md-3 mb-3">
-            <div class="stat-card stat-card-mail" style="opacity: 0.7;">
-                <div class="stat-number">{{ stats.mail_enabled }}</div>
-                <div class="stat-label">
-                    <i class="bi bi-envelope-fill me-2"></i>Aktive Mail-Weiterleitungen
-                    <br><small class="text-muted" style="font-size: 0.7rem;">Phase 6</small>
+            <a href="{% url 'mail_overview' %}" class="text-decoration-none">
+                <div class="stat-card stat-card-mail">
+                    <div class="stat-number">{{ stats.mail_enabled }}</div>
+                    <div class="stat-label">
+                        <i class="bi bi-envelope-fill me-2"></i>Aktive Mail-Weiterleitungen
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Pending Registrations -->
@@ -144,8 +145,11 @@
         <!-- Mail Domains -->
         <div class="col-md-4 mb-3">
             <div class="card card-church">
-                <div class="card-header">
-                    <i class="bi bi-envelope-at me-2"></i>Mail-Domains
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-envelope-at me-2"></i>Mail-Domains</span>
+                    <a href="{% url 'mail_domain_list' %}" class="btn btn-sm btn-outline-secondary" title="Verwalten">
+                        <i class="bi bi-gear"></i>
+                    </a>
                 </div>
                 <div class="card-body">
                     {% if stats.mail_domains %}
@@ -154,16 +158,24 @@
                             <li class="list-group-item px-0">
                                 <i class="bi bi-globe me-2 text-church-navy"></i>
                                 {{ domain }}
-                                <small class="text-muted d-block mt-1">
-                                    <i class="bi bi-info-circle me-1"></i>Verwaltung in Phase 6
-                                </small>
                             </li>
                             {% endfor %}
                         </ul>
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{% url 'mail_domain_list' %}" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-globe2 me-1"></i>Domains
+                            </a>
+                            <a href="{% url 'mail_overview' %}" class="btn btn-sm btn-outline-primary flex-fill">
+                                <i class="bi bi-envelope-paper me-1"></i>Uebersicht
+                            </a>
+                        </div>
                     {% else %}
-                        <p class="text-muted mb-0">
+                        <p class="text-muted mb-2">
                             <i class="bi bi-info-circle me-2"></i>Keine Domains konfiguriert
                         </p>
+                        <a href="{% url 'mail_domain_list' %}" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-plus-lg me-1"></i>Erste Domain anlegen
+                        </a>
                     {% endif %}
                 </div>
             </div>
@@ -190,7 +202,7 @@
                             </a>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <a href="#" onclick="alert('Wird in Phase 6 implementiert')" class="btn btn-church-outline w-100">
+                            <a href="{% url 'mail_domain_list' %}" class="btn btn-church-outline w-100">
                                 <i class="bi bi-envelope-plus me-2"></i>Mail-Domain
                             </a>
                         </div>

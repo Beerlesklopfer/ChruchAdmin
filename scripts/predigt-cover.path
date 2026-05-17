@@ -1,0 +1,14 @@
+[Unit]
+Description=Watch Predigt-Verzeichnis und triggere Cover-Einbettung
+
+[Path]
+# PathChanged feuert nach jeder Aenderung im Verzeichnis (auch Unter-Dirs);
+# der gleichnamige .service wird automatisch gestartet.
+PathChanged=/var/lib/nextcloud/data/__groupfolders/1/Predigtaufnahmen/
+PathModified=/var/lib/nextcloud/data/__groupfolders/1/Predigtaufnahmen/
+# Bei Burst-Uploads etwas warten, damit nicht 10x parallel getriggert wird
+TriggerLimitIntervalSec=30
+TriggerLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target

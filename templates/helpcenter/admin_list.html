@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Hilfe-Artikel verwalten{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-journal-text me-2"></i>Hilfe-Artikel verwalten
+                </h2>
+                <p class="text-muted mb-0">Erstelle und bearbeite Hilfe-Inhalte</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'helpcenter:index' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-eye me-1"></i>Vorschau (Index)
+                </a>
+                <a href="{% url 'helpcenter:admin_create' %}" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-plus-lg me-1"></i>Neuer Artikel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if articles %}
+    <div class="card card-church">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Titel</th>
+                        <th>Kategorie</th>
+                        <th>Reihenfolge</th>
+                        <th>Status</th>
+                        <th>Geaendert</th>
+                        <th class="text-end">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for art in articles %}
+                    <tr>
+                        <td>
+                            <strong>{{ art.title }}</strong>
+                            <div class="small text-muted"><code>{{ art.slug }}</code></div>
+                        </td>
+                        <td><span class="badge bg-info">{{ art.get_category_display }}</span></td>
+                        <td>{{ art.order }}</td>
+                        <td>
+                            {% if art.is_published %}
+                                <span class="badge bg-success">Veroeffentlicht</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Entwurf</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ art.updated_at|date:"d.m.Y H:i" }}</small></td>
+                        <td class="text-end">
+                            <a href="{% url 'helpcenter:detail' art.slug %}" class="btn btn-sm btn-outline-info" title="Ansehen">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'helpcenter:admin_edit' art.pk %}" class="btn btn-sm btn-outline-primary" title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ art.pk }}" title="Loeschen">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            <div class="modal fade" id="deleteModal{{ art.pk }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Artikel loeschen</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'helpcenter:admin_delete' art.pk %}">
+                                            {% csrf_token %}
+                                            <div class="modal-body text-start">
+                                                Artikel <strong>{{ art.title }}</strong> wirklich loeschen?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="bi bi-trash me-1"></i>Loeschen
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>Noch keine Artikel.
+        <a href="{% url 'helpcenter:admin_create' %}" class="alert-link">Erster Artikel anlegen</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

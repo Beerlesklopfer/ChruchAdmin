@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Mail-Domains verwalten{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-globe2 me-2"></i>Mail-Domains
+                </h2>
+                <p class="text-muted mb-0">Postfix-Domains fuer virtuelle Mailboxen und Verteiler</p>
+            </div>
+            <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#createDomainModal" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                <i class="bi bi-plus-lg me-1"></i>Domain hinzufuegen
+            </button>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    {% if domains %}
+    <div class="card card-church">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Beschreibung</th>
+                        <th class="text-end">Mailboxen</th>
+                        <th class="text-end">Verteiler</th>
+                        <th class="text-end">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for domain in domains %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-globe2 me-2 text-church-navy"></i>
+                            <strong>{{ domain.name }}</strong>
+                            <div class="small text-muted"><code style="font-size: 0.75rem;">{{ domain.dn }}</code></div>
+                        </td>
+                        <td>
+                            {% if domain.description %}
+                                <small>{{ domain.description }}</small>
+                            {% else %}
+                                <small class="text-muted fst-italic">&mdash;</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if domain.mailbox_count %}
+                                <span class="badge bg-success">{{ domain.mailbox_count }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if domain.group_count %}
+                                <span class="badge bg-info">{{ domain.group_count }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editDomainModal-{{ forloop.counter }}" title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDomainModal-{{ forloop.counter }}" title="Loeschen" {% if domain.mailbox_count or domain.group_count %}disabled{% endif %}>
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            <!-- Edit-Modal -->
+                            <div class="modal fade" id="editDomainModal-{{ forloop.counter }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Domain bearbeiten</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'mail_domain_edit' domain.name %}">
+                                            {% csrf_token %}
+                                            <div class="modal-body text-start">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Domain-Name</label>
+                                                    <input type="text" class="form-control" value="{{ domain.name }}" disabled>
+                                                    <small class="text-muted">Umbenennen geht nicht ueber dieses Formular &mdash; dann muesste der RDN geaendert werden, was alle abhaengigen User-Mails betrifft. Falls noetig: neu anlegen + User umstellen + alte loeschen.</small>
+                                                </div>
+                                                <div class="mb-0">
+                                                    <label class="form-label">Beschreibung</label>
+                                                    <input type="text" name="description" class="form-control" value="{{ domain.description }}" placeholder="z.B. Hauptdomain, Aussenwerbung, ...">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                                <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                                                    <i class="bi bi-check-lg me-1"></i>Speichern
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete-Modal -->
+                            <div class="modal fade" id="deleteDomainModal-{{ forloop.counter }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Domain loeschen</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="post" action="{% url 'mail_domain_delete' domain.name %}">
+                                            {% csrf_token %}
+                                            <div class="modal-body text-start">
+                                                Mail-Domain <strong>{{ domain.name }}</strong> wirklich loeschen?
+                                                <div class="alert alert-warning mt-3 mb-0">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                    Postfix muss nach dem Loeschen neu geladen werden:
+                                                    <code>sudo systemctl reload postfix</code>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="bi bi-trash me-1"></i>Loeschen
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>Noch keine Mail-Domains konfiguriert.
+        Erstelle eine, damit Postfix Mailboxen unter dieser Domain akzeptiert.
+    </div>
+    {% endif %}
+
+    <div class="alert alert-secondary mt-4">
+        <h6 class="mb-2"><i class="bi bi-info-circle me-1"></i>Schema</h6>
+        <small>
+            <ul class="mb-0">
+                <li><code>objectClass=mailDomain, dNSDomain</code> unter <code>ou=Domains</code></li>
+                <li>Wird von <code>virtual_mailbox_domains.cf</code> in Postfix gelesen</li>
+                <li>Nach Aenderungen Postfix neu laden: <code>sudo systemctl reload postfix</code></li>
+            </ul>
+        </small>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal fade" id="createDomainModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Neue Mail-Domain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'mail_domain_create' %}">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label class="form-label">Domain-Name <span class="text-danger">*</span></label>
+                        <input type="text" name="domain_name" class="form-control" placeholder="example.de" required pattern="^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)+$" autocomplete="off">
+                        <small class="form-text text-muted">Kleinbuchstaben, Ziffern, Bindestriche, mind. ein Punkt</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Beschreibung (optional)</label>
+                        <input type="text" name="description" class="form-control" placeholder="z.B. Hauptdomain, Aussenwerbung, ...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-plus-lg me-1"></i>Erstellen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

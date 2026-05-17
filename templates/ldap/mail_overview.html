@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Mail-Uebersicht{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-envelope-paper me-2"></i>Mail-Uebersicht
+                </h2>
+                <p class="text-muted mb-0">Alle konfigurierten Mailboxen und Verteiler</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'mail_domain_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-globe2 me-1"></i>Mail-Domains
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-church p-3 text-center">
+                <div class="text-muted small">Gesamt</div>
+                <div class="h4 mb-0">{{ stats.total }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-church p-3 text-center">
+                <div class="text-muted small">Mailboxen</div>
+                <div class="h4 mb-0">{{ stats.mailboxes }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-church p-3 text-center">
+                <div class="text-muted small">Verteiler</div>
+                <div class="h4 mb-0">{{ stats.groups }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card card-church p-3 text-center">
+                <div class="text-muted small">Aktiv (Routing TRUE)</div>
+                <div class="h4 mb-0">{{ stats.enabled }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="card card-church p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Suche (CN, Adresse, Routing)</label>
+                <input type="text" name="q" value="{{ filter_q }}" class="form-control form-control-sm" placeholder="z.B. peter, info@...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Domain</label>
+                <select name="domain" class="form-select form-select-sm">
+                    <option value="">- alle -</option>
+                    {% for d in domains %}
+                    <option value="{{ d }}" {% if filter_domain == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Typ</label>
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">- alle -</option>
+                    <option value="mailbox" {% if filter_type == 'mailbox' %}selected{% endif %}>Mailbox</option>
+                    <option value="group" {% if filter_type == 'group' %}selected{% endif %}>Verteiler</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">- alle -</option>
+                    <option value="enabled" {% if filter_status == 'enabled' %}selected{% endif %}>Aktiv</option>
+                    <option value="disabled" {% if filter_status == 'disabled' %}selected{% endif %}>Inaktiv</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-sm w-100" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    Filtern
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if entries %}
+    <div class="card card-church">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead>
+                    <tr>
+                        <th>Typ</th>
+                        <th>Name / CN</th>
+                        <th>Primaere Adresse</th>
+                        <th>Weitere Adressen / Aliase</th>
+                        <th>Routing-Ziel</th>
+                        <th>Quota</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr {% if e.account_disabled %}class="table-secondary"{% endif %}>
+                        <td>
+                            {% if e.type == 'group' %}
+                                <span class="badge bg-info"><i class="bi bi-people-fill me-1"></i>Verteiler</span>
+                                {% if e.is_group_of_names %}
+                                    <div class="small text-muted mt-1">+{{ e.member_count }} Member</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-primary"><i class="bi bi-envelope-fill me-1"></i>Mailbox</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ e.display }}</strong>
+                            {% if e.display != e.cn %}<div class="text-muted small">{{ e.cn }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {% if e.primary %}
+                                <code>{{ e.primary }}</code>
+                            {% else %}
+                                <span class="text-muted">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for addr in e.all_mails %}
+                                {% if not forloop.first %}<div><small><code>{{ addr }}</code></small></div>{% endif %}
+                            {% endfor %}
+                            {% for alias in e.aliases %}
+                                <div><small><code>{{ alias }}</code></small> <span class="badge bg-light text-dark">alias</span></div>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for r in e.routing %}
+                                <div><small><code>{{ r }}</code></small></div>
+                            {% empty %}
+                                <span class="text-muted">&mdash;</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if e.quota %}{{ e.quota }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if e.routing_enabled %}
+                                <span class="badge bg-success">Aktiv</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inaktiv</span>
+                            {% endif %}
+                            {% if e.alias_enabled %}<span class="badge bg-light text-dark">Alias</span>{% endif %}
+                            {% if e.account_disabled %}<span class="badge bg-danger">Account gesperrt</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>Keine Eintraege gefunden (mit den aktuellen Filtern).
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

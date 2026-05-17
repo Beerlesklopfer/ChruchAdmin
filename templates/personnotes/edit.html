@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if note %}Notiz bearbeiten{% else %}Neue Notiz{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'personnotes:list' target_cn %}">Notizen ueber {{ target_display }}</a></li>
+            <li class="breadcrumb-item active">{% if note %}Bearbeiten{% else %}Neu{% endif %}</li>
+        </ol>
+    </nav>
+
+    <h2 class="text-church-navy mb-3">
+        <i class="bi bi-pencil-square me-2"></i>
+        {% if note %}Notiz bearbeiten{% else %}Neue Notiz ueber {{ target_display }}{% endif %}
+    </h2>
+
+    {% if is_self_only %}
+    <div class="alert alert-warning small">
+        <i class="bi bi-info-circle me-1"></i>
+        Du legst eine Notiz <strong>ueber dich selbst</strong> an. <strong>Nach dem Speichern ist sie nicht mehr aenderbar</strong> &mdash;
+        sie wird wie ein Tagebucheintrag behandelt.
+    </div>
+    {% endif %}
+
+    <form method="post" class="card card-church p-4">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Titel <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" required value="{% if note %}{{ note.title }}{% endif %}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Inhalt <span class="text-danger">*</span></label>
+            <textarea name="content" rows="12" class="form-control" required>{% if plaintext %}{{ plaintext }}{% endif %}</textarea>
+            <small class="text-muted">
+                <i class="bi bi-shield-lock me-1"></i>Der Inhalt wird in der Datenbank AES-256-GCM verschluesselt gespeichert.
+            </small>
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'personnotes:list' target_cn %}" class="btn btn-outline-secondary">Abbrechen</a>
+            <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                <i class="bi bi-check-lg me-1"></i>Speichern
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

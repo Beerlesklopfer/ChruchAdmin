@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Verteiler bearbeiten: {{ entry.cn }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="text-church-navy mb-0">
+                <i class="bi bi-pencil-square me-2"></i>Verteiler bearbeiten
+            </h2>
+            <a href="{% url 'mail_group_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Zur Uebersicht</a>
+        </div>
+    </div>
+
+    {% if entry.issues %}
+    <div class="alert alert-warning">
+        <strong><i class="bi bi-exclamation-triangle me-1"></i>Diagnose:</strong>
+        <ul class="mb-0 mt-2">
+        {% for i in entry.issues %}<li>{{ i.msg }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" class="card card-church p-4">
+        {% csrf_token %}
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">CN</label>
+                <input type="text" class="form-control" value="{{ entry.cn }}" disabled>
+                <small class="text-muted">Nicht aenderbar &mdash; Aenderung waere LDAP-Rename und nicht ueber dieses Formular.</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Typ</label>
+                <div class="form-control bg-light">
+                    {% if entry.is_group_of_names %}
+                        <i class="bi bi-people-fill text-info me-1"></i>Gruppen-Verteiler ({{ entry.member_count }} Member)
+                    {% else %}
+                        <i class="bi bi-funnel me-1"></i>Funktions-Verteiler
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-12">
+                <small class="text-muted">DN: <code>{{ entry.dn }}</code></small>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Verteiler-Adresse(n) <span class="text-muted">(mailGroup)</span></label>
+            <textarea name="mail_group" class="form-control" rows="3" placeholder="eine Adresse pro Zeile">{% for a in entry.mail_group %}{{ a }}
+{% endfor %}</textarea>
+            <small class="text-muted">
+                Eine Adresse pro Zeile. Postfix matcht eingehende Mails per <code>mailGroup=%s</code> &mdash; ohne diese fehlt der Lookup-Schluessel.
+                {% if domains %}Verfuegbare Domains: {% for d in domains %}<code>{{ d }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+            </small>
+        </div>
+
+        {% if entry.is_group_of_names %}
+        <div class="alert alert-info small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Dies ist eine LDAP-Gruppe. Mails werden automatisch an die <strong>{{ entry.member_count }} Member</strong> expandiert
+            (ueber deren <code>mailRoutingAddress</code>). Routing-Ziele werden hier <strong>nicht</strong> benoetigt &mdash;
+            Mitglieder-Aenderungen erfolgen im Gruppen-Editor.
+        </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label class="form-label">Routing-Ziele <span class="text-muted">(mailRoutingAddress)</span></label>
+            <textarea name="routing_addr" class="form-control" rows="3" placeholder="z.B. pastor@privat.de">{% for a in entry.routing_addr %}{{ a }}
+{% endfor %}</textarea>
+            <small class="text-muted">
+                {% if entry.is_group_of_names %}
+                    Bei Gruppen-Verteilern normalerweise leer lassen.
+                {% else %}
+                    Eine Adresse pro Zeile. Hierhin werden Mails zugestellt, die an die Verteiler-Adresse(n) gehen.
+                {% endif %}
+            </small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Beschreibung</label>
+            <input type="text" name="description" class="form-control" value="{{ entry.description }}">
+        </div>
+
+        <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" name="enabled" id="enabled" {% if entry.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="enabled">
+                <strong>Routing aktiv (mailRoutingEnabled=TRUE)</strong>
+                <div class="small text-muted">Ohne diesen Schalter verwirft Postfix alle Mails an diese Verteiler-Adresse!</div>
+            </label>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'mail_group_list' %}" class="btn btn-outline-secondary">Abbrechen</a>
+            <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                <i class="bi bi-check-lg me-1"></i>Speichern
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

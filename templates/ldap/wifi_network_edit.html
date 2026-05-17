@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if network %}WiFi-Netzwerk bearbeiten{% else %}WiFi-Netzwerk erstellen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px;">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-church-navy">
+                <i class="bi bi-wifi me-2"></i>
+                {% if network %}WiFi-Netzwerk bearbeiten{% else %}Neues WiFi-Netzwerk{% endif %}
+            </h2>
+        </div>
+    </div>
+
+    <div class="card card-church">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="name" class="form-label fw-bold">Bezeichnung</label>
+                    <input type="text" name="name" id="name" class="form-control"
+                           value="{{ network.name|default:'' }}" required
+                           placeholder="z.B. Gemeinde-WLAN">
+                    <div class="form-text">Interner Name (wird den Benutzern nicht angezeigt)</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ssid" class="form-label fw-bold">SSID (Netzwerkname)</label>
+                    <input type="text" name="ssid" id="ssid" class="form-control"
+                           value="{{ network.ssid|default:'' }}" required
+                           placeholder="z.B. Bibelgemeinde-lage">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="encryption_type" class="form-label fw-bold">Verschluesselung</label>
+                        <select name="encryption_type" id="encryption_type" class="form-select">
+                            {% for value, label in encryption_choices %}
+                            <option value="{{ value }}" {% if network.encryption_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label fw-bold">Passwort</label>
+                        <input type="text" name="password" id="password" class="form-control"
+                               value="{{ network.password|default:'' }}"
+                               placeholder="WLAN-Passwort">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_hidden" id="is_hidden"
+                                   {% if network.is_hidden %}checked{% endif %}>
+                            <label class="form-check-label" for="is_hidden">Verstecktes Netzwerk</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                                   {% if network.is_active or not network %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Aktiv</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="sort_order" class="form-label">Reihenfolge</label>
+                        <input type="number" name="sort_order" id="sort_order" class="form-control"
+                               value="{{ network.sort_order|default:0 }}">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'wifi_network_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Zurueck
+                    </a>
+                    <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if network %}Speichern{% else %}Erstellen{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

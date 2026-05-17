@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit-Log: {{ note.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'personnotes:list' note.target_cn %}">Notizen ueber {{ target_display }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'personnotes:detail' note.pk %}">{{ note.title|truncatechars:40 }}</a></li>
+            <li class="breadcrumb-item active">Audit</li>
+        </ol>
+    </nav>
+
+    <h2 class="text-church-navy mb-3"><i class="bi bi-clock-history me-2"></i>Zugriffshistorie</h2>
+    <p class="text-muted">Wer hat wann was mit dieser Notiz gemacht?</p>
+
+    {% if accesses %}
+    <div class="card card-church">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Zeitpunkt</th><th>Wer</th><th>Aktion</th><th>IP</th></tr></thead>
+            <tbody>
+                {% for a in accesses %}
+                <tr>
+                    <td><small>{{ a.timestamp|date:'d.m.Y H:i:s' }}</small></td>
+                    <td><strong>{{ a.viewer.username|default:'?' }}</strong></td>
+                    <td>
+                        {% if a.action == 'view' %}<span class="badge bg-secondary">{{ a.get_action_display }}</span>
+                        {% elif a.action == 'create' %}<span class="badge bg-success">{{ a.get_action_display }}</span>
+                        {% elif a.action == 'update' %}<span class="badge bg-primary">{{ a.get_action_display }}</span>
+                        {% elif a.action == 'delete' %}<span class="badge bg-danger">{{ a.get_action_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td><small class="text-muted">{{ a.ip_address|default:'-' }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Keine Zugriffe protokolliert.</div>
+    {% endif %}
+</div>
+{% endblock %}

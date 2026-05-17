@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Notizen: {{ target_display }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% if can_write %}<li class="breadcrumb-item"><a href="{% url 'personnotes:overview' %}">Notizen</a></li>{% endif %}
+            <li class="breadcrumb-item active">{{ target_display }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-church-navy mb-0"><i class="bi bi-journal-lock me-2"></i>Notizen ueber {{ target_display }}</h2>
+        <a href="{% url 'personnotes:create' target_cn %}" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+            <i class="bi bi-plus-lg me-1"></i>Neue Notiz
+        </a>
+    </div>
+
+    {% if is_self and not can_write %}
+    <div class="alert alert-info small">
+        <i class="bi bi-info-circle me-1"></i>
+        Hier siehst du alle Notizen, die ueber dich gespeichert sind. Du kannst eigene Eintraege hinzufuegen, aber sie nach dem Speichern <strong>nicht mehr aendern</strong> (Journal-Charakter).
+    </div>
+    {% endif %}
+
+    {% if notes %}
+    <div class="card card-church">
+        <ul class="list-group list-group-flush">
+            {% for n in notes %}
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <a href="{% url 'personnotes:detail' n.pk %}" class="text-decoration-none">
+                            <strong class="text-church-navy">{{ n.title }}</strong>
+                        </a>
+                        <div class="small text-muted">
+                            Autor: <strong>{{ n.author.username|default:'?' }}</strong> &middot;
+                            Erstellt: {{ n.created_at|date:'d.m.Y H:i' }}
+                            {% if n.created_at != n.updated_at %} &middot; Geaendert: {{ n.updated_at|date:'d.m.Y H:i' }}{% endif %}
+                        </div>
+                    </div>
+                    <a href="{% url 'personnotes:detail' n.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Lesen</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Noch keine Notizen.</div>
+    {% endif %}
+</div>
+{% endblock %}

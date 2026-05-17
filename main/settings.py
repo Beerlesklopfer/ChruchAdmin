@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     'mailing',
     'privacy',
     'tickets',
+    'helpcenter',
+    'personnotes',
 ]
 
 MIDDLEWARE = [

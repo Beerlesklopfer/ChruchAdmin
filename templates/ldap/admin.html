@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}LDAP Administration{% endblock %}
+{% block title %}Admin-Dashboard{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="text-church-navy">
-                <i class="bi bi-speedometer2 me-2"></i>LDAP Administration
+                <i class="bi bi-speedometer2 me-2"></i>Admin-Dashboard
             </h1>
             <p class="text-church-gray">Uebersicht und Schnellzugriff auf alle Verwaltungsfunktionen</p>
         </div>
@@ -91,6 +91,9 @@
                     </a>
                     <a href="{% url 'backup_dashboard' %}" class="list-group-item list-group-item-action">
                         <i class="bi bi-cloud-download me-2 text-church-navy"></i>Backup & Recovery
+                    </a>
+                    <a href="{% url 'wifi_network_list' %}" class="list-group-item list-group-item-action">
+                        <i class="bi bi-wifi me-2 text-church-navy"></i>WiFi-Netzwerke
                     </a>
                     <a href="/admin/" class="list-group-item list-group-item-action">
                         <i class="bi bi-sliders me-2 text-church-navy"></i>Django Administration

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}WiFi-QR-Code: {{ network.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .qr-print-page {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .qr-card {
+        background: #fff;
+        border: 2px solid var(--church-navy, #1e3a5f);
+        border-radius: 12px;
+        padding: 2.5rem;
+        text-align: center;
+    }
+    .qr-card h1 {
+        color: var(--church-navy, #1e3a5f);
+        margin-bottom: 0.25rem;
+    }
+    .qr-card .ssid {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+    .qr-card .qr-img {
+        max-width: 420px;
+        width: 100%;
+        height: auto;
+        margin: 0 auto;
+        display: block;
+    }
+    .qr-card .wifi-meta {
+        margin-top: 1.5rem;
+        font-size: 1.05rem;
+    }
+    .qr-card .wifi-meta dt {
+        font-weight: 600;
+        color: #555;
+    }
+    .qr-card .wifi-meta dd {
+        margin-bottom: 0.5rem;
+        font-family: monospace;
+        font-size: 1.1rem;
+    }
+    .qr-card .hint {
+        margin-top: 1.5rem;
+        font-size: 0.95rem;
+        color: #666;
+    }
+    .print-toolbar {
+        margin-bottom: 1.25rem;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    @media print {
+        body { background: #fff !important; }
+        .navbar, .print-toolbar, footer, .messages, .alert { display: none !important; }
+        .qr-card { border: none; padding: 1rem; }
+        .container, .container-fluid { padding: 0 !important; margin: 0 !important; }
+        @page { size: A4 portrait; margin: 1.5cm; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qr-print-page">
+    <div class="print-toolbar">
+        <a href="{% url 'wifi_network_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck
+        </a>
+        <button type="button" class="btn" onclick="window.print()" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+            <i class="bi bi-printer me-1"></i>Drucken
+        </button>
+    </div>
+
+    <div class="qr-card">
+        <h1>{{ church_name }}</h1>
+        <p class="text-muted mb-3">WLAN-Zugang</p>
+        <div class="ssid">
+            <i class="bi bi-wifi me-2"></i>{{ network.ssid }}
+        </div>
+
+        <img src="{{ qr_data_uri }}" alt="WiFi QR-Code" class="qr-img">
+
+        <dl class="wifi-meta row text-start mt-4">
+            <dt class="col-sm-4">Netzwerk (SSID)</dt>
+            <dd class="col-sm-8">{{ network.ssid }}</dd>
+
+            <dt class="col-sm-4">Verschluesselung</dt>
+            <dd class="col-sm-8">{{ network.get_encryption_type_display }}</dd>
+
+            {% if network.password %}
+            <dt class="col-sm-4">Passwort</dt>
+            <dd class="col-sm-8">{{ network.password }}</dd>
+            {% endif %}
+
+            {% if network.is_hidden %}
+            <dt class="col-sm-4">Hinweis</dt>
+            <dd class="col-sm-8">Verstecktes Netzwerk</dd>
+            {% endif %}
+        </dl>
+
+        <p class="hint">
+            <i class="bi bi-qr-code-scan me-1"></i>
+            QR-Code mit der Kamera scannen, um sich automatisch zu verbinden.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ note.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'personnotes:list' note.target_cn %}">Notizen ueber {{ target_display }}</a></li>
+            <li class="breadcrumb-item active">{{ note.title|truncatechars:50 }}</li>
+        </ol>
+    </nav>
+
+    <div class="card card-church">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-journal-lock me-2"></i><strong>{{ note.title }}</strong>
+                <div class="small text-muted mt-1">
+                    Autor: <strong>{{ note.author.username|default:'?' }}</strong> &middot;
+                    Erstellt: {{ note.created_at|date:'d.m.Y H:i' }}
+                    {% if note.created_at != note.updated_at %} &middot; Geaendert: {{ note.updated_at|date:'d.m.Y H:i' }}{% endif %}
+                </div>
+            </div>
+            <div class="btn-group">
+                <a href="{% url 'personnotes:audit' note.pk %}" class="btn btn-sm btn-outline-secondary" title="Zugriffshistorie"><i class="bi bi-clock-history"></i> Audit</a>
+                {% if can_edit %}
+                <a href="{% url 'personnotes:edit' note.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Bearbeiten</a>
+                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delModal"><i class="bi bi-trash"></i></button>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="white-space: pre-wrap;">{{ note.content }}</div>
+        </div>
+        <div class="card-footer small text-muted">
+            <i class="bi bi-shield-lock me-1"></i>Inhalt AES-256-GCM verschluesselt. Alle Zugriffe werden protokolliert.
+        </div>
+    </div>
+
+    {% if can_edit %}
+    <div class="modal fade" id="delModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Notiz loeschen</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="post" action="{% url 'personnotes:delete' note.pk %}">{% csrf_token %}
+            <div class="modal-body text-start">
+                <p>Notiz <strong>{{ note.title }}</strong> wirklich loeschen?</p>
+                <div class="alert alert-warning small mb-0">Der Vorgang wird im Audit-Log protokolliert. Inhalt geht unwiederbringlich verloren.</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button class="btn btn-danger" type="submit"><i class="bi bi-trash me-1"></i>Loeschen</button>
+            </div>
+        </form>
+    </div></div></div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Mail Bulk-Aktionen{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-collection me-2"></i>Bulk-Aktionen
+                </h2>
+                <p class="text-muted mb-0">Mehrere Benutzer-Mailboxen gleichzeitig konfigurieren</p>
+            </div>
+            <a href="{% url 'mail_overview' %}" class="btn btn-outline-secondary"><i class="bi bi-envelope-paper me-1"></i>Mail-Uebersicht</a>
+        </div>
+    </div>
+
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+    <form method="get" class="card card-church p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Suche</label>
+                <input type="text" name="q" value="{{ filter_q }}" class="form-control form-control-sm" placeholder="z.B. peter, info@...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Domain</label>
+                <select name="domain" class="form-select form-select-sm">
+                    <option value="">- alle -</option>
+                    {% for d in domains %}<option value="{{ d }}" {% if filter_domain == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Routing</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">- alle -</option>
+                    <option value="enabled" {% if filter_status == 'enabled' %}selected{% endif %}>Aktiv</option>
+                    <option value="disabled" {% if filter_status == 'disabled' %}selected{% endif %}>Inaktiv</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm w-100" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">Filtern</button>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" id="bulkForm">
+        {% csrf_token %}
+        <input type="hidden" name="query_preserve" value="q={{ filter_q|urlencode }}&domain={{ filter_domain|urlencode }}&status={{ filter_status|urlencode }}">
+
+        <div class="card card-church p-3 mb-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Aktion</label>
+                    <select name="action" id="actionSelect" class="form-select form-select-sm" required>
+                        <option value="">- Aktion waehlen -</option>
+                        <option value="enable">Routing aktivieren (mailRoutingEnabled=TRUE)</option>
+                        <option value="disable">Routing deaktivieren (mailRoutingEnabled=FALSE)</option>
+                        <option value="set_quota">Mail-Quota setzen</option>
+                        <option value="replace_domain">Mail-Domain umstellen</option>
+                    </select>
+                </div>
+                <div class="col-md-5" id="paramWrap" style="display:none;">
+                    <label class="form-label small mb-1" id="paramLabel">Parameter</label>
+                    <input type="text" name="param" id="paramInput" class="form-control form-control-sm">
+                    <small class="text-muted" id="paramHint"></small>
+                </div>
+                <div class="col-md-3 ms-auto text-end">
+                    <button type="button" id="bulkSubmit" class="btn btn-sm" disabled style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-play-circle me-1"></i>Auf Auswahl anwenden (<span id="selCount">0</span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if users %}
+        <div class="card card-church">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 small">
+                    <thead><tr>
+                        <th style="width:1%;"><input type="checkbox" id="selAll"></th>
+                        <th>Name / CN</th>
+                        <th>Primaere Adresse</th>
+                        <th>Quota</th>
+                        <th>Routing</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr {% if u.account_disabled %}class="table-secondary"{% endif %}>
+                            <td><input type="checkbox" name="target_cn" value="{{ u.cn }}" class="bulk-cb"></td>
+                            <td><strong>{{ u.display }}</strong>{% if u.display != u.cn %}<div class="text-muted small">{{ u.cn }}</div>{% endif %}</td>
+                            <td><code>{{ u.primary }}</code></td>
+                            <td>{% if u.quota %}{{ u.quota }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                            <td>{% if u.routing_enabled %}<span class="badge bg-success">Aktiv</span>{% else %}<span class="badge bg-secondary">Inaktiv</span>{% endif %}{% if u.account_disabled %} <span class="badge bg-danger">gesperrt</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer small text-muted">
+                {{ users|length }} Benutzer im Filter
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Keine Benutzer im Filter.</div>
+        {% endif %}
+    </form>
+
+    <!-- Bestaetigungs-Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Bulk-Aktion bestaetigen</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body text-start">
+            <p>Aktion: <strong id="confirmAction">-</strong></p>
+            <p id="confirmParamLine">Parameter: <code id="confirmParam"></code></p>
+            <p>Wird angewendet auf <strong><span id="confirmCount">0</span> Benutzer</strong>:</p>
+            <ul id="confirmList" style="max-height:300px; overflow-y:auto; font-size:0.85em;"></ul>
+            <div class="alert alert-warning mb-0 small"><i class="bi bi-exclamation-triangle me-1"></i>Aenderungen sind sofort wirksam. Postfix-Cache benoetigt ggf. einige Minuten.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+            <button class="btn btn-danger" id="confirmSubmit"><i class="bi bi-check-lg me-1"></i>Ausfuehren</button>
+        </div>
+    </div></div></div>
+</div>
+
+<script>
+(function(){
+    const actionSel = document.getElementById('actionSelect');
+    const paramWrap = document.getElementById('paramWrap');
+    const paramLabel = document.getElementById('paramLabel');
+    const paramInput = document.getElementById('paramInput');
+    const paramHint = document.getElementById('paramHint');
+    const selAll = document.getElementById('selAll');
+    const cbs = () => Array.from(document.querySelectorAll('.bulk-cb'));
+    const selCount = document.getElementById('selCount');
+    const submitBtn = document.getElementById('bulkSubmit');
+
+    const PARAM_CONFIG = {
+        'set_quota': {label: 'Quota (Bytes)', hint: 'Z.B. 5368709120 fuer 5 GB. Leer = nicht setzen.', placeholder: 'Bytes'},
+        'replace_domain': {label: 'Domain-Wechsel', hint: 'Format: alt.de->neu.de (Pfeil aus zwei Zeichen). Alle mail/routing/alias-Werte mit "alt.de" werden umgeschrieben.', placeholder: 'alt.de->neu.de'},
+    };
+
+    function updateParamUI() {
+        const c = PARAM_CONFIG[actionSel.value];
+        if (c) { paramWrap.style.display = ''; paramLabel.textContent = c.label; paramHint.textContent = c.hint; paramInput.placeholder = c.placeholder; paramInput.required = true; }
+        else { paramWrap.style.display = 'none'; paramInput.required = false; paramInput.value = ''; }
+    }
+    function updateSelection() {
+        const n = cbs().filter(c=>c.checked).length;
+        selCount.textContent = n;
+        submitBtn.disabled = (n === 0 || !actionSel.value);
+    }
+    actionSel.addEventListener('change', () => { updateParamUI(); updateSelection(); });
+    selAll.addEventListener('change', () => { cbs().forEach(c=>c.checked = selAll.checked); updateSelection(); });
+    cbs().forEach(c=>c.addEventListener('change', updateSelection));
+    paramInput.addEventListener('input', updateSelection);
+
+    submitBtn.addEventListener('click', () => {
+        const checked = cbs().filter(c=>c.checked);
+        if (!checked.length) return;
+        document.getElementById('confirmCount').textContent = checked.length;
+        document.getElementById('confirmAction').textContent = actionSel.options[actionSel.selectedIndex].text;
+        const param = paramInput.value;
+        if (PARAM_CONFIG[actionSel.value]) { document.getElementById('confirmParam').textContent = param; document.getElementById('confirmParamLine').style.display = ''; }
+        else { document.getElementById('confirmParamLine').style.display = 'none'; }
+        const list = document.getElementById('confirmList');
+        list.innerHTML = '';
+        checked.slice(0, 50).forEach(c => {
+            const li = document.createElement('li');
+            li.textContent = c.value;
+            list.appendChild(li);
+        });
+        if (checked.length > 50) {
+            const li = document.createElement('li');
+            li.textContent = '... +' + (checked.length - 50) + ' weitere';
+            list.appendChild(li);
+        }
+        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+        modal.show();
+    });
+    document.getElementById('confirmSubmit').addEventListener('click', () => {
+        document.getElementById('bulkForm').submit();
+    });
+    updateParamUI();
+    updateSelection();
+})();
+</script>
+{% endblock %}

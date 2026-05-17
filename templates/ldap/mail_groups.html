@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Mail-Verteiler{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-people-fill me-2"></i>Mail-Verteiler
+                </h2>
+                <p class="text-muted mb-0">Gruppen- und Funktions-Verteiler verwalten</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'mail_overview' %}" class="btn btn-outline-secondary"><i class="bi bi-envelope-paper me-1"></i>Mail-Uebersicht</a>
+                <a href="{% url 'mail_domain_list' %}" class="btn btn-outline-secondary"><i class="bi bi-globe2 me-1"></i>Domains</a>
+                <button class="btn" data-bs-toggle="modal" data-bs-target="#createGroupMail" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;"><i class="bi bi-plus-lg me-1"></i>Funktions-Verteiler</button>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
+    {% endif %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="card card-church p-3 text-center"><div class="text-muted small">Gesamt</div><div class="h4 mb-0">{{ stats.total }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="card card-church p-3 text-center"><div class="text-muted small">Gruppen-Verteiler</div><div class="h4 mb-0">{{ stats.group }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="card card-church p-3 text-center"><div class="text-muted small">Funktions-Verteiler</div><div class="h4 mb-0">{{ stats.func }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="card card-church p-3 text-center"><div class="text-muted small">Mit Problemen</div><div class="h4 mb-0 {% if stats.with_issues %}text-danger{% endif %}">{{ stats.with_issues }}</div></div></div>
+    </div>
+
+    {% if entries %}
+    <div class="card card-church">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead><tr>
+                    <th>Typ / CN</th>
+                    <th>Verteiler-Adresse(n)</th>
+                    <th>Routing-Ziele</th>
+                    <th>Status</th>
+                    <th>Diagnose</th>
+                    <th class="text-end">Aktionen</th>
+                </tr></thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr {% if e.issues %}class="table-warning"{% endif %}>
+                        <td>
+                            {% if e.is_group_of_names %}
+                                <span class="badge bg-info"><i class="bi bi-people-fill me-1"></i>Gruppe</span>
+                                <div class="small text-muted mt-1">{{ e.member_count }} Member</div>
+                            {% else %}
+                                <span class="badge bg-secondary"><i class="bi bi-funnel me-1"></i>Funktion</span>
+                            {% endif %}
+                            <div class="mt-1"><strong>{{ e.cn }}</strong></div>
+                            {% if e.description %}<div class="small text-muted">{{ e.description }}</div>{% endif %}
+                            <div class="small text-muted"><code style="font-size:0.7rem;">{{ e.dn }}</code></div>
+                        </td>
+                        <td>
+                            {% for a in e.mail_group %}<div><code>{{ a }}</code></div>{% empty %}<span class="text-danger small"><i class="bi bi-x-circle"></i> keine</span>{% endfor %}
+                        </td>
+                        <td>
+                            {% if e.is_group_of_names %}
+                                <span class="text-muted small"><i class="bi bi-arrow-down-circle"></i> Auto-Expansion an Member</span>
+                            {% else %}
+                                {% for a in e.routing_addr %}<div><code>{{ a }}</code></div>{% empty %}<span class="text-muted small">&mdash;</span>{% endfor %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'mail_group_toggle' e.b64dn %}" class="d-inline">{% csrf_token %}
+                                <button type="submit" class="btn btn-sm border-0 p-0" title="Toggle aktiv/inaktiv">
+                                    {% if e.enabled %}<span class="badge bg-success">Aktiv</span>{% else %}<span class="badge bg-secondary">Inaktiv</span>{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            {% if e.issues %}
+                                {% for i in e.issues %}<div class="small text-{{ i.level }}"><i class="bi bi-exclamation-triangle me-1"></i>{{ i.msg }}</div>{% endfor %}
+                            {% else %}
+                                <span class="small text-success"><i class="bi bi-check-circle me-1"></i>OK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'mail_group_edit' e.b64dn %}" class="btn btn-sm btn-outline-primary" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delModal{{ forloop.counter }}" title="Mail-Funktion entfernen"><i class="bi bi-trash"></i></button>
+
+                            <div class="modal fade" id="delModal{{ forloop.counter }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                                <div class="modal-header"><h5 class="modal-title">Verteiler entfernen</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <form method="post" action="{% url 'mail_group_delete' e.b64dn %}">{% csrf_token %}
+                                    <div class="modal-body text-start">
+                                        {% if e.is_group_of_names %}
+                                            <p>Mail-Funktion von Gruppe <strong>{{ e.cn }}</strong> entfernen?</p>
+                                            <div class="alert alert-info small mb-0">Die LDAP-Gruppe selbst und ihre Mitglieder bleiben erhalten. Nur die Mail-Attribute (<code>mailGroup</code>, <code>mailRoutingAddress</code>, <code>mailRoutingEnabled</code>) werden geloescht.</div>
+                                        {% else %}
+                                            <p>Funktions-Verteiler <strong>{{ e.cn }}</strong> komplett loeschen?</p>
+                                            <div class="alert alert-warning small mb-0">Das LDAP-Objekt wird vollstaendig entfernt.</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                        <button class="btn btn-danger" type="submit"><i class="bi bi-trash me-1"></i>Entfernen</button>
+                                    </div>
+                                </form>
+                            </div></div></div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Keine Verteiler konfiguriert.</div>
+    {% endif %}
+
+    <div class="alert alert-secondary mt-4 small">
+        <h6 class="mb-2"><i class="bi bi-info-circle me-1"></i>Hinweise</h6>
+        <ul class="mb-0">
+            <li><strong>Gruppen-Verteiler</strong>: existierende LDAP-Gruppe (z.B. <code>cn=Mitarbeiter</code>) bekommt ein <code>mailGroup</code>-Attribut. Mails werden an alle Member expandiert.</li>
+            <li><strong>Funktions-Verteiler</strong>: eigenstaendiges Objekt mit <code>objectClass=groupMail</code>, manuell gepflegte <code>mailRoutingAddress</code>-Liste (z.B. <code>info@... &rarr; pastor@privat.de</code>).</li>
+            <li>Nach Aenderungen kann Postfix einige Minuten brauchen, bis der Lookup-Cache aktualisiert ist.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Create Modal: Funktions-Verteiler -->
+<div class="modal fade" id="createGroupMail" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Neuer Funktions-Verteiler</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="post" action="{% url 'mail_group_create' %}">{% csrf_token %}
+        <div class="modal-body text-start">
+            <div class="alert alert-info small">
+                Fuer Adressen, die manuell an externe oder mehrere interne Ziele weitergeleitet werden (z.B. <code>info@... &rarr; pastor@privat.de</code>). Fuer Verteiler an eine bestehende Gruppe (z.B. alle Musiker) lieber im Gruppen-Editor das <code>mailGroup</code>-Attribut hinzufuegen.
+            </div>
+            <div class="mb-3">
+                <label class="form-label">CN (interner Name) <span class="text-danger">*</span></label>
+                <input type="text" name="cn" class="form-control" required placeholder="z.B. InfoVerteiler">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Verteiler-Adresse(n) <span class="text-danger">*</span></label>
+                <textarea name="mail_group" class="form-control" rows="2" required placeholder="info@unsere-gemeinde.de&#10;kontakt@unsere-gemeinde.de"></textarea>
+                <small class="text-muted">Eine pro Zeile. Postfix matcht eingehende Mails an diese Adressen.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Routing-Ziele <span class="text-danger">*</span></label>
+                <textarea name="routing_addr" class="form-control" rows="3" required placeholder="pastor@privat.de&#10;sekretariat@unsere-gemeinde.de"></textarea>
+                <small class="text-muted">Eine pro Zeile. Mails werden an alle Ziele zugestellt.</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Beschreibung (optional)</label>
+                <input type="text" name="description" class="form-control" placeholder="z.B. Allgemeine Kontaktadresse">
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="enabled" id="enabled_new" checked>
+                <label class="form-check-label" for="enabled_new">Routing aktiv (TRUE)</label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+            <button class="btn" type="submit" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;"><i class="bi bi-plus-lg me-1"></i>Erstellen</button>
+        </div>
+    </form>
+</div></div></div>
+{% endblock %}

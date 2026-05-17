@@ -219,20 +219,22 @@ class LDAPManager:
 
     def encode_password(self, password):
         """
-        Kodiere Passwort mit SSHA (Salted SHA-1)
+        Kodiere Passwort mit SSHA-512 (Salted SHA-512)
+
+        Erfordert pw-sha2 Overlay-Modul in OpenLDAP.
 
         Args:
             password: Klartext-Passwort
 
         Returns:
-            str: {SSHA}base64(sha1(password+salt)+salt)
+            str: {SSHA512}base64(sha512(password+salt)+salt)
         """
-        salt = os.urandom(4)
-        sha = hashlib.sha1(password.encode('utf-8'))
+        salt = os.urandom(16)
+        sha = hashlib.sha512(password.encode('utf-8'))
         sha.update(salt)
         digest = sha.digest()
-        ssha = base64.b64encode(digest + salt).decode('ascii')
-        return f"{{SSHA}}{ssha}"
+        ssha512 = base64.b64encode(digest + salt).decode('ascii')
+        return f"{{SSHA512}}{ssha512}"
 
     def decode_attribute(self, value):
         """
@@ -441,6 +443,15 @@ class LDAPManager:
             if 'loginShell' not in attributes:
                 attributes['loginShell'] = '/bin/false'
 
+            # Passwort hashen bevor es in LDAP geschrieben wird
+            if 'userPassword' in attributes:
+                raw_pw = attributes['userPassword']
+                if isinstance(raw_pw, bytes):
+                    raw_pw = raw_pw.decode('utf-8')
+                # Nur hashen wenn noch nicht gehasht
+                if not raw_pw.startswith(('{SSHA}', '{SSHA512}')):
+                    attributes['userPassword'] = self.encode_password(raw_pw)
+
             # Enkodiere alle Attribute
             encoded_attrs = {}
             for key, value in attributes.items():
@@ -489,6 +500,14 @@ class LDAPManager:
                 raise LDAPOperationError(f"Benutzer {cn} nicht gefunden")
 
             old_attrs = old_user['attributes']
+
+            # Passwort hashen bevor es in LDAP geschrieben wird
+            if 'userPassword' in attributes:
+                raw_pw = attributes['userPassword']
+                if isinstance(raw_pw, bytes):
+                    raw_pw = raw_pw.decode('utf-8')
+                if not str(raw_pw).startswith('{SSHA}'):
+                    attributes['userPassword'] = self.encode_password(raw_pw)
 
             # Erstelle Modlist
             mod_attrs = []

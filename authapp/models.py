@@ -63,6 +63,7 @@ class AppSettings(models.Model):
         ('ldap', 'LDAP'),
         ('registration', 'Registrierung'),
         ('general', 'Allgemein'),
+        ('autoconfig', 'Geräte-Konfiguration'),
     ]
 
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='general')
@@ -392,6 +393,7 @@ class PermissionMapping(models.Model):
         ('view_members', 'Gemeindeliste ansehen'),
         ('edit_members', 'Gemeindeliste bearbeiten'),
         ('export_members', 'Gemeindeliste exportieren'),
+        ('manage_notes', 'Seelsorge-Notizen verwalten'),
     ]
 
     permission = models.CharField(
@@ -609,6 +611,51 @@ class PasswordResetToken(models.Model):
         deleted_count = cls.objects.filter(created_at__lt=cutoff_date).delete()[0]
 
         return deleted_count
+
+
+# ==================== REGISTRATION RESPONSE TEMPLATES ====================
+
+class RegistrationResponseTemplate(models.Model):
+    """
+    Antwort-Vorlagen und Textbausteine fuer Registrierungsanfragen.
+    Admins koennen diese im Django-Admin bearbeiten.
+    """
+    TYPE_CHOICES = [
+        ('approve_default', 'Standardtext: Genehmigung'),
+        ('reject_default', 'Standardtext: Ablehnung'),
+        ('snippet', 'Textbaustein (Checkbox)'),
+    ]
+
+    template_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        verbose_name="Typ"
+    )
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Bezeichnung",
+        help_text="Wird als Checkbox-Label oder interner Name angezeigt"
+    )
+    text = models.TextField(
+        verbose_name="Text",
+        help_text="Platzhalter: {{vorname}}, {{nachname}}, {{email}}, {{gemeinde}}"
+    )
+    sort_order = models.IntegerField(
+        default=0,
+        verbose_name="Reihenfolge"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Aktiv"
+    )
+
+    class Meta:
+        verbose_name = "Registrierungs-Antwortvorlage"
+        verbose_name_plural = "Registrierungs-Antwortvorlagen"
+        ordering = ['template_type', 'sort_order', 'name']
+
+    def __str__(self):
+        return f"{self.get_template_type_display()}: {self.name}"
 
 
 # ==================== REGISTRATION REQUESTS ====================
@@ -905,3 +952,69 @@ class LDAPBackup(models.Model):
             deleted_count += 1
 
         return deleted_count
+
+
+# ==================== WIFI NETZWERKE ====================
+
+class WiFiNetwork(models.Model):
+    """WiFi-Netzwerke für Geräte-Konfiguration (mobileconfig / QR-Code)"""
+    ENCRYPTION_CHOICES = [
+        ('WPA2', 'WPA2/PSK'),
+        ('WPA3', 'WPA3/SAE'),
+        ('WEP', 'WEP'),
+        ('None', 'Offen (kein Passwort)'),
+    ]
+
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Bezeichnung",
+        help_text="Interner Name (z.B. 'Gemeinde-WLAN')"
+    )
+    ssid = models.CharField(
+        max_length=100,
+        verbose_name="SSID",
+        help_text="WLAN-Netzwerkname"
+    )
+    password = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Passwort",
+        help_text="WLAN-Passwort (PSK)"
+    )
+    encryption_type = models.CharField(
+        max_length=10,
+        choices=ENCRYPTION_CHOICES,
+        default='WPA2',
+        verbose_name="Verschlüsselung"
+    )
+    is_hidden = models.BooleanField(
+        default=False,
+        verbose_name="Verstecktes Netzwerk",
+        help_text="SSID wird nicht gesendet"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Aktiv",
+        help_text="Wird in der Geräte-Konfiguration angeboten"
+    )
+    sort_order = models.IntegerField(
+        default=0,
+        verbose_name="Reihenfolge"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "WiFi-Netzwerk"
+        verbose_name_plural = "WiFi-Netzwerke"
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.ssid})"
+
+    def get_qr_string(self):
+        """WiFi-QR-Code String (ZXing-Format)"""
+        enc = self.encryption_type if self.encryption_type != 'None' else 'nopass'
+        hidden = 'H:true;' if self.is_hidden else ''
+        pw = f'P:{self.password};' if self.password else ''
+        return f'WIFI:T:{enc};S:{self.ssid};{pw}{hidden};'

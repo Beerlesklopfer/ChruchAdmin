@@ -38,11 +38,11 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        <!-- LDAP Verwaltung Dropdown (Admins + Sekretariat/Berechtigte) -->
+                        <!-- Verwaltung Dropdown (Admins + Sekretariat/Berechtigte) -->
                         {% if can_manage_ldap %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="ldapDropdown" data-bs-toggle="dropdown">
-                                <i class="bi bi-diagram-3 me-1"></i>LDAP Verwaltung
+                                <i class="bi bi-people me-1"></i>Verwaltung
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{% url 'ldap_admin' %}">
@@ -58,21 +58,30 @@
                                 <li><a class="dropdown-item" href="{% url 'group_list' %}">
                                     <i class="bi bi-diagram-2 me-2"></i>Gruppenverwaltung
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="alert('Wird in Phase 6 implementiert')">
-                                    <i class="bi bi-envelope me-2"></i>Mail-Verwaltung
+                                <li><a class="dropdown-item" href="{% url 'mail_overview' %}">
+                                    <i class="bi bi-envelope-paper me-2"></i>Mail-Uebersicht
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'mail_group_list' %}">
+                                    <i class="bi bi-people-fill me-2"></i>Mail-Verteiler
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'mail_domain_list' %}">
+                                    <i class="bi bi-globe2 me-2"></i>Mail-Domains
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'mail_bulk' %}">
+                                    <i class="bi bi-collection me-2"></i>Bulk-Aktionen
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'family_tree' %}">
                                     <i class="bi bi-diagram-3-fill me-2"></i>Familien-Baum
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="alert('Wird in Phase 5 implementiert')">
+                                <li><a class="dropdown-item text-muted" href="#" onclick="alert('Wird in Phase 5 implementiert')">
                                     <i class="bi bi-diagram-2-fill me-2"></i>Gruppen-Hierarchie
                                 </a></li>
                             </ul>
                         </li>
                         {% endif %}
 
-                        <!-- System Administration -->
+                        <!-- Administration -->
                         {% if user.is_superuser %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" data-bs-toggle="dropdown">
@@ -92,10 +101,17 @@
                                 <li><a class="dropdown-item" href="{% url 'registration_requests' %}">
                                     <i class="bi bi-person-plus me-2"></i>Registrierungsanfragen
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="alert('Wird in Phase 10 implementiert')">
+                                <li><a class="dropdown-item" href="{% url 'wifi_network_list' %}">
+                                    <i class="bi bi-wifi me-2"></i>WiFi-Netzwerke
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'personnotes:overview' %}">
+                                    <i class="bi bi-journal-lock me-2"></i>Seelsorge-Notizen
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-muted" href="#" onclick="alert('Wird in Phase 10 implementiert')">
                                     <i class="bi bi-list-check me-2"></i>Todos
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="alert('Wird in Phase 10 implementiert')">
+                                <li><a class="dropdown-item text-muted" href="#" onclick="alert('Wird in Phase 10 implementiert')">
                                     <i class="bi bi-bug me-2"></i>Bugs
                                 </a></li>
                             </ul>
@@ -124,6 +140,13 @@
                             </ul>
                         </li>
 
+                        <!-- Hilfe -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'helpcenter:index' %}" title="Hilfe-Center">
+                                <i class="bi bi-question-circle me-1"></i>Hilfe
+                            </a>
+                        </li>
+
                         <!-- User Menu -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown">
@@ -141,6 +164,9 @@
                                 </a></li>
                                 <li><a class="dropdown-item" href="{% url 'privacy:my_data' %}">
                                     <i class="bi bi-shield-check me-2"></i>Meine Daten (DSGVO)
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'personnotes:my_notes' %}">
+                                    <i class="bi bi-journal-lock me-2"></i>Notizen ueber mich
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}">

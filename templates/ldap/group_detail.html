@@ -74,9 +74,6 @@
                 </div>
                 <div class="card-body d-flex flex-column">
                     <div class="d-grid gap-2 flex-grow-1">
-                        <button type="button" class="btn btn-church-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                            <i class="bi bi-person-plus me-2"></i>Mitglied hinzufuegen
-                        </button>
                         <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editGroupModal">
                             <i class="bi bi-pencil me-2"></i>Gruppe bearbeiten
                         </button>
@@ -108,12 +105,122 @@
         </div>
     </div>
 
+    <!-- Mail-Verteiler-Karte -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-church">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-envelope-fill me-2"></i>Mail-Verteiler</span>
+                    {% if group.has_mail_function %}
+                        <a href="{% url 'mail_group_edit' group.b64dn %}" class="btn btn-sm btn-outline-primary" title="In Mail-Verteiler-Editor oeffnen">
+                            <i class="bi bi-pencil me-1"></i>Bearbeiten
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if group.has_mail_function %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted small mb-1">Verteiler-Adresse(n)</h6>
+                                {% if group.mail_group %}
+                                    {% for addr in group.mail_group %}<div><code>{{ addr }}</code></div>{% endfor %}
+                                {% else %}
+                                    <span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Keine mailGroup-Adresse &mdash; Postfix findet den Verteiler nicht!</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted small mb-1">Routing-Ziele</h6>
+                                {% if group.mail_routing_address %}
+                                    {% for addr in group.mail_routing_address %}<div><small><code>{{ addr }}</code></small></div>{% endfor %}
+                                {% else %}
+                                    <span class="text-muted small">&mdash; (Auto-Expansion ueber Member)</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 text-md-end">
+                                <h6 class="text-muted small mb-1">Status</h6>
+                                <form method="post" action="{% url 'mail_group_toggle' group.b64dn %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm border-0 p-0" title="Status umschalten">
+                                        {% if group.mail_routing_enabled %}
+                                            <span class="badge bg-success">Aktiv</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inaktiv</span>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#mailDelModal">
+                                        <i class="bi bi-trash me-1"></i>Mail-Funktion entfernen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mail-Funktion entfernen Modal -->
+                        <div class="modal fade" id="mailDelModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title">Mail-Funktion entfernen</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <form method="post" action="{% url 'mail_group_delete' group.b64dn %}">{% csrf_token %}
+                                <div class="modal-body text-start">
+                                    <p>Mail-Verteiler-Funktion von Gruppe <strong>{{ group.cn }}</strong> entfernen?</p>
+                                    <div class="alert alert-info small mb-0">
+                                        <code>mailGroup</code>, <code>mailRoutingAddress</code> und <code>mailRoutingEnabled</code> werden geloescht. Die LDAP-Gruppe selbst und ihre Mitglieder bleiben erhalten.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Entfernen</button>
+                                </div>
+                            </form>
+                        </div></div></div>
+                    {% else %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted"><i class="bi bi-info-circle me-2"></i>Diese Gruppe ist kein Mail-Verteiler.</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mailAddModal">
+                                <i class="bi bi-plus-lg me-1"></i>Als Verteiler einrichten
+                            </button>
+                        </div>
+
+                        <!-- Mail-Funktion hinzufuegen Modal -->
+                        <div class="modal fade" id="mailAddModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title">Als Mail-Verteiler einrichten</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <form method="post" action="{% url 'mail_group_edit' group.b64dn %}">{% csrf_token %}
+                                <div class="modal-body text-start">
+                                    <p class="text-muted small">Mails an die hier eingetragene(n) Adresse(n) werden automatisch an alle Member von <strong>{{ group.cn }}</strong> verteilt.</p>
+                                    <div class="mb-3">
+                                        <label class="form-label">Verteiler-Adresse(n)</label>
+                                        <textarea name="mail_group" class="form-control" rows="2" placeholder="z.B. technik@unsere-gemeinde.de" required></textarea>
+                                        <small class="text-muted">Eine Adresse pro Zeile</small>
+                                    </div>
+                                    <textarea name="routing_addr" style="display:none;"></textarea>
+                                    <input type="hidden" name="description" value="{{ group.description }}">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="enabled" id="enabledAdd" checked>
+                                        <label class="form-check-label" for="enabledAdd">Routing aktiv (TRUE)</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                    <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                                        <i class="bi bi-check-lg me-1"></i>Einrichten
+                                    </button>
+                                </div>
+                            </form>
+                        </div></div></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Members Table -->
     <div class="row">
         <div class="col-12">
             <div class="card card-church">
-                <div class="card-header">
-                    <i class="bi bi-people me-2"></i>Mitglieder ({{ members|length }})
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-people me-2"></i>Mitglieder ({{ members|length }})</span>
+                    <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#addMemberModal" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-person-plus me-1"></i>Mitglied hinzufuegen
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     {% if members %}
@@ -136,6 +243,9 @@
                                             <span class="text-church-gray">{{ member.displayName }}</span>
                                         </td>
                                         <td class="text-end">
+                                            <a href="{% url 'ldap_user_search' %}?q={{ member.cn|urlencode }}" class="btn btn-outline-primary btn-sm" title="Benutzer bearbeiten">
+                                                <i class="bi bi-pencil"></i> Bearbeiten
+                                            </a>
                                             <form method="post" action="{% url 'group_remove_member' group_cn=group.cn %}" style="display: inline;">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="user_dn" value="{{ member.dn }}">

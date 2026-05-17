@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if article %}Artikel bearbeiten{% else %}Neuer Artikel{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tox-tinymce { border-radius: 8px !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="text-church-navy mb-0">
+                <i class="bi bi-pencil-square me-2"></i>
+                {% if article %}Artikel bearbeiten{% else %}Neuer Hilfe-Artikel{% endif %}
+            </h2>
+            <a href="{% url 'helpcenter:admin_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Zur Liste
+            </a>
+        </div>
+    </div>
+
+    <form method="post" class="card card-church p-4">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Titel <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control" required value="{{ article.title|default:'' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Slug (URL)</label>
+                <input type="text" name="slug" class="form-control" placeholder="auto-aus-titel" value="{{ article.slug|default:'' }}" pattern="[a-z0-9\-]+">
+                <small class="text-muted">Nur Kleinbuchstaben, Ziffern, Bindestriche</small>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Kategorie</label>
+                <select name="category" class="form-select">
+                    {% for value, label in categories %}
+                    <option value="{{ value }}" {% if article and article.category == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Reihenfolge</label>
+                <input type="number" name="order" class="form-control" value="{{ article.order|default:0 }}">
+                <small class="text-muted">Niedrige Werte zuerst</small>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_published" id="is_published" {% if article and article.is_published or not article %}checked{% endif %}>
+                    <label class="form-check-label" for="is_published">Veroeffentlicht</label>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Kurzfassung</label>
+                <input type="text" name="summary" class="form-control" maxlength="300" value="{{ article.summary|default:'' }}">
+                <small class="text-muted">Erscheint in der Index-Liste unter dem Titel (max. 300 Zeichen)</small>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Inhalt <span class="text-danger">*</span></label>
+                <textarea name="content_html" id="content_html">{{ article.content_html|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end gap-2">
+            <a href="{% url 'helpcenter:admin_list' %}" class="btn btn-outline-secondary">Abbrechen</a>
+            <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                <i class="bi bi-check-lg me-1"></i>{% if article %}Speichern{% else %}Erstellen{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vendor/tinymce/js/tinymce/tinymce.min.js' %}"></script>
+<script>
+tinymce.init({
+    selector: '#content_html',
+    language: 'de',
+    height: 500,
+    menubar: false,
+    branding: false,
+    promotion: false,
+    license_key: 'gpl',
+    plugins: 'lists link image table code fullscreen preview',
+    toolbar: 'styles | bold italic underline | bullist numlist | link image table | hr | code fullscreen preview',
+    style_formats: [
+        { title: 'Absatz', block: 'p' },
+        { title: 'Ueberschrift 2', block: 'h2' },
+        { title: 'Ueberschrift 3', block: 'h3' },
+        { title: 'Zitat', block: 'blockquote' },
+    ],
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.7; color: #333; } code { background:#f4f4f4; padding:.1em .35em; border-radius:3px; }',
+    convert_urls: false,
+    relative_urls: false,
+});
+</script>
+{% endblock %}

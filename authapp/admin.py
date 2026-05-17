@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate, LDAPBackup, AppSettings, RegistrationRequest
+from .models import LDAPConfig, LDAPUserLog, MemberListExportSettings, PermissionMapping, EmailTemplate, LDAPBackup, AppSettings, RegistrationRequest, RegistrationResponseTemplate, WiFiNetwork
 
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User, Group
@@ -496,6 +496,27 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
     search_fields = ('first_name', 'last_name', 'email')
     readonly_fields = ('ip_address', 'created_at')
     list_editable = ('status',)
+
+
+@admin.register(RegistrationResponseTemplate)
+class RegistrationResponseTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'template_type', 'sort_order', 'is_active')
+    list_filter = ('template_type', 'is_active')
+    list_editable = ('sort_order', 'is_active')
+    ordering = ('template_type', 'sort_order')
+    fieldsets = (
+        (None, {
+            'fields': ('template_type', 'name', 'text', 'sort_order', 'is_active'),
+            'description': 'Platzhalter: {{vorname}}, {{nachname}}, {{email}}, {{gemeinde}}'
+        }),
+    )
+
+
+@admin.register(WiFiNetwork)
+class WiFiNetworkAdmin(admin.ModelAdmin):
+    list_display = ('name', 'ssid', 'encryption_type', 'is_active', 'sort_order')
+    list_filter = ('encryption_type', 'is_active')
+    list_editable = ('is_active', 'sort_order')
 
 
 @admin.register(AppSettings)

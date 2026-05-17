@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}WiFi-Netzwerke verwalten{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-wifi me-2"></i>WiFi-Netzwerke
+                </h2>
+                <p class="text-muted mb-0">Netzwerke fuer die Geraete-Konfiguration verwalten</p>
+            </div>
+            <a href="{% url 'wifi_network_create' %}" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                <i class="bi bi-plus-lg me-1"></i>Netzwerk hinzufuegen
+            </a>
+        </div>
+    </div>
+
+    {% if networks %}
+    <div class="card card-church">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SSID</th>
+                        <th>Verschluesselung</th>
+                        <th>Passwort</th>
+                        <th>Status</th>
+                        <th class="text-end">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for network in networks %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-wifi me-2 text-church-navy"></i>
+                            <strong>{{ network.name }}</strong>
+                        </td>
+                        <td><code>{{ network.ssid }}</code></td>
+                        <td>
+                            <span class="badge bg-info">{{ network.get_encryption_type_display }}</span>
+                            {% if network.is_hidden %}
+                            <span class="badge bg-secondary ms-1">Versteckt</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if network.password %}
+                            <span class="wifi-pw" data-pw="{{ network.password }}" style="cursor: pointer;" title="Klicken zum Anzeigen">
+                                <i class="bi bi-eye-slash me-1"></i>&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Nicht gesetzt</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if network.is_active %}
+                            <span class="badge bg-success">Aktiv</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inaktiv</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'wifi_network_print' network.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary" title="QR-Code drucken">
+                                <i class="bi bi-printer"></i>
+                            </a>
+                            <a href="{% url 'wifi_network_edit' network.pk %}" class="btn btn-sm btn-outline-primary" title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ network.pk }}" title="Loeschen">
+                                <i class="bi bi-trash"></i>
+                            </button>
+
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteModal{{ network.pk }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Netzwerk loeschen</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            Moechten Sie das WiFi-Netzwerk <strong>{{ network.name }}</strong> ({{ network.ssid }}) wirklich loeschen?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                                            <a href="{% url 'wifi_network_delete' network.pk %}" class="btn btn-danger">
+                                                <i class="bi bi-trash me-1"></i>Loeschen
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>Noch keine WiFi-Netzwerke konfiguriert.
+        <a href="{% url 'wifi_network_create' %}" class="alert-link">Erstes Netzwerk hinzufuegen</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.wifi-pw').forEach(function(el) {
+    el.addEventListener('click', function() {
+        var pw = this.dataset.pw;
+        if (this.dataset.visible === 'true') {
+            this.innerHTML = '<i class="bi bi-eye-slash me-1"></i>' + '\u2022'.repeat(8);
+            this.dataset.visible = 'false';
+        } else {
+            this.innerHTML = '<i class="bi bi-eye me-1"></i>' + pw;
+            this.dataset.visible = 'true';
+        }
+    });
+});
+</script>
+{% endblock %}

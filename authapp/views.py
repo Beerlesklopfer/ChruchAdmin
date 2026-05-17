@@ -287,6 +287,65 @@ def _church_name():
     return AppSettings.get('church_name', 'Gemeinde')
 
 
+def _get_admin_emails(permission='manage_registrations'):
+    """Sammle Admin-E-Mail-Adressen fuer eine Permission (LDAP + Django-Superuser)"""
+    from authapp.models import PermissionMapping
+    from django.contrib.auth.models import User, Group
+
+    admin_emails = set()
+    allowed_groups = PermissionMapping.get_groups_for_permission(permission)
+
+    # Django-Groups pruefen
+    for group_name in allowed_groups:
+        try:
+            group = Group.objects.get(name=group_name)
+            for u in group.user_set.all():
+                if u.email:
+                    admin_emails.add(u.email)
+        except Group.DoesNotExist:
+            pass
+
+    # LDAP-Gruppen pruefen: Alle Mitglieder der erlaubten Gruppen
+    if allowed_groups:
+        try:
+            with LDAPManager() as ldap:
+                groups = ldap.list_groups()
+                for g in groups:
+                    g_attrs = g['attributes']
+                    g_cn = g_attrs.get('cn', '')
+                    if isinstance(g_cn, list):
+                        g_cn = g_cn[0] if g_cn else ''
+                    if g_cn not in allowed_groups:
+                        continue
+                    # Mitglieder dieser Gruppe
+                    members = g_attrs.get('member', [])
+                    for member_dn in members:
+                        if isinstance(member_dn, bytes):
+                            member_dn = member_dn.decode('utf-8')
+                        # CN aus DN extrahieren
+                        parts = member_dn.split(',')
+                        if parts and parts[0].lower().startswith('cn='):
+                            member_cn = parts[0][3:]
+                            user_data = ldap.get_user(member_cn)
+                            if user_data:
+                                mail = user_data['attributes'].get('mail', '')
+                                if isinstance(mail, list):
+                                    mail = mail[0] if mail else ''
+                                if isinstance(mail, bytes):
+                                    mail = mail.decode('utf-8')
+                                if mail:
+                                    admin_emails.add(mail)
+        except Exception as e:
+            logger.error(f"Fehler beim Sammeln von LDAP-Admin-Mails: {e}")
+
+    # Superuser
+    for u in User.objects.filter(is_superuser=True):
+        if u.email:
+            admin_emails.add(u.email)
+
+    return admin_emails
+
+
 def get_or_create_django_user(cn):
     """Hole oder erstelle Django-User fuer einen LDAP-Benutzer"""
     from django.contrib.auth.models import User as DjangoUser
@@ -1074,19 +1133,7 @@ def _send_disabled_login_email(ldap_user_data, username, request):
         sn = attrs.get('sn', [''])[0] if isinstance(attrs.get('sn', ['']), list) else attrs.get('sn', '')
 
         # Sammle Admin-E-Mail-Adressen (manage_registrations + Superuser)
-        admin_emails = set()
-        allowed_groups = PermissionMapping.get_groups_for_permission('manage_registrations')
-        for group_name in allowed_groups:
-            try:
-                group = Group.objects.get(name=group_name)
-                for u in group.user_set.all():
-                    if u.email:
-                        admin_emails.add(u.email)
-            except Group.DoesNotExist:
-                pass
-        for u in User.objects.filter(is_superuser=True):
-            if u.email:
-                admin_emails.add(u.email)
+        admin_emails = _get_admin_emails('manage_registrations')
 
         if not admin_emails:
             return
@@ -1481,27 +1528,11 @@ def register_verify(request, token):
     reg.status = 'pending'
     reg.save()
 
-    # Mail an alle User mit manage_users-Berechtigung
+    # Mail an alle User mit manage_registrations-Berechtigung
     try:
-        from authapp.models import PermissionMapping
-        from django.contrib.auth.models import User, Group
         from django.core.mail import send_mail
 
-        # Finde alle Gruppen mit manage_users-Berechtigung
-        allowed_groups = PermissionMapping.get_groups_for_permission('manage_registrations')
-        # Finde alle Django-User in diesen Gruppen + Superuser
-        recipient_emails = set()
-        for group_name in allowed_groups:
-            try:
-                group = Group.objects.get(name=group_name)
-                for u in group.user_set.all():
-                    if u.email:
-                        recipient_emails.add(u.email)
-            except Group.DoesNotExist:
-                pass
-        for u in User.objects.filter(is_superuser=True):
-            if u.email:
-                recipient_emails.add(u.email)
+        recipient_emails = _get_admin_emails('manage_registrations')
 
         if recipient_emails:
             send_mail(
@@ -1544,6 +1575,176 @@ def registration_requests(request):
     return render(request, 'registration/registration_requests.html', {
         'requests': reqs,
         'pending_count': pending.count(),
+    })
+
+
+@login_required
+@require_permission('manage_registrations')
+def registration_edit(request, pk):
+    """Registrierungsanfrage bearbeiten (Detail + Antwort + Aktionen)"""
+    from authapp.models import RegistrationRequest, RegistrationResponseTemplate
+
+    try:
+        reg = RegistrationRequest.objects.get(pk=pk)
+    except RegistrationRequest.DoesNotExist:
+        messages.error(request, 'Anfrage nicht gefunden.')
+        return redirect('registration_requests')
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'save':
+            reg.first_name = request.POST.get('first_name', reg.first_name).strip()
+            reg.last_name = request.POST.get('last_name', reg.last_name).strip()
+            reg.email = request.POST.get('email', reg.email).strip()
+            reg.save()
+            messages.success(request, f'Anfrage von {reg.first_name} {reg.last_name} wurde aktualisiert.')
+            return redirect('registration_edit', pk=reg.pk)
+
+        elif action in ('approve', 'reject'):
+            from django.utils import timezone
+            response_text = request.POST.get('response_text', '').strip()
+
+            # Template-Tags ersetzen
+            context = {
+                'vorname': reg.first_name,
+                'nachname': reg.last_name,
+                'email': reg.email,
+                'gemeinde': _church_name(),
+            }
+            rendered_text = response_text
+            for key, val in context.items():
+                rendered_text = rendered_text.replace('{{' + key + '}}', val)
+
+            if action == 'approve':
+                # LDAP-User erstellen (gleiche Logik wie registration_approve)
+                try:
+                    import unicodedata, re, secrets
+
+                    def _sanitize(s):
+                        s = s.strip()
+                        replacements = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss',
+                                        'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue'}
+                        for k, v in replacements.items():
+                            s = s.replace(k, v)
+                        s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+                        s = re.sub(r'[^a-zA-Z0-9.\-]', '', s)
+                        return s
+
+                    first_clean = _sanitize(reg.first_name)
+                    last_clean = _sanitize(reg.last_name)
+                    cn = f"{first_clean}.{last_clean}"
+                    password = secrets.token_urlsafe(12)
+
+                    with LDAPManager() as ldap_conn:
+                        base_cn = cn
+                        suffix = 1
+                        while ldap_conn.get_user(cn):
+                            suffix += 1
+                            cn = f"{base_cn}{suffix}"
+
+                        attributes = {
+                            'givenName': reg.first_name,
+                            'sn': reg.last_name,
+                            'cn': cn,
+                            'displayName': f"{reg.first_name} {reg.last_name}",
+                            'mail': f"{cn}@{settings.CHURCH_DOMAIN}",
+                            'userPassword': password,
+                        }
+                        ldap_conn.create_user(attributes=attributes)
+
+                    reg.status = 'approved'
+                    reg.reviewed_by = request.user
+                    reg.reviewed_at = timezone.now()
+                    reg.save()
+
+                    # Antwortmail senden
+                    if rendered_text:
+                        try:
+                            from django.core.mail import EmailMultiAlternatives
+                            from django.template.loader import render_to_string
+                            from django.utils.html import strip_tags
+
+                            login_url = request.build_absolute_uri('/login/')
+                            html_message = render_to_string('emails/registration_approved.html', {
+                                'first_name': reg.first_name,
+                                'church_name': _church_name(),
+                                'username': cn,
+                                'password': password,
+                                'login_url': login_url,
+                                'custom_message': rendered_text,
+                            })
+                            plain_message = strip_tags(html_message)
+
+                            msg = EmailMultiAlternatives(
+                                subject=f'Willkommen - {_church_name()}',
+                                body=plain_message,
+                                from_email=settings.DEFAULT_FROM_EMAIL,
+                                to=[reg.email],
+                            )
+                            msg.attach_alternative(html_message, 'text/html')
+                            msg.send(fail_silently=True)
+                        except Exception as e:
+                            logger.error(f"Fehler beim Senden der Genehmigungs-Mail: {e}")
+
+                    messages.success(request, f'Benutzer {cn} erstellt. Zugangsdaten an {reg.email} gesendet.')
+                    return redirect('registration_requests')
+
+                except Exception as e:
+                    messages.error(request, f'Fehler: {str(e)}')
+
+            elif action == 'reject':
+                reg.status = 'rejected'
+                reg.reviewed_by = request.user
+                reg.reviewed_at = timezone.now()
+                reg.rejection_reason = rendered_text
+                reg.save()
+
+                # Antwortmail senden
+                if rendered_text:
+                    try:
+                        from django.core.mail import EmailMultiAlternatives
+                        from django.template.loader import render_to_string
+                        from django.utils.html import strip_tags
+
+                        html_message = render_to_string('emails/registration_rejected.html', {
+                            'first_name': reg.first_name,
+                            'church_name': _church_name(),
+                            'reason': rendered_text,
+                        })
+                        plain_message = strip_tags(html_message)
+
+                        msg = EmailMultiAlternatives(
+                            subject=f'Registrierungsanfrage - {_church_name()}',
+                            body=plain_message,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            to=[reg.email],
+                        )
+                        msg.attach_alternative(html_message, 'text/html')
+                        msg.send(fail_silently=True)
+                    except Exception as e:
+                        logger.error(f"Fehler beim Senden der Ablehnungs-Mail: {e}")
+
+                messages.success(request, f'Anfrage von {reg.first_name} {reg.last_name} abgelehnt.')
+                return redirect('registration_requests')
+
+    # Vorlagen und Textbausteine laden
+    approve_default = RegistrationResponseTemplate.objects.filter(
+        template_type='approve_default', is_active=True
+    ).first()
+    reject_default = RegistrationResponseTemplate.objects.filter(
+        template_type='reject_default', is_active=True
+    ).first()
+    snippets = RegistrationResponseTemplate.objects.filter(
+        template_type='snippet', is_active=True
+    )
+
+    return render(request, 'registration/registration_edit.html', {
+        'reg': reg,
+        'approve_default': approve_default,
+        'reject_default': reject_default,
+        'snippets': snippets,
+        'church_name': _church_name(),
     })
 
 
@@ -1916,11 +2117,16 @@ def profile(request):
                 except Exception as e:
                     messages.error(request, f'Fehler beim Ändern des Passworts: {str(e)}')
 
+    # WiFi-Netzwerke fuer Geraete-Konfiguration
+    from authapp.models import WiFiNetwork
+    wifi_networks = WiFiNetwork.objects.filter(is_active=True)
+
     return render(request, 'registration/profile.html', {
         'user_photo_base64': user_photo_base64,
         'ldap_user_data': ldap_user_data,
         'is_ldap_user': is_ldap_user,
         'user_groups': user_groups,
+        'wifi_networks': wifi_networks,
     })
 
 
@@ -3002,11 +3208,32 @@ def group_detail(request, group_cn):
                     if not isinstance(members_dn, list):
                         members_dn = [members_dn] if members_dn else []
 
+                    # Mail-Verteiler-Attribute
+                    mail_group = attrs.get('mailGroup', [])
+                    if not isinstance(mail_group, list):
+                        mail_group = [mail_group] if mail_group else []
+                    mail_routing_addr = attrs.get('mailRoutingAddress', [])
+                    if not isinstance(mail_routing_addr, list):
+                        mail_routing_addr = [mail_routing_addr] if mail_routing_addr else []
+                    mail_enabled_raw = attrs.get('mailRoutingEnabled', '')
+                    if isinstance(mail_enabled_raw, list):
+                        mail_enabled_raw = mail_enabled_raw[0] if mail_enabled_raw else ''
+                    mail_routing_enabled = (mail_enabled_raw == 'TRUE')
+
+                    # b64-DN fuer Mail-Verteiler-Edit-Link
+                    import base64 as _b64
+                    b64dn = _b64.urlsafe_b64encode(group['dn'].encode('utf-8')).decode('ascii').rstrip('=')
+
                     group_info = {
                         'dn': group['dn'],
                         'cn': cn,
                         'description': description,
                         'members_dn': members_dn,
+                        'mail_group': mail_group,
+                        'mail_routing_address': mail_routing_addr,
+                        'mail_routing_enabled': mail_routing_enabled,
+                        'has_mail_function': bool(mail_group or mail_routing_addr),
+                        'b64dn': b64dn,
                     }
                     break
 

@@ -1,0 +1,25 @@
+[Unit]
+Description=Embed Gemeindelogo in Predigt-MP3s
+# Verzoegerung, damit groessere Uploads abgeschlossen sind, bevor das Skript laeuft
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+# Falls Nextcloud die Dateien als www-data anlegt, koennte auch
+#   User=www-data
+# besser sein - dann faellt das spaetere chown weg.
+ExecStart=/usr/local/bin/predigt_embed_cover.py \
+    --logo /etc/churchadmin/predigt-cover.png \
+    --dir /var/lib/nextcloud/data/__groupfolders/1/Predigtaufnahmen/ \
+    --description "Bibelgemeinde Lage" \
+    --apply
+# Nach dem Schreiben: Eigentuemer wiederherstellen + Nextcloud-Scan triggern
+ExecStartPost=/bin/sh -c 'chown -R www-data:www-data /var/lib/nextcloud/data/__groupfolders/1/Predigtaufnahmen/ 2>/dev/null || true'
+ExecStartPost=/bin/sh -c 'sudo -u www-data php /var/www/nextcloud/occ files:scan-app-data 2>/dev/null || true'
+# Nicht parallel laufen, falls schnelle Folgeevents
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

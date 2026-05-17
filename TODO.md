@@ -279,6 +279,19 @@ Vollstaendige Verwaltung von LDAP-Gruppen mit Mitglieder-Management, Berechtigun
 - [x] **Live-Suche**: Debounced in Benutzer- und Mitgliederverwaltung
 - [x] **Autoconfig**: iOS Mail-Konfiguration
 
+### Geraete-Konfiguration (Phase 15) ✅ (2026-05-17)
+- [x] **WiFiNetwork Model**: SSID, Passwort, Verschluesselung, versteckt/aktiv, Reihenfolge
+- [x] **WiFi-Admin-UI**: CRUD fuer WiFi-Netzwerke im Admin-Dashboard (Erstellen, Bearbeiten, Loeschen)
+- [x] **Apple mobileconfig**: plist-Generator mit auswaehlbaren Diensten (E-Mail, CalDAV, CardDAV, WiFi)
+- [x] **Dienste-Auswahl im Profil**: Checkboxen fuer jeden Dienst, Passwort-Bestaetigung, Download
+- [x] **Android-Einrichtungsseite**: WiFi-QR-Codes (SVG), kopierbare Serverfelder, Schritt-fuer-Schritt-Anleitungen
+- [x] **Android-Anleitung**: E-Mail (IMAP/SMTP), DAVx5 (CalDAV/CardDAV), WiFi-QR-Code
+- [x] **AppSettings autoconfig-Kategorie**: IMAP/SMTP/CalDAV-Server konfigurierbar
+- [x] **Admin-Dashboard**: Umbenannt von "LDAP Administration" zu "Admin-Dashboard"
+- [x] **Erstes WiFi-Netzwerk**: Bibelgemeinde-lage (WPA2/PSK) angelegt
+- [x] **WiFi-Passwort eintragen**: PSK fuer Bibelgemeinde-lage im Admin-Dashboard setzen
+- [x] **Funktionstest**: mobileconfig-Download, Android-Setup, WiFi-Admin testen
+
 ---
 
 ## Offene Features
@@ -295,12 +308,12 @@ Vollstaendige Verwaltung von LDAP-Gruppen mit Mitglieder-Management, Berechtigun
 - [x] Nextcloud-Zugang (nextCloudEnabled) lesen/speichern
 - [x] LDAP Admin Dashboard mit korrekten Statistiken
 
-### Phase 6: Mail-Verwaltung (Teilweise)
+### Phase 6: Mail-Verwaltung ✅
 - [x] Benutzer-Mail-Attribute editierbar (mail, mailRouting, mailAlias, Quota)
-- [ ] Mail-Uebersicht (alle konfigurierten Benutzer/Gruppen)
-- [ ] Mail-Domains verwalten
-- [ ] Gruppen-Mail-Adressen konfigurieren
-- [ ] Bulk-Mail-Konfiguration
+- [x] Mail-Uebersicht (alle konfigurierten Benutzer/Gruppen)
+- [x] Mail-Domains verwalten (CRUD inkl. Beschreibung)
+- [x] Gruppen-Mail-Verteiler (CRUD, Diagnose-Warnungen, beide Schema-Varianten)
+- [x] Bulk-Mail-Konfiguration (Enable/Disable, Quota, Domain-Wechsel)
 
 ### Phase 10: Ticket & Bug Tracking ✅
 - [x] Ticket Model (Bug, Feature, Aufgabe, Frage)
@@ -354,6 +367,6 @@ Vollstaendige Verwaltung von LDAP-Gruppen mit Mitglieder-Management, Berechtigun
 
 ---
 
-**Stand:** 2026-04-05
-**Version:** 2.0.0
+**Stand:** 2026-05-17
+**Version:** 2.1.0
 **Maintainer:** Der Autor

@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrierungsanfrage - {{ reg.first_name }} {{ reg.last_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .req-container { max-width: 900px; margin: 2rem auto; }
+    .snippet-check { cursor: pointer; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; background: #f8f9fa; transition: background 0.2s; }
+    .snippet-check:hover { background: var(--church-beige); }
+    .snippet-check input { cursor: pointer; }
+    .snippet-check label { cursor: pointer; margin-bottom: 0; }
+    .decision-radio { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+    .decision-radio:hover { transform: translateX(4px); }
+    .decision-radio.radio-approve { background: #d4edda; border: 2px solid #28a745; }
+    .decision-radio.radio-approve:hover, .decision-radio.radio-approve.selected { background: #28a745; color: white; }
+    .decision-radio.radio-reject { background: #f8d7da; border: 2px solid #dc3545; }
+    .decision-radio.radio-reject:hover, .decision-radio.radio-reject.selected { background: #dc3545; color: white; }
+    .response-textarea { min-height: 200px; font-family: inherit; line-height: 1.6; }
+    .tag-badge { display: inline-block; background: var(--church-beige); color: var(--church-navy); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-family: monospace; cursor: pointer; margin: 2px; }
+    .tag-badge:hover { background: var(--church-gold); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="req-container">
+    <h2 style="color: var(--church-navy);">
+        <i class="bi bi-person-plus-fill me-2"></i>Registrierungsanfrage
+        {% if reg.status == 'unverified' %}
+            <span class="badge bg-secondary">E-Mail nicht bestaetigt</span>
+        {% elif reg.status == 'pending' %}
+            <span class="badge bg-warning text-dark">Ausstehend</span>
+        {% elif reg.status == 'approved' %}
+            <span class="badge bg-success">Genehmigt</span>
+        {% elif reg.status == 'rejected' %}
+            <span class="badge bg-danger">Abgelehnt</span>
+        {% endif %}
+    </h2>
+
+    <!-- Antragsdaten -->
+    <div class="card card-church mt-4">
+        <div class="card-header">
+            <i class="bi bi-person-lines-fill me-2"></i>Antragsdaten
+        </div>
+        <div class="card-body">
+            <form method="post" id="saveForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="first_name" class="form-label fw-bold">Vorname</label>
+                        <input type="text" name="first_name" id="first_name" class="form-control"
+                               value="{{ reg.first_name }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="last_name" class="form-label fw-bold">Nachname</label>
+                        <input type="text" name="last_name" id="last_name" class="form-control"
+                               value="{{ reg.last_name }}" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-bold">E-Mail</label>
+                    <input type="email" name="email" id="email" class="form-control"
+                           value="{{ reg.email }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Begruendung des Antragstellers</label>
+                    <div class="form-control" style="background: #f8f9fa; min-height: 60px;">{{ reg.reason }}</div>
+                </div>
+
+                <div class="row text-muted small mb-3">
+                    <div class="col-md-4">
+                        <i class="bi bi-calendar me-1"></i>{{ reg.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                    <div class="col-md-4">
+                        <i class="bi bi-globe me-1"></i>{{ reg.ip_address }}
+                    </div>
+                    {% if reg.reviewed_by %}
+                    <div class="col-md-4">
+                        <i class="bi bi-person-check me-1"></i>{{ reg.reviewed_by }}, {{ reg.reviewed_at|date:"d.m.Y H:i" }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-floppy me-1"></i>Aenderungen speichern
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if reg.status == 'pending' or reg.status == 'unverified' %}
+    <!-- Entscheidung + Antwort -->
+    <div class="card card-church mt-4">
+        <div class="card-header">
+            <i class="bi bi-reply me-2"></i>Entscheidung &amp; Antwort an Antragsteller
+        </div>
+        <div class="card-body">
+            <form method="post" id="decisionForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="decisionAction" value="">
+
+                <!-- Radio: Annehmen / Ablehnen -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Entscheidung</label>
+                    <div class="decision-radio radio-approve" onclick="selectDecision('approve')">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="decision" id="decision_approve" value="approve">
+                            <label class="form-check-label fw-bold" for="decision_approve">
+                                <i class="bi bi-check-circle me-1"></i>Genehmigen — LDAP-Benutzer erstellen &amp; Zugangsdaten senden
+                            </label>
+                        </div>
+                    </div>
+                    <div class="decision-radio radio-reject" onclick="selectDecision('reject')">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="decision" id="decision_reject" value="reject">
+                            <label class="form-check-label fw-bold" for="decision_reject">
+                                <i class="bi bi-x-circle me-1"></i>Ablehnen — Ablehnungsmail senden
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Textbausteine -->
+                {% if snippets %}
+                <div class="mb-4" id="snippetSection" style="display: none;">
+                    <label class="form-label fw-bold">Textbausteine hinzufuegen</label>
+                    {% for snippet in snippets %}
+                    <div class="snippet-check">
+                        <div class="form-check">
+                            <input class="form-check-input snippet-cb" type="checkbox"
+                                   id="snippet_{{ snippet.pk }}"
+                                   data-text="{{ snippet.text }}">
+                            <label class="form-check-label" for="snippet_{{ snippet.pk }}">
+                                {{ snippet.name }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Antwort-Textfeld -->
+                <div class="mb-3" id="responseSection" style="display: none;">
+                    <label class="form-label fw-bold">Antworttext an {{ reg.first_name }} {{ reg.last_name }}</label>
+                    <textarea name="response_text" id="responseText" class="form-control response-textarea"
+                              placeholder="Antworttext wird hier angezeigt..."></textarea>
+                    <div class="text-muted small mt-1">
+                        <i class="bi bi-info-circle me-1"></i>Der Text wird so an den Antragsteller gesendet. Sie koennen ihn frei bearbeiten.
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div id="submitSection" style="display: none;">
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'registration_requests' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Zurueck
+                        </a>
+                        <button type="submit" id="submitBtn" class="btn btn-lg" disabled>
+                            <i class="bi bi-send me-2"></i>Absenden
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% elif reg.status == 'rejected' and reg.rejection_reason %}
+    <div class="card border-danger mt-4">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-x-circle me-2"></i>Ablehnungsgrund / Antwort
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space: pre-line;">{{ reg.rejection_reason }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Loeschen -->
+    {% if reg.status == 'rejected' or reg.status == 'unverified' %}
+    <div class="text-end mt-3 mb-4">
+        <form method="post" action="{% url 'registration_delete' reg.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm"
+                    onclick="return confirm('Anfrage endgueltig loeschen?')">
+                <i class="bi bi-trash me-1"></i>Anfrage loeschen
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-3 mb-4">
+        <a href="{% url 'registration_requests' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Zurueck zur Uebersicht
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Standardtexte (mit Template-Tags) aus Django
+var approveRaw = "{{ approve_default.text|default:''|escapejs }}";
+var rejectRaw = "{{ reject_default.text|default:''|escapejs }}";
+
+// Bekannte Werte fuer Substitution
+var tagValues = {
+    'vorname': "{{ reg.first_name|escapejs }}",
+    'nachname': "{{ reg.last_name|escapejs }}",
+    'email': "{{ reg.email|escapejs }}",
+    'gemeinde': "{{ church_name|escapejs }}"
+};
+
+function replaceTags(text) {
+    for (var key in tagValues) {
+        text = text.split('{{' + key + '}}').join(tagValues[key]);
+    }
+    return text;
+}
+
+var currentDecision = null;
+
+function selectDecision(decision) {
+    currentDecision = decision;
+    document.getElementById('decision_' + decision).checked = true;
+    document.getElementById('decisionAction').value = decision;
+
+    // Radiobutton-Styling
+    document.querySelectorAll('.decision-radio').forEach(function(el) { el.classList.remove('selected'); });
+    document.querySelector('.radio-' + decision).classList.add('selected');
+
+    // Checkboxen zuruecksetzen
+    document.querySelectorAll('.snippet-cb').forEach(function(cb) { cb.checked = false; });
+
+    // Text aufbauen und Tags ersetzen
+    rebuildText();
+
+    // Sektionen anzeigen
+    document.getElementById('snippetSection').style.display = 'block';
+    document.getElementById('responseSection').style.display = 'block';
+    document.getElementById('submitSection').style.display = 'block';
+
+    // Submit-Button stylen
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    if (decision === 'approve') {
+        btn.className = 'btn btn-lg btn-success';
+        btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Genehmigen & Antwort senden';
+    } else {
+        btn.className = 'btn btn-lg btn-danger';
+        btn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Ablehnen & Antwort senden';
+    }
+}
+
+// Textbausteine per Checkbox einfuegen/entfernen
+document.querySelectorAll('.snippet-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        rebuildText();
+    });
+});
+
+function rebuildText() {
+    var baseText = (currentDecision === 'approve') ? approveRaw : rejectRaw;
+    var extras = [];
+    document.querySelectorAll('.snippet-cb:checked').forEach(function(cb) {
+        extras.push(cb.dataset.text);
+    });
+    if (extras.length > 0) {
+        // Textbausteine vor dem Gruss einfuegen
+        var lines = baseText.split('\\n');
+        var grussIdx = -1;
+        for (var i = lines.length - 1; i >= 0; i--) {
+            if (lines[i].trim().toLowerCase().indexOf('mit freundlichen') === 0) {
+                grussIdx = i;
+                break;
+            }
+        }
+        if (grussIdx > 0) {
+            var before = lines.slice(0, grussIdx).join('\\n');
+            var after = lines.slice(grussIdx).join('\\n');
+            baseText = before + '\\n\\n' + extras.join('\\n\\n') + '\\n\\n' + after;
+        } else {
+            baseText = baseText + '\\n\\n' + extras.join('\\n\\n');
+        }
+    }
+    // Escaped newlines zu echten Zeilenumbruechen + Tags ersetzen
+    var finalText = baseText.replace(/\\n/g, '\n');
+    finalText = replaceTags(finalText);
+    document.getElementById('responseText').value = finalText;
+}
+
+// Bestaetigung vor Absenden
+document.getElementById('decisionForm').addEventListener('submit', function(e) {
+    var action = document.getElementById('decisionAction').value;
+    if (!action) {
+        e.preventDefault();
+        alert('Bitte waehlen Sie zuerst Genehmigen oder Ablehnen.');
+        return;
+    }
+    var msg = (action === 'approve')
+        ? 'Benutzer wirklich erstellen und Antwort-Mail senden?'
+        : 'Anfrage wirklich ablehnen und Antwort-Mail senden?';
+    if (!confirm(msg)) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

@@ -4,6 +4,8 @@ from authapp import views as auth_views
 from authapp import export_views
 from authapp import permissions_views
 from authapp import password_reset_views
+from authapp import autoconfig_views
+from authapp import mail_admin_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -11,6 +13,8 @@ urlpatterns = [
     path('ldap/mailing/', include('mailing.urls')),
     path('datenschutz/', include('privacy.urls')),
     path('tickets/', include('tickets.urls')),
+    path('hilfe/', include('helpcenter.urls')),
+    path('notizen/', include('personnotes.urls')),
     path('', auth_views.home, name='home'),
     path('login/', auth_views.ldap_login, name='login'),
     path('logout/', auth_views.custom_logout, name='logout'),
@@ -19,6 +23,7 @@ urlpatterns = [
     path('ldap/registrations/', auth_views.registration_requests, name='registration_requests'),
     path('ldap/registrations/<int:pk>/approve/', auth_views.registration_approve, name='registration_approve'),
     path('ldap/registrations/<int:pk>/reject/', auth_views.registration_reject, name='registration_reject'),
+    path('ldap/registrations/<int:pk>/edit/', auth_views.registration_edit, name='registration_edit'),
     path('ldap/registrations/<int:pk>/delete/', auth_views.registration_delete, name='registration_delete'),
     path('profile/', auth_views.profile, name='profile'),
     path('dashboard/', auth_views.user_dashboard, name='user_dashboard'),
@@ -68,6 +73,30 @@ urlpatterns = [
     # Member Management URLs
     path('ldap/member/add/', auth_views.member_add, name='member_add'),
     path('ldap/member/add-existing/', auth_views.member_add_existing, name='member_add_existing'),
+
+    # Geraete-Konfiguration URLs
+    path('profile/mobileconfig/', autoconfig_views.download_mobileconfig, name='download_mobileconfig'),
+    path('profile/android-setup/', autoconfig_views.android_setup, name='android_setup'),
+
+    # WiFi-Netzwerk Admin URLs
+    path('ldap/wifi/', autoconfig_views.wifi_network_list, name='wifi_network_list'),
+    path('ldap/wifi/create/', autoconfig_views.wifi_network_edit, name='wifi_network_create'),
+    path('ldap/wifi/<int:pk>/edit/', autoconfig_views.wifi_network_edit, name='wifi_network_edit'),
+    path('ldap/wifi/<int:pk>/delete/', autoconfig_views.wifi_network_delete, name='wifi_network_delete'),
+    path('ldap/wifi/<int:pk>/print/', autoconfig_views.wifi_network_print, name='wifi_network_print'),
+
+    # Mail-Verwaltung (Phase 6)
+    path('ldap/mail/', mail_admin_views.mail_overview, name='mail_overview'),
+    path('ldap/mail/domains/', mail_admin_views.mail_domain_list, name='mail_domain_list'),
+    path('ldap/mail/domains/create/', mail_admin_views.mail_domain_create, name='mail_domain_create'),
+    path('ldap/mail/domains/<str:domain_name>/edit/', mail_admin_views.mail_domain_edit, name='mail_domain_edit'),
+    path('ldap/mail/domains/<str:domain_name>/delete/', mail_admin_views.mail_domain_delete, name='mail_domain_delete'),
+    path('ldap/mail/groups/', mail_admin_views.mail_group_list, name='mail_group_list'),
+    path('ldap/mail/groups/create/', mail_admin_views.mail_group_create, name='mail_group_create'),
+    path('ldap/mail/groups/<str:b64dn>/edit/', mail_admin_views.mail_group_edit, name='mail_group_edit'),
+    path('ldap/mail/groups/<str:b64dn>/toggle/', mail_admin_views.mail_group_toggle_enabled, name='mail_group_toggle'),
+    path('ldap/mail/groups/<str:b64dn>/delete/', mail_admin_views.mail_group_delete, name='mail_group_delete'),
+    path('ldap/mail/bulk/', mail_admin_views.mail_bulk, name='mail_bulk'),
 
     # Backup Management URLs
     path('ldap/backup/', auth_views.backup_dashboard, name='backup_dashboard'),

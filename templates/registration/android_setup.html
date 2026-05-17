@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Android-Einrichtung{% endblock %}
+
+{% block extra_css %}
+<style>
+    .setup-container { max-width: 800px; margin: 2rem auto; }
+    .setup-header {
+        background: linear-gradient(135deg, var(--church-navy) 0%, #2a3a5f 100%);
+        color: white; padding: 2rem; border-radius: 12px 12px 0 0; text-align: center;
+    }
+    .setup-body {
+        background: white; padding: 2rem; border-radius: 0 0 12px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .copy-field {
+        display: flex; align-items: center; gap: 8px;
+        background: var(--church-beige); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;
+    }
+    .copy-field code { flex: 1; font-size: 0.95rem; word-break: break-all; }
+    .copy-field .btn-copy {
+        background: none; border: none; color: var(--church-navy); cursor: pointer; padding: 4px 8px;
+    }
+    .copy-field .btn-copy:hover { color: var(--church-gold); }
+    .step-number {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border-radius: 50%;
+        background: var(--church-navy); color: white; font-weight: 700; font-size: 0.9rem;
+        margin-right: 12px; flex-shrink: 0;
+    }
+    .step-item {
+        display: flex; align-items: flex-start; margin-bottom: 1rem;
+        padding: 12px; border-radius: 8px; background: #f8f9fa;
+    }
+    .wifi-qr { text-align: center; margin: 1rem 0; }
+    .wifi-qr svg { max-width: 200px; height: auto; }
+    .section-card {
+        border: 2px solid var(--church-beige); border-radius: 12px;
+        padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+    <div class="setup-header">
+        <i class="bi bi-android2" style="font-size: 3rem; color: #3DDC84;"></i>
+        <h2>Android-Einrichtung</h2>
+        <p class="mb-0">Schritt-fuer-Schritt zu E-Mail, Kalender, Kontakten und WLAN</p>
+    </div>
+
+    <div class="setup-body">
+
+        <!-- WiFi -->
+        {% if wifi_qr_codes %}
+        <div class="section-card">
+            <h5 style="color: var(--church-navy);">
+                <i class="bi bi-wifi me-2"></i>WLAN verbinden
+            </h5>
+            <p class="text-muted small">Scannen Sie den QR-Code mit Ihrer Kamera-App oder den WLAN-Einstellungen.</p>
+
+            {% for item in wifi_qr_codes %}
+            <div class="row align-items-center mb-3">
+                <div class="col-md-5 wifi-qr">
+                    {{ item.svg|safe }}
+                </div>
+                <div class="col-md-7">
+                    <h6>{{ item.network.name }}</h6>
+                    <div class="copy-field">
+                        <strong>SSID:</strong>
+                        <code id="wifi-ssid-{{ item.network.pk }}">{{ item.network.ssid }}</code>
+                        <button class="btn-copy" onclick="copyText('wifi-ssid-{{ item.network.pk }}')" title="Kopieren">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    {% if item.network.password %}
+                    <div class="copy-field">
+                        <strong>Passwort:</strong>
+                        <code id="wifi-pw-{{ item.network.pk }}">{{ item.network.password }}</code>
+                        <button class="btn-copy" onclick="copyText('wifi-pw-{{ item.network.pk }}')" title="Kopieren">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    <span class="badge bg-info">{{ item.network.get_encryption_type_display }}</span>
+                </div>
+            </div>
+            {% if not forloop.last %}<hr>{% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- E-Mail -->
+        {% if conf.imap_host %}
+        <div class="section-card">
+            <h5 style="color: var(--church-navy);">
+                <i class="bi bi-envelope me-2"></i>E-Mail einrichten
+            </h5>
+            <p class="text-muted small">Oeffnen Sie Ihre E-Mail-App (Gmail, K-9 Mail, etc.) und fuegen Sie ein neues Konto hinzu.</p>
+
+            <div class="step-item">
+                <span class="step-number">1</span>
+                <div>Oeffnen Sie <strong>Einstellungen</strong> &rarr; <strong>Konten</strong> &rarr; <strong>Konto hinzufuegen</strong> &rarr; <strong>E-Mail</strong> (oder direkt in Ihrer Mail-App)</div>
+            </div>
+            <div class="step-item">
+                <span class="step-number">2</span>
+                <div>Waehlen Sie <strong>IMAP</strong> als Kontotyp</div>
+            </div>
+            <div class="step-item">
+                <span class="step-number">3</span>
+                <div>Geben Sie folgende Daten ein:</div>
+            </div>
+
+            <div class="ms-5">
+                <div class="copy-field">
+                    <strong>E-Mail:</strong>
+                    <code id="email-addr">{{ user_attrs.mail }}</code>
+                    <button class="btn-copy" onclick="copyText('email-addr')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <h6 class="mt-3 mb-2">Posteingangsserver (IMAP)</h6>
+                <div class="copy-field">
+                    <strong>Server:</strong>
+                    <code id="imap-host">{{ conf.imap_host }}</code>
+                    <button class="btn-copy" onclick="copyText('imap-host')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Port:</strong>
+                    <code id="imap-port">{{ conf.imap_port }}</code>
+                    <button class="btn-copy" onclick="copyText('imap-port')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Sicherheit:</strong>
+                    <code>SSL/TLS</code>
+                </div>
+                <div class="copy-field">
+                    <strong>Benutzername:</strong>
+                    <code id="imap-user">{{ user_attrs.mail }}</code>
+                    <button class="btn-copy" onclick="copyText('imap-user')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+
+                <h6 class="mt-3 mb-2">Postausgangsserver (SMTP)</h6>
+                <div class="copy-field">
+                    <strong>Server:</strong>
+                    <code id="smtp-host">{{ conf.smtp_host }}</code>
+                    <button class="btn-copy" onclick="copyText('smtp-host')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Port:</strong>
+                    <code id="smtp-port">{{ conf.smtp_port }}</code>
+                    <button class="btn-copy" onclick="copyText('smtp-port')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Sicherheit:</strong>
+                    <code>SSL/TLS</code>
+                </div>
+                <div class="copy-field">
+                    <strong>Benutzername:</strong>
+                    <code id="smtp-user">{{ user_attrs.mail }}</code>
+                    <button class="btn-copy" onclick="copyText('smtp-user')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- CalDAV / CardDAV -->
+        {% if conf.caldav_url %}
+        <div class="section-card">
+            <h5 style="color: var(--church-navy);">
+                <i class="bi bi-calendar me-2"></i>Kalender & Kontakte (DAVx5)
+            </h5>
+            <p class="text-muted small">
+                Fuer Kalender und Kontakte empfehlen wir die App <strong>DAVx5</strong>
+                (kostenlos bei <a href="https://f-droid.org/packages/at.bitfire.davdroid/" target="_blank">F-Droid</a>
+                oder im <a href="https://play.google.com/store/apps/details?id=at.bitfire.davdroid" target="_blank">Play Store</a>).
+            </p>
+
+            <div class="step-item">
+                <span class="step-number">1</span>
+                <div>Installieren Sie <strong>DAVx5</strong> aus dem Play Store oder F-Droid</div>
+            </div>
+            <div class="step-item">
+                <span class="step-number">2</span>
+                <div>Oeffnen Sie DAVx5 und tippen Sie auf <strong>+</strong> (Konto hinzufuegen)</div>
+            </div>
+            <div class="step-item">
+                <span class="step-number">3</span>
+                <div>Waehlen Sie <strong>"Mit URL und Benutzername anmelden"</strong></div>
+            </div>
+            <div class="step-item">
+                <span class="step-number">4</span>
+                <div>Geben Sie folgende Daten ein:</div>
+            </div>
+
+            <div class="ms-5">
+                <div class="copy-field">
+                    <strong>URL:</strong>
+                    <code id="dav-url">{{ conf.caldav_url }}</code>
+                    <button class="btn-copy" onclick="copyText('dav-url')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Benutzername:</strong>
+                    <code id="dav-user">{{ user_attrs.uid }}</code>
+                    <button class="btn-copy" onclick="copyText('dav-user')" title="Kopieren"><i class="bi bi-clipboard"></i></button>
+                </div>
+                <div class="copy-field">
+                    <strong>Passwort:</strong>
+                    <code>Ihr Gemeinde-Passwort</code>
+                </div>
+            </div>
+
+            <div class="step-item mt-3">
+                <span class="step-number">5</span>
+                <div>DAVx5 erkennt automatisch Kalender und Adressbuecher. Waehlen Sie aus, was synchronisiert werden soll.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <a href="{% url 'profile' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Zurueck zum Profil
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyText(elementId) {
+    var el = document.getElementById(elementId);
+    var text = el.textContent || el.innerText;
+    navigator.clipboard.writeText(text.trim()).then(function() {
+        var btn = el.parentNode.querySelector('.btn-copy');
+        var origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check text-success"></i>';
+        setTimeout(function() { btn.innerHTML = origHTML; }, 1500);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Seelsorge-Notizen{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="text-church-navy mb-1"><i class="bi bi-journal-lock me-2"></i>Seelsorge-Notizen</h2>
+                <p class="text-muted mb-0">Verschluesselte Notizen pro Person ({{ total }} insgesamt)</p>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="card card-church p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label small mb-1">Suche (Person oder Titel)</label>
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="z.B. Peter, Gespraech...">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm w-100" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">Filtern</button>
+            </div>
+        </div>
+    </form>
+
+    {% if grouped %}
+        {% for g in grouped %}
+        <div class="card card-church mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-person-fill me-2"></i><strong>{{ g.display }}</strong> <code class="ms-2">{{ g.target_cn }}</code> &mdash; {{ g.notes|length }} Notiz(en)</span>
+                <a href="{% url 'personnotes:create' g.target_cn %}" class="btn btn-sm" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                    <i class="bi bi-plus-lg me-1"></i>Neue Notiz
+                </a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for n in g.notes %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{% url 'personnotes:detail' n.pk %}" class="text-decoration-none">
+                            <strong>{{ n.title }}</strong>
+                        </a>
+                        <div class="small text-muted">
+                            {{ n.author.username|default:'?' }} &middot; {{ n.updated_at|date:'d.m.Y H:i' }}
+                        </div>
+                    </div>
+                    <a href="{% url 'personnotes:detail' n.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Keine Notizen{% if q %} fuer "<strong>{{ q }}</strong>"{% endif %}.</div>
+    {% endif %}
+</div>
+{% endblock %}

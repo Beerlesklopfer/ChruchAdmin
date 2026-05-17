@@ -415,6 +415,89 @@
         })();
         </script>
 
+        <!-- Geraete-Konfiguration -->
+        <div style="background: white; border: 2px solid var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
+            <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">
+                <i class="bi bi-phone me-2"></i>Geraete-Konfiguration
+            </h5>
+            <p class="text-muted small mb-3">
+                Konfigurieren Sie E-Mail, Kalender, Kontakte und WLAN automatisch auf Ihrem Geraet.
+            </p>
+
+            <!-- Apple (iOS/macOS) -->
+            <div class="mb-4">
+                <h6 style="color: var(--church-navy);">
+                    <i class="bi bi-apple me-2"></i>Apple (iOS / macOS)
+                </h6>
+                <p class="text-muted small">Waehlen Sie die gewuenschten Dienste und laden Sie das Konfigurationsprofil herunter.</p>
+                <form method="post" action="{% url 'download_mobileconfig' %}">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="services" value="email" id="svc_email" checked>
+                                <label class="form-check-label" for="svc_email">
+                                    <i class="bi bi-envelope me-1"></i>E-Mail (IMAP/SMTP)
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="services" value="caldav" id="svc_caldav" checked>
+                                <label class="form-check-label" for="svc_caldav">
+                                    <i class="bi bi-calendar me-1"></i>Kalender (CalDAV)
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="services" value="carddav" id="svc_carddav" checked>
+                                <label class="form-check-label" for="svc_carddav">
+                                    <i class="bi bi-person-vcard me-1"></i>Kontakte (CardDAV)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            {% for wifi in wifi_networks %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="services" value="wifi_{{ wifi.pk }}" id="svc_wifi_{{ wifi.pk }}" checked>
+                                <label class="form-check-label" for="svc_wifi_{{ wifi.pk }}">
+                                    <i class="bi bi-wifi me-1"></i>WLAN: {{ wifi.ssid }}
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>Keine WLAN-Netzwerke konfiguriert.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="config_password" class="form-label">
+                            <i class="bi bi-shield-lock me-1"></i>Passwort bestaetigen
+                        </label>
+                        <input type="password" name="config_password" class="form-control" id="config_password"
+                               placeholder="Ihr aktuelles Passwort" required>
+                        <div class="text-muted small mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Ihr Passwort wird in das Profil eingebettet, damit sich die Dienste automatisch verbinden.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" style="background: var(--church-gold); color: var(--church-navy); font-weight: 600;">
+                        <i class="bi bi-download me-2"></i>Profil herunterladen (.mobileconfig)
+                    </button>
+                </form>
+            </div>
+
+            <hr>
+
+            <!-- Android -->
+            <div>
+                <h6 style="color: var(--church-navy);">
+                    <i class="bi bi-android2 me-2"></i>Android
+                </h6>
+                <p class="text-muted small">
+                    Android unterstuetzt keine automatischen Profile. Nutzen Sie unsere Einrichtungsseite mit QR-Code fuer WLAN und Schritt-fuer-Schritt-Anleitung.
+                </p>
+                <a href="{% url 'android_setup' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-phone me-2"></i>Android-Einrichtung oeffnen
+                </a>
+            </div>
+        </div>
+
         <!-- Passwort ändern -->
         <div style="background: white; border: 2px solid var(--church-beige); border-radius: 12px; padding: 2rem; margin-top: 2rem;">
             <h5 style="color: var(--church-navy); margin-bottom: 1.5rem;">

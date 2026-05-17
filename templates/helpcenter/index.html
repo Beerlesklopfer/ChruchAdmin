@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Hilfe-Center{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="text-church-navy mb-1">
+                    <i class="bi bi-question-circle me-2"></i>Hilfe-Center
+                </h2>
+                <p class="text-muted mb-0">Anleitungen und Erklaerungen zu deinem Konto</p>
+            </div>
+            {% if is_ldap_admin %}
+            <a href="{% url 'helpcenter:admin_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-gear me-1"></i>Artikel verwalten
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if categories %}
+        {% for cat in categories %}
+        <div class="mb-4">
+            <h4 class="text-church-navy border-bottom pb-2 mb-3">{{ cat.label }}</h4>
+            <div class="row g-3">
+                {% for art in cat.articles %}
+                <div class="col-md-6">
+                    <a href="{% url 'helpcenter:detail' art.slug %}" class="card card-church p-3 h-100 text-decoration-none text-dark hover-shadow">
+                        <h5 class="mb-1 text-church-navy">{{ art.title }}</h5>
+                        {% if art.summary %}<p class="text-muted small mb-0">{{ art.summary }}</p>{% endif %}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>Es sind noch keine Hilfe-Artikel veroeffentlicht.
+        {% if is_ldap_admin %}<a href="{% url 'helpcenter:admin_create' %}" class="alert-link">Ersten Artikel anlegen</a>.{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
